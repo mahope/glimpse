@@ -10,7 +10,9 @@
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "workers": "tsx scripts/start-workers.ts",
+    "dev:all": "concurrently \"npm run dev\" \"npm run workers\""
   },
   "dependencies": {
     "@better-fetch/fetch": "^1.0.0",
@@ -47,6 +49,7 @@
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "concurrently": "^8.2.2",
     "eslint": "^9.0.0",
     "eslint-config-next": "^16.1.0",
     "prisma": "^6.2.0",

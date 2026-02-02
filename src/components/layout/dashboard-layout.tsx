@@ -16,10 +16,11 @@ import {
   X
 } from "lucide-react"
 
-const navigation = [
+const getNavigation = (isAdmin: boolean) => [
   { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
   { name: 'Sites', href: '/sites', icon: Globe },
   { name: 'Performance', href: '/performance', icon: TrendingUp },
+  ...(isAdmin ? [{ name: 'Jobs Monitor', href: '/dashboard/jobs', icon: Settings }] : []),
   { name: 'Settings', href: '/settings', icon: Settings },
 ]
 
@@ -30,6 +31,8 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { data: session } = useSession()
+  const isAdmin = (session?.user as any)?.role === 'ADMIN'
+  const navigation = getNavigation(isAdmin)
 
   const handleSignOut = async () => {
     await signOut()

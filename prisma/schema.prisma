@@ -132,6 +132,7 @@ model Site {
   searchConsoleData SearchConsoleData[]
   performanceTests PerformanceTest[]
   seoScores        SeoScore[]
+  crawlResults     CrawlResult[]
   
   @@unique([organizationId, domain])
   @@map("site")
@@ -224,6 +225,48 @@ model SeoScore {
   @@unique([siteId, date])
   @@index([siteId, date])
   @@map("seo_score")
+}
+
+model CrawlResult {
+  id                     String       @id @default(cuid())
+  siteId                 String       @map("site_id")
+  crawlDate              DateTime     @map("crawl_date")
+  url                    String
+  
+  // Response Info
+  statusCode             Int          @map("status_code")
+  loadTimeMs             Int          @map("load_time_ms")
+  
+  // SEO Content
+  title                  String?
+  metaDescription        String?      @map("meta_description") @db.Text
+  h1Count                Int          @map("h1_count") @default(0)
+  h2Count                Int          @map("h2_count") @default(0)
+  
+  // Images
+  totalImages            Int          @map("total_images") @default(0)
+  imagesWithoutAlt       Int          @map("images_without_alt") @default(0)
+  
+  // Content Metrics
+  wordCount              Int          @map("word_count") @default(0)
+  contentLength          Int          @map("content_length") @default(0)
+  
+  // Links
+  totalLinks             Int          @map("total_links") @default(0)
+  internalLinks          Int          @map("internal_links") @default(0)
+  externalLinks          Int          @map("external_links") @default(0)
+  brokenLinks            Int          @map("broken_links") @default(0)
+  
+  // Issues & Analysis
+  issues                 Json?        // Array of SEOIssue objects
+  
+  createdAt              DateTime     @default(now())
+  
+  site                   Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  
+  @@index([siteId, crawlDate])
+  @@index([siteId, url])
+  @@map("crawl_result")
 }
 
 // Enums
