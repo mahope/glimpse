@@ -70,6 +70,9 @@ export default async function SitePage({ params }: SitePageProps) {
           <Button asChild variant="outline">
             <Link href="/sites">← Back to Sites</Link>
           </Button>
+          <Button asChild variant="outline">
+            <Link href={`/sites/${site.id}/reports`}>Reports</Link>
+          </Button>
           <Button asChild>
             <Link href={`/sites/${site.id}/performance`}>View Performance</Link>
           </Button>
