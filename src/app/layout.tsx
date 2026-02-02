@@ -6,7 +6,7 @@ import { serverInit } from './server-init'
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "SEO Tracker | mahope.dk",
+  title: "Glimpse | mahope.dk",
   description: "Professional SEO tracking dashboard for WordPress sites",
   keywords: ["SEO", "Search Console", "Performance", "Analytics", "WordPress"],
 }
