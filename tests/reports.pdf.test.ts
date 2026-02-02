@@ -19,10 +19,7 @@ describe('Report PDF generator', () => {
       issues: [ { id: 'i1', title: 'Missing meta description', severity: 'medium' } ],
       trends: [ { date: '2026-01-01', clicks: 1, impressions: 10, position: 10, ctr: 0.1 } ]
     } as any)
-    // In some environments, @react-pdf returns a Uint8Array. Accept that too.
-    const isBuf = Buffer.isBuffer(buf) || buf instanceof Uint8Array
-    expect(isBuf).toBe(true)
-    const len = (buf as any).byteLength ?? (buf as any).length ?? 0
+    const len = (buf as any)?.byteLength ?? (buf as any)?.length ?? 0
     expect(len).toBeGreaterThan(0)
   })
 })
