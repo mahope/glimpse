@@ -95,7 +95,7 @@ tmp/
 temp/
 
 # Prisma
-prisma/migrations/
+# prisma/migrations/
 
 # Editor directories and files
 .vscode/*
