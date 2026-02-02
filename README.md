@@ -146,8 +146,13 @@ glimpse/
 
 - `GET /api/sites` - List organization sites
 - `POST /api/sites` - Create new site
-- `POST /api/sites/[id]/performance/test` - Manual performance test
-- `GET /api/sites/[id]/performance` - Get performance data
+
+### Performance
+
+- `GET /api/sites/[siteId]/perf/latest?strategy=mobile|desktop&page=1&pageSize=50` — Latest PSI snapshot per URL for the site/strategy. Includes pagination totals.
+- `GET /api/sites/[siteId]/perf/daily?days=30` — Aggregated daily CWV percentiles (p75) and average Lighthouse perf score from SitePerfDaily.
+
+Both routes are organization-scoped and require an authenticated session.
 
 ### Cron Jobs
 
