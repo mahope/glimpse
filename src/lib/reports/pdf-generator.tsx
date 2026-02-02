@@ -13,14 +13,17 @@ import {
 } from '@react-pdf/renderer'
 import type { ReportData, KPI, CoreWebVitals, KeywordRow, Issue, TrendPoint } from './types'
 
-// Fonts (fallback to system fonts available in renderer)
-try {
-  Font.register({ family: 'Inter', fonts: [
-    { src: 'https://fonts.gstatic.com/s/inter/v12/UcC73FwrK3iLTeHuS_fv.ttf' },
-    { src: 'https://fonts.gstatic.com/s/inter/v12/UcC73FwrK3iLTeHuS_fv.ttf', fontWeight: 600 }
-  ] })
-} catch (e) {
-  // In test or restricted environments, font registration can fail; continue with defaults
+// Fonts: disable external font downloads by default to keep tests/CI stable.
+// Set PDF_ENABLE_FONTS=1 if you want to load web fonts at runtime.
+if (process.env.PDF_ENABLE_FONTS === '1') {
+  try {
+    Font.register({ family: 'Inter', fonts: [
+      { src: 'https://fonts.gstatic.com/s/inter/v12/UcC73FwrK3iLTeHuS_fv.ttf' },
+      { src: 'https://fonts.gstatic.com/s/inter/v12/UcC73FwrK3iLTeHuS_fv.ttf', fontWeight: 600 }
+    ] })
+  } catch (e) {
+    // ignore font registration failures
+  }
 }
 
 const styles = StyleSheet.create({
