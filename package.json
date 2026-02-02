@@ -12,7 +12,8 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
     "workers": "tsx scripts/start-workers.ts",
-    "dev:all": "concurrently \"npm run dev\" \"npm run workers\""
+    "dev:all": "concurrently \"npm run dev\" \"npm run workers\"",
+    "test": "vitest run"
   },
   "dependencies": {
     "@better-fetch/fetch": "^1.0.0",
