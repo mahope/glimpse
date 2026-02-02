@@ -1,4 +1,4 @@
-# SEO Tracker
+# Glimpse
 
 A comprehensive SEO dashboard for tracking WordPress site performance via Google Search Console and PageSpeed Insights.
 
@@ -36,7 +36,7 @@ A comprehensive SEO dashboard for tracking WordPress site performance via Google
 
 ```bash
 git clone <repository-url>
-cd seo-tracker
+cd glimpse
 npm install
 ```
 
@@ -89,7 +89,7 @@ Visit [http://localhost:3000](http://localhost:3000) to access the dashboard.
 ## Project Structure
 
 ```
-seo-tracker/
+glimpse/
 ├── proxy.ts                           # Next.js 16 auth protection
 ├── src/
 │   ├── app/
