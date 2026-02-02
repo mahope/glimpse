@@ -156,9 +156,14 @@ Both routes are organization-scoped and require an authenticated session.
 
 ### Cron Jobs
 
-- `POST /api/cron/sync-gsc` - Sync Google Search Console data
+- `POST /api/cron/gsc-refresh?siteId=&days=30` — Fetch per-day rows from GSC and upsert SearchStatDaily (secured via Authorization: Bearer ${CRON_SECRET})
 - `POST /api/cron/perf-refresh` - Enqueue PSI fetches per site (supports ?siteId and ?limit). Secured via Authorization: Bearer ${CRON_SECRET}
 - `POST /api/cron/calculate-scores` - Calculate SEO scores
+
+### GSC Aggregation Routes
+
+- `GET /api/sites/[siteId]/gsc/keywords?days=30&page=1&pageSize=50&device=all&country=all` — Aggregated KeywordSummary-like response from SearchStatDaily
+- `GET /api/sites/[siteId]/gsc/pages?days=30&page=1&pageSize=50` — Aggregated PageSummary-like response from SearchStatDaily
 
 ## Database Schema
 
