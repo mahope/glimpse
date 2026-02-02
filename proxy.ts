@@ -1,5 +1,19 @@
 import { betterFetch } from "@better-fetch/fetch"
 
+// Simple type for the session response
+type SessionResponse = {
+  user?: {
+    id: string
+    email: string
+    name?: string
+    role?: string
+  }
+  session?: {
+    id: string
+    activeOrganizationId?: string
+  }
+}
+
 const protectedRoutes = ["/dashboard", "/sites", "/admin"]
 const adminRoutes = ["/admin"]
 const authRoutes = ["/auth"]
@@ -27,14 +41,14 @@ export async function proxy(request: Request) {
   
   // Verify session
   try {
-    const { data: session } = await betterFetch("/api/auth/get-session", {
+    const { data: session } = await betterFetch<SessionResponse>("/api/auth/get-session", {
       baseURL: url.origin,
       headers: {
         cookie: request.headers.get("cookie") || "",
       },
     })
     
-    if (!session) {
+    if (!session || !session.user) {
       return Response.redirect(new URL("/auth/sign-in", url.origin))
     }
     
@@ -44,9 +58,10 @@ export async function proxy(request: Request) {
     }
     
     // If user has no active organization, redirect to organization setup
-    if (needsAuth && !session.session.activeOrganizationId && url.pathname !== "/dashboard/setup") {
-      return Response.redirect(new URL("/dashboard/setup", url.origin))
-    }
+    // For now, skip this check until organizations are properly set up
+    // if (needsAuth && !session.session?.activeOrganizationId && url.pathname !== "/dashboard/setup") {
+    //   return Response.redirect(new URL("/dashboard/setup", url.origin))
+    // }
     
   } catch (error) {
     console.error("Auth error in proxy:", error)

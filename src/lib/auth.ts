@@ -19,11 +19,7 @@ export const auth = betterAuth({
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      scope: [
-        'email',
-        'profile',
-        'https://www.googleapis.com/auth/webmasters.readonly'
-      ].join(' '),
+      scope: ['email', 'profile', 'https://www.googleapis.com/auth/webmasters.readonly'],
     },
   },
   plugins: [
@@ -105,7 +101,4 @@ export const auth = betterAuth({
     },
   },
   trustedOrigins: [process.env.NEXT_PUBLIC_APP_URL!],
-  advanced: {
-    generateId: () => crypto.randomUUID(),
-  },
 })

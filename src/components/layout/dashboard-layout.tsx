@@ -116,7 +116,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                         {session.user.name || session.user.email}
                       </div>
                       <div className="text-xs text-gray-500">
-                        {session.user.role === 'ADMIN' ? 'Administrator' : 'Customer'}
+                        {(session.user as any).role === 'ADMIN' ? 'Administrator' : 'Customer'}
                       </div>
                     </div>
                   </div>

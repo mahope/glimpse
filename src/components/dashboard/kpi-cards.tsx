@@ -3,10 +3,10 @@ import { TrendingUp, TrendingDown, MousePointer, Eye, BarChart3, Target } from "
 
 // Mock data - replace with real API calls
 const kpiData = {
-  clicks: { value: 12540, change: 12.5, trend: 'up' },
-  impressions: { value: 145200, change: -3.2, trend: 'down' },
-  ctr: { value: 8.6, change: 15.8, trend: 'up' },
-  position: { value: 12.3, change: -8.4, trend: 'down' }, // Lower position is better
+  clicks: { value: 12540, change: 12.5, trend: 'up' as const },
+  impressions: { value: 145200, change: -3.2, trend: 'down' as const },
+  ctr: { value: 8.6, change: 15.8, trend: 'up' as const },
+  position: { value: 12.3, change: -8.4, trend: 'down' as const }, // Lower position is better
 }
 
 interface KpiCardProps {

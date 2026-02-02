@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from "react"
-import { magicLink } from "@/lib/auth-client"
+import { signIn } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -18,7 +18,7 @@ export default function SignInPage() {
 
     setIsLoading(true)
     try {
-      await magicLink.sendMagicLink({ email })
+      await signIn.magicLink({ email })
       setIsEmailSent(true)
     } catch (error) {
       console.error('Failed to send magic link:', error)
