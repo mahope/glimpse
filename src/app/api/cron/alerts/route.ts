@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { prisma } from '@/lib/db'
 import { sendEmail } from '@/lib/email/client'
 import { subDays } from 'date-fns'
 
@@ -10,7 +10,7 @@ const RANK_DROP_THRESHOLD = 15 // points
 export async function POST(req: NextRequest) {
   try {
     const since = subDays(new Date(), 7)
-    const sites = await db.site.findMany({
+    const sites = await prisma.site.findMany({
       where: { isActive: true },
       include: {
         organization: { include: { members: { include: { user: true } } } },

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { prisma } from '@/lib/db'
 import { renderReportPDF } from '@/lib/reports/pdf-generator'
 import { sendEmail } from '@/lib/email/client'
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns'
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     const to = endOfMonth(subMonths(now, 1))
     const periodLabel = `${format(from, 'MMM d, yyyy')} - ${format(to, 'MMM d, yyyy')}`
 
-    const sites = await db.site.findMany({
+    const sites = await prisma.site.findMany({
       where: { isActive: true },
       include: {
         organization: { include: { members: { include: { user: true } } } },
