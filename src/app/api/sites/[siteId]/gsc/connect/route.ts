@@ -24,7 +24,9 @@ export async function POST(req: NextRequest, { params }: { params: { siteId: str
   const cookieHeader = req.headers.get('cookie') || ''
   const match = cookieHeader.match(/gsc_tokens=([^;]+)/)
   if (!match) return NextResponse.json({ error: 'Missing OAuth tokens' }, { status: 400 })
-  const encrypted = decodeURIComponent(match[1])
+  const raw = decodeURIComponent(match[1])
+  const parsed = JSON.parse(raw)
+  const encrypted = await (await import('@/lib/gsc/gsc-service')).GSCService.encryptToken(parsed.refresh_token)
 
   // Persist selection
   await prisma.site.update({ where: { id: site.id }, data: { gscPropertyUrl: body.data.propertyUrl, gscRefreshToken: encrypted, gscConnectedAt: new Date() } })

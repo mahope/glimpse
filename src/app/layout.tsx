@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
+import { serverInit } from './server-init'
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -10,11 +11,12 @@ export const metadata: Metadata = {
   keywords: ["SEO", "Search Console", "Performance", "Analytics", "WordPress"],
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  await serverInit()
   return (
     <html lang="en">
       <body className={inter.className}>{children}</body>

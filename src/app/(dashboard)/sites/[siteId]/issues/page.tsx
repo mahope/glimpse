@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { ReportsTab } from './reports-tab'
 import { useParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -327,6 +328,17 @@ export default function IssuesPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Reports Tab */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Recent Crawl Reports</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* @ts-expect-error Server/Client boundary */}
+          <ReportsTab siteId={siteId} />
+        </CardContent>
+      </Card>
 
       {/* Issues List */}
       <Card>

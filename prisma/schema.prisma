@@ -133,6 +133,7 @@ model Site {
   performanceTests PerformanceTest[]
   seoScores        SeoScore[]
   crawlResults     CrawlResult[]
+  crawlReports     CrawlReport[]
   
   @@unique([organizationId, domain])
   @@map("site")
@@ -267,6 +268,23 @@ model CrawlResult {
   @@index([siteId, crawlDate])
   @@index([siteId, url])
   @@map("crawl_result")
+}
+
+model CrawlReport {
+  id              String   @id @default(cuid())
+  siteId          String   @map("site_id")
+  startedAt       DateTime @map("started_at")
+  finishedAt      DateTime? @map("finished_at")
+  pagesCrawled    Int      @default(0) @map("pages_crawled")
+  totals          Json?
+  issueBreakdown  Json?    @map("issue_breakdown")
+  topIssues       Json?    @map("top_issues")
+  summary         String?  @db.Text
+
+  site            Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId, startedAt])
+  @@map("crawl_report")
 }
 
 // Enums
