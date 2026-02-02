@@ -71,11 +71,14 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ### 3. Database Setup
 
 ```bash
-# Push schema to database
-npm run db:push
+# Generate Prisma client
+npm run db:generate
 
-# Or run migrations (recommended for production)
+# Apply migrations (recommended)
 npm run db:migrate
+
+# Open Prisma Studio (optional)
+npm run db:studio
 ```
 
 ### 4. Run Development Server
