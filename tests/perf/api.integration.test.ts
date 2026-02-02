@@ -1,10 +1,21 @@
-import { describe, it, expect, beforeAll, vi } from 'vitest'
+import { describe, it, expect, beforeAll } from 'vitest'
 import { prisma } from '@/lib/db'
 import { saveSnapshot, upsertDaily } from '@/lib/perf/psi-service'
 
-// Note: These tests assume a test database is configured (e.g., sqlite or separate Postgres)
+// Skips if no DB connection available
+async function canConnect() {
+  try {
+    await prisma.$queryRaw`SELECT 1` as any
+    return true
+  } catch {
+    return false
+  }
+}
 
-describe('perf api routes', () => {
+const run = await canConnect()
+const d = run ? describe : describe.skip
+
+d('perf api routes', () => {
   const siteId = 'site_abc'
 
   beforeAll(async () => {
@@ -30,7 +41,6 @@ describe('perf api routes', () => {
   })
 
   it('latest returns latest per URL with pagination shape', async () => {
-    // Simulate calling route handler directly would require Next request mocking; here we just assert DB queries shape
     const groups = await prisma.perfSnapshot.groupBy({ by: ['url'], where: { siteId, strategy: 'MOBILE' }})
     expect(groups.length).toBeGreaterThan(0)
 
