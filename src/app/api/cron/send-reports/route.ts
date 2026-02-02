@@ -2,11 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { renderReportPDF } from '@/lib/reports/pdf-generator'
 import { sendEmail } from '@/lib/email/client'
-import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns'
+import { format, subMonths, startOfMonth, endOfMonth, subDays, startOfDay, endOfDay } from 'date-fns'
 import { verifyCronSecret } from '@/lib/cron/auth'
-
-// Basic report settings on Site via Prisma: add columns in a later migration if needed
-// For now, pick all active sites and send to organization owners' emails from Member table
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,21 +21,30 @@ export async function POST(req: NextRequest) {
         organization: { include: { members: { include: { user: true } } } },
         seoScores: { where: { date: { gte: from, lte: to } }, orderBy: { date: 'desc' }, take: 1 },
         performanceTests: { orderBy: { createdAt: 'desc' }, take: 1 },
+        searchConsoleData: { where: { date: { gte: from, lte: to } }, orderBy: { date: 'asc' } },
       }
     })
 
     let sent = 0
     for (const site of sites) {
-      // Collect minimal data for v1
       const score = site.seoScores[0]?.score ?? undefined
       const perf = site.performanceTests[0]
 
-      // KPIs mock for now (extend with GSC aggregation later)
+      // Aggregate GSC KPIs for the month
+      const totals = site.searchConsoleData.reduce((acc, r) => {
+        acc.clicks += r.clicks
+        acc.impressions += r.impressions
+        acc.ctr += r.ctr
+        acc.position += r.position
+        acc.n += 1
+        return acc
+      }, { clicks: 0, impressions: 0, ctr: 0, position: 0, n: 0 })
+
       const kpis = [
-        { label: 'Clicks', value: 0 },
-        { label: 'Impressions', value: 0 },
-        { label: 'Avg. Position', value: '-' },
-        { label: 'CTR', value: '0%' },
+        { label: 'Clicks', value: totals.clicks },
+        { label: 'Impressions', value: totals.impressions },
+        { label: 'Avg. Position', value: totals.n ? (totals.position / totals.n).toFixed(1) : '-' },
+        { label: 'CTR', value: totals.n ? `${((totals.ctr / totals.n) * 100).toFixed(1)}%` : '-' },
       ]
 
       const data = {
@@ -66,10 +72,13 @@ export async function POST(req: NextRequest) {
 
       if (!recipients.length) continue
 
+      // Simple text summary
+      const summaryText = `Site: ${site.name} (${site.domain})\nScore: ${score ?? 'N/A'}\nClicks: ${totals.clicks}, Impressions: ${totals.impressions}, Avg Pos: ${kpis[2].value}, CTR: ${kpis[3].value}`
+
       await sendEmail({
         to: recipients,
         subject: `Glimpse Report: ${site.name} — ${periodLabel}`,
-        html: `<p>Your monthly report for <b>${site.name}</b> is attached.</p>` ,
+        html: `<p>Your monthly report for <b>${site.name}</b> is attached.</p><p><b>Summary:</b><br/>${summaryText.replace(/\n/g, '<br/>')}</p>` ,
         attachments: [{ filename: `${site.domain}-${format(from, 'yyyy-MM')}.pdf`, content: pdf, contentType: 'application/pdf' }],
       })
       sent++
