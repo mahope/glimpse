@@ -27,7 +27,7 @@ if (process.env.PDF_ENABLE_FONTS === '1') {
 }
 
 const styles = StyleSheet.create({
-  page: { padding: 32, fontFamily: 'Inter', color: '#111827' },
+  page: { padding: 32, fontFamily: 'Helvetica', color: '#111827' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   siteBlock: {},
   siteName: { fontSize: 16, fontWeight: 600 },
