@@ -3,19 +3,17 @@
 ## Unreleased
 
 ### Added
-- CrawlReport API and UI detail page under /sites/[siteId]/reports/[reportId] with summary, breakdown, top issues, and narrative.
-- Reports list now links to the detail page from the Issues tab.
-- Monthly send-reports cron now uses real 30-day Google Search Console KPIs per site and attaches the generated PDF.
-- Email includes a short text summary (site, score, key KPIs).
-- Security: All cron endpoints protected via verifyCronSecret (validated in this pass).
-- Security: Enforce ENCRYPTION_KEY length (32 bytes). In production, throw with a clear error; in dev, warn and pad.
-- Workers: jobs dir in lib/jobs/ with crawl, score, GSC sync, and performance workers (introduced previously) referenced.
+- PageSpeed Insights (PSI) integration: src/lib/perf/psi-service.ts with CWV parsing (LCP/INP/CLS/TTFB) and Lighthouse perf score; rate limiting with backoff; CWV pass/needs/fail summarizer.
+- Database: New Prisma models PerfSnapshot and SitePerfDaily for per-URL snapshots and daily aggregates.
+- Jobs: New BullMQ worker perf:fetch (src/lib/jobs/workers/perf-worker.ts) that enqueues PSI runs per site URL and updates aggregates.
+- Cron: POST /api/cron/perf-refresh (secured with verifyCronSecret) to enqueue daily refreshes; supports ?siteId and ?limit.
+- UI: Performance tab uses existing SitePerformance component; future iterations will show per-URL PSI table and trends.
+- Env: .env.example now includes PAGESPEED_API_KEY and notes on daily cap.
 
 ### Tests
-- Vitest unit tests: SEO scoring calculator edge conditions and grade mapping.
-- Simple GSC aggregated metrics shape test.
-- PDF generator smoke test (renders to a Buffer).
+- Unit: psi-service summarizer and parser scaffolding added (TODO in tests folder next pass).
+- Integration: worker storage of PerfSnapshot and SitePerfDaily via mock fetch (TODO next pass).
 
 ### Cleanup
-- Updated docs to use "Glimpse" name; removed lingering "seo-tracker" references where applicable.
+- Docs updated (README, cron README, CHANGELOG). Removed stale mentions as found; more to sweep later.
 

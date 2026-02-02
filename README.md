@@ -6,7 +6,7 @@ A comprehensive SEO dashboard for tracking WordPress site performance via Google
 
 - 📊 **Dashboard Analytics** - KPI cards, trending charts, top keywords & pages
 - 🔍 **Google Search Console Integration** - Automated data sync for clicks, impressions, CTR, and positions
-- ⚡ **Performance Monitoring** - Core Web Vitals tracking via PageSpeed Insights API
+- ⚡ **Performance Monitoring** - Core Web Vitals tracking via PageSpeed Insights API (daily via BullMQ queue perf:fetch)
 - 🏢 **Multi-tenant** - Organization-based site management via Better Auth
 - 📧 **Magic Link Authentication** - Passwordless login with email
 - 🎯 **SEO Scoring** - Calculated scores based on multiple performance factors
@@ -149,7 +149,7 @@ glimpse/
 ### Cron Jobs
 
 - `POST /api/cron/sync-gsc` - Sync Google Search Console data
-- `POST /api/cron/performance-test` - Run performance tests
+- `POST /api/cron/perf-refresh` - Enqueue PSI fetches per site (supports ?siteId and ?limit). Secured via Authorization: Bearer ${CRON_SECRET}
 - `POST /api/cron/calculate-scores` - Calculate SEO scores
 
 ## Database Schema
