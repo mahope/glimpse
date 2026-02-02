@@ -2,16 +2,12 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { CrawlerService } from "@/lib/crawler/crawler-service"
 import { SEOCalculator } from "@/lib/scoring/calculator"
+import { verifyCronSecret } from '@/lib/cron/auth'
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify this is a legitimate cron request
-    const authHeader = request.headers.get('authorization')
-    const cronSecret = process.env.CRON_SECRET || 'dev-secret'
-    
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    const unauthorized = verifyCronSecret(request)
+    if (unauthorized) return unauthorized
 
     console.log('Starting weekly site crawl job...')
 
@@ -36,7 +32,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`Found ${sites.length} active sites to crawl`)
 
-    const results = []
+    const results = [] as any[]
     let successCount = 0
     let errorCount = 0
 
@@ -166,13 +162,8 @@ export async function POST(request: NextRequest) {
 // Also allow GET for manual triggers (with proper auth)
 export async function GET(request: NextRequest) {
   try {
-    // Check for admin authorization
-    const authHeader = request.headers.get('authorization')
-    const adminSecret = process.env.ADMIN_SECRET || process.env.CRON_SECRET || 'dev-secret'
-    
-    if (authHeader !== `Bearer ${adminSecret}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    const unauthorized = verifyCronSecret(request)
+    if (unauthorized) return unauthorized
 
     // Trigger the same logic as POST
     return POST(request)

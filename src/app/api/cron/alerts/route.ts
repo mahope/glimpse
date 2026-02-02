@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { sendEmail } from '@/lib/email/client'
 import { subDays } from 'date-fns'
+import { verifyCronSecret } from '@/lib/cron/auth'
 
 // Very simple alerting: if latest seoScore dropped > X vs 7d ago, or recent performance failures
 // Thresholds will later be configurable per site
@@ -9,6 +10,9 @@ const RANK_DROP_THRESHOLD = 15 // points
 
 export async function POST(req: NextRequest) {
   try {
+    const unauthorized = verifyCronSecret(req)
+    if (unauthorized) return unauthorized
+
     const since = subDays(new Date(), 7)
     const sites = await prisma.site.findMany({
       where: { isActive: true },

@@ -3,12 +3,16 @@ import { prisma } from '@/lib/db'
 import { renderReportPDF } from '@/lib/reports/pdf-generator'
 import { sendEmail } from '@/lib/email/client'
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns'
+import { verifyCronSecret } from '@/lib/cron/auth'
 
 // Basic report settings on Site via Prisma: add columns in a later migration if needed
 // For now, pick all active sites and send to organization owners' emails from Member table
 
 export async function POST(req: NextRequest) {
   try {
+    const unauthorized = verifyCronSecret(req)
+    if (unauthorized) return unauthorized
+
     const now = new Date()
     const from = startOfMonth(subMonths(now, 1))
     const to = endOfMonth(subMonths(now, 1))
