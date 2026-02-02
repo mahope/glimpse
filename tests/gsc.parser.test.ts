@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 
 // Minimal shape test for aggregated metrics from GSCService
 import { GSCService } from '@/lib/gsc/gsc-service'
