@@ -63,9 +63,16 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
     const position = r._avg.position || 0
 
     const prev = prevMap.get(r.query!)
-    const pClicks = prev?._sum.clicks || 0
-    const pImpr = prev?._sum.impressions || 0
-    const pPos = prev?._avg.position || 0
+    let pClicks = prev?._sum.clicks || 0
+    let pImpr = prev?._sum.impressions || 0
+    let pPos = prev?._avg.position || 0
+
+    // In MOCK_GSC mode, synthesize prior window so trends are non-zero
+    if (process.env.MOCK_GSC === 'true' && pClicks === 0 && pImpr === 0 && pPos === 0) {
+      pClicks = Math.max(0, Math.round(clicks * 0.8))
+      pImpr = Math.max(0, Math.round(impressions * 0.9))
+      pPos = position * 1.1
+    }
 
     const currCtr = ctr(clicks, impressions)
     const prevCtr = ctr(pClicks, pImpr)
