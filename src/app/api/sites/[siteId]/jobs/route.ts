@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { headers } from 'next/headers'
 import { prisma } from '@/lib/db'
 import { EnqueueJobBodySchema, GSCSyncSchema, PsiTestSchema, CrawlSchema, ScoreCalcSchema } from '@/lib/jobs/types'
 import { triggerJob } from '@/lib/jobs/queue'
 
 export async function POST(request: NextRequest, { params }: { params: { siteId: string } }) {
   try {
-    const session = await auth.api.getSession({ headers: await headers() })
+    const session = await auth.api.getSession({ headers: Object.fromEntries(request.headers.entries()) })
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await request.json()
