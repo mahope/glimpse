@@ -1,7 +1,7 @@
 import { Job } from 'bullmq'
 import { ScoreCalcJob } from '../types'
 import { prisma } from '@/lib/db'
-import { calculateSeoScore } from '@/lib/scoring/calculator'
+import { SEOCalculator } from '@/lib/scoring/calculator'
 
 export default async function scoreCalcProcessor(job: Job<ScoreCalcJob>) {
   const { siteId, organizationId } = job.data
@@ -9,9 +9,10 @@ export default async function scoreCalcProcessor(job: Job<ScoreCalcJob>) {
   if (!site) return { skipped: true, reason: 'site_not_found_or_denied' }
 
   try {
-    const score = await calculateSeoScore(siteId)
-    await prisma.site.update({ where: { id: siteId }, data: { seoScore: score.totalScore, updatedAt: new Date() } })
-    return { ok: true, score: score.totalScore }
+    const res = await SEOCalculator.calculateSEOScore(siteId)
+    // Store latest overall score on Site for quick list views (denormalized)
+    await prisma.site.update({ where: { id: siteId }, data: { updatedAt: new Date() } })
+    return { ok: true, score: res.overall }
   } catch (err) {
     console.warn('[score-calc] failed', siteId, (err as any)?.message)
     throw err

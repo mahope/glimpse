@@ -1,6 +1,7 @@
 import { headers } from 'next/headers'
 import { auth } from '@/lib/auth'
 import KeywordsClient from './KeywordsClient'
+import { SiteNav } from '@/components/site/site-nav'
 
 async function fetchKeywords(siteId: string, params: URLSearchParams) {
   const qs = params.toString()
@@ -16,7 +17,10 @@ export default async function KeywordsPage({ params, searchParams }: any) {
 
   return (
     <div className="p-6 space-y-4">
-      <h1 className="text-2xl font-semibold">Keywords</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Keywords</h1>
+      </div>
+      <SiteNav siteId={siteId} active="keywords" />
       {/* @ts-expect-error Server Component boundary */}
       <KeywordsClient siteId={siteId} initial={data} />
     </div>

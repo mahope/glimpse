@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { QueueButtons } from '@/components/perf/QueueButtons'
 import { PerfChart } from '@/components/perf/PerfChart'
+import { PerfTable } from '@/components/perf/PerfTable'
+import { SiteNav } from '@/components/site/site-nav'
 
 function StatusPill({ status }: { status: 'pass' | 'warn' | 'fail' | 'na' }) {
   const cls = status === 'pass' ? 'bg-green-100 text-green-800'
@@ -32,6 +34,12 @@ async function fetchPerf(siteId: string, strategy?: 'mobile'|'desktop'|null, ref
   return res.json() as Promise<{ url: string; results: Record<string, any> }>
 }
 
+async function hasOpenAlerts(siteId: string) {
+  const since = new Date(Date.now() - 24*60*60*1000)
+  const count = await prisma.alertEvent.count({ where: { siteId, status: 'OPEN', createdAt: { gte: since } } })
+  return count > 0
+}
+
 export default async function PerformancePage({ params }: { params: { siteId: string } }) {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session?.user) redirect('/auth/sign-in')
@@ -43,6 +51,7 @@ export default async function PerformancePage({ params }: { params: { siteId: st
   if (!site) notFound()
 
   const data = await fetchPerf(site.id, null, false)
+  const showBadge = await hasOpenAlerts(site.id)
 
   const Card = ({ title, payload }: { title: string; payload?: any }) => (
     <div className="rounded border p-4">
@@ -75,11 +84,14 @@ export default async function PerformancePage({ params }: { params: { siteId: st
           <p className="text-gray-600 mt-2">Core Web Vitals and PageSpeed Insights</p>
         </div>
         <div className="flex gap-3 items-center">
-          <Button asChild variant="outline"><Link href={`/sites/${site.id}`}>← Back to Site</Link></Button>
+          {showBadge && <Link href={`/sites/${site.id}/alerts`} className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">Alerts</Link>}
+          <Button asChild variant="outline"><Link href={`/sites/${site.id}/overview`}>← Back to Overview</Link></Button>
           <Button asChild><Link href={`/sites/${site.id}/performance?refresh=1`}>Refresh PSI</Link></Button>
           <QueueButtons siteId={site.id} />
         </div>
       </div>
+
+      <SiteNav siteId={site.id} active="performance" />
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card title="Mobile" payload={(data.results as any)?.mobile} />
@@ -89,6 +101,13 @@ export default async function PerformancePage({ params }: { params: { siteId: st
       <div>
         <h2 className="text-xl font-semibold mt-6 mb-2">History</h2>
         <PerfChart siteId={site.id} days={30} />
+      </div>
+
+      <div>
+        <h2 className="text-xl font-semibold mt-6 mb-2">Latest per URL</h2>
+        {/* Client component renders latest snapshots table */}
+        {/* @ts-expect-error Server Component boundary */}
+        <PerfTable siteId={site.id} />
       </div>
     </div>
   )

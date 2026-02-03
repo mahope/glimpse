@@ -1,62 +1,109 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { sendEmail } from '@/lib/email/client'
-import { subDays } from 'date-fns'
 import { verifyCronSecret } from '@/lib/cron/auth'
-
-// Very simple alerting: if latest seoScore dropped > X vs 7d ago, or recent performance failures
-// Thresholds will later be configurable per site
-const RANK_DROP_THRESHOLD = 15 // points
+import { subDays, isAfter } from 'date-fns'
+import { evaluateRule } from '@/lib/alerts/evaluator'
+import { SeriesPoint } from '@/lib/alerts/types'
+import { sendAlertEmail } from '@/lib/email/alerts'
 
 export async function POST(req: NextRequest) {
   try {
     const unauthorized = verifyCronSecret(req)
     if (unauthorized) return unauthorized
 
-    const since = subDays(new Date(), 7)
+    // Load active sites with owners for fallback recipients
     const sites = await prisma.site.findMany({
       where: { isActive: true },
-      include: {
-        organization: { include: { members: { include: { user: true } } } },
-        seoScores: { orderBy: { date: 'desc' }, take: 5 },
-        performanceTests: { orderBy: { createdAt: 'desc' }, take: 3 },
-      }
+      include: { organization: { include: { members: { include: { user: true } } } } },
+    })
+    const siteIds = sites.map(s => s.id)
+
+    const rules = await prisma.alertRule.findMany({ where: { siteId: { in: siteIds }, enabled: true } })
+
+    // For each site, pull last 2 days of SitePerfDaily for all devices
+    const since = subDays(new Date(), 2)
+    const perf = await prisma.sitePerfDaily.findMany({
+      where: { siteId: { in: siteIds }, date: { gte: since } },
+      orderBy: { date: 'asc' },
     })
 
-    let alerts = 0
-
-    for (const site of sites) {
-      const [latest, ...rest] = site.seoScores
-      const weekAgo = rest.find(s => s.date < since)
-      let messages: string[] = []
-
-      if (latest && weekAgo && latest.score <= weekAgo.score - RANK_DROP_THRESHOLD) {
-        messages.push(`SEO score dropped from ${weekAgo.score} to ${latest.score} in the past week.`)
-      }
-
-      const failed = site.performanceTests.find(t => t.status === 'FAILED')
-      if (failed) {
-        messages.push(`Recent performance test failed for ${failed.testUrl}.`)
-      }
-
-      if (!messages.length) continue
-
-      const recipients = site.organization.members
-        .filter(m => m.role === 'OWNER' || m.role === 'ADMIN')
-        .map(m => m.user.email)
-        .filter(Boolean) as string[]
-
-      if (!recipients.length) continue
-
-      await sendEmail({
-        to: recipients,
-        subject: `Glimpse Alert: ${site.name}`,
-        html: `<p>${messages.join('<br/>')}</p>`
+    // Group by site
+    const bySite = new Map<string, SeriesPoint[]>()
+    for (const p of perf) {
+      const arr = bySite.get(p.siteId) ?? []
+      arr.push({
+        date: p.date,
+        device: p.device,
+        lcpPctl: p.lcpPctl,
+        inpPctl: p.inpPctl,
+        clsPctl: p.clsPctl,
+        perfScoreAvg: p.perfScoreAvg,
       })
-      alerts++
+      bySite.set(p.siteId, arr)
     }
 
-    return NextResponse.json({ ok: true, alerts })
+    const results: any[] = []
+
+    for (const rule of rules) {
+      const series = bySite.get(rule.siteId) ?? []
+      const latestDate = series.sort((a, b) => +new Date(b.date) - +new Date(a.date))[0]?.date ?? new Date()
+      const evalRes = evaluateRule(rule.metric, rule.threshold, rule.device, series)
+
+      // Debounce: if an OPEN event already exists for the same (site,metric,device) on the same date, skip
+      const start = new Date(Date.UTC(latestDate.getUTCFullYear(), latestDate.getUTCMonth(), latestDate.getUTCDate()))
+      const end = new Date(start); end.setUTCDate(end.getUTCDate() + 1)
+      const openRecentList = await prisma.alertEvent.findMany({
+        where: {
+          siteId: rule.siteId,
+          metric: rule.metric,
+          device: rule.device,
+          status: 'OPEN',
+          date: { gte: start, lt: end },
+        },
+      })
+
+      if (evalRes.violated) {
+        if (!openRecentList.length) {
+          const event = await prisma.alertEvent.create({
+            data: {
+              siteId: rule.siteId,
+              metric: rule.metric,
+              device: rule.device,
+              date: latestDate,
+              value: evalRes.value ?? 0,
+              ruleId: rule.id,
+              status: 'OPEN',
+            },
+          })
+
+          // Send email with per-rule recipients or fallback to site owners
+          const site = sites.find(s => s.id === rule.siteId)!
+          const owners = (site.organization?.members ?? []).filter(m => m.role === 'OWNER').map(m => (m as any).user?.email).filter(Boolean) as string[]
+          await sendAlertEmail(site, rule, event, owners)
+          results.push({ ruleId: rule.id, created: event.id })
+        } else {
+          results.push({ ruleId: rule.id, skipped: 'open-recent' })
+        }
+      } else {
+        // If condition cleared next day, resolve any open events
+        const opens = await prisma.alertEvent.findMany({
+          where: { siteId: rule.siteId, metric: rule.metric, device: rule.device, status: 'OPEN' },
+        })
+        for (const ev of opens) {
+          // Resolve if the latest evaluated date is after event.date
+          const latestDate = series.sort((a, b) => +new Date(b.date) - +new Date(a.date))[0]?.date
+          if (latestDate && isAfter(latestDate, ev.date)) {
+            await prisma.alertEvent.update({
+              where: { id: ev.id },
+              data: { status: 'RESOLVED', resolvedAt: new Date() },
+            })
+            results.push({ ruleId: rule.id, resolved: ev.id })
+          }
+        }
+      }
+    }
+
+    return NextResponse.json({ ok: true, results })
   } catch (e: any) {
     console.error(e)
     return NextResponse.json({ ok: false, error: e.message }, { status: 500 })

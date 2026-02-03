@@ -2,9 +2,8 @@ import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
 import { prisma } from '@/lib/db'
 import { redirect, notFound } from 'next/navigation'
-import { SiteDetails } from '@/components/dashboard/site-details'
-import { Button } from '@/components/ui/button'
 import Link from 'next/link'
+import { SiteNav } from '@/components/site/site-nav'
 
 interface SitePageProps {
   params: {
@@ -26,60 +25,16 @@ export default async function SitePage({ params }: SitePageProps) {
     redirect('/dashboard')
   }
 
-  // Fetch site with all related data
+  // Verify site exists and is accessible, then redirect to Overview as default landing
   const site = await prisma.site.findFirst({
-    where: {
-      id: params.siteId,
-      organizationId: organizationId,
-      isActive: true,
-    },
-    include: {
-      organization: {
-        select: {
-          name: true,
-          slug: true,
-        },
-      },
-      searchConsoleData: {
-        orderBy: { date: 'desc' },
-        take: 30, // Last 30 days
-      },
-      performanceTests: {
-        orderBy: { createdAt: 'desc' },
-        take: 10, // Last 10 tests
-      },
-      seoScores: {
-        orderBy: { date: 'desc' },
-        take: 30, // Last 30 days
-      },
-    },
+    where: { id: params.siteId, organizationId: organizationId, isActive: true },
+    select: { id: true }
   })
 
   if (!site) {
     notFound()
   }
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">{site.name}</h1>
-          <p className="text-gray-600 mt-2">{site.domain}</p>
-        </div>
-        <div className="flex gap-2">
-          <Button asChild variant="outline">
-            <Link href="/sites">← Back to Sites</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href={`/sites/${site.id}/reports`}>Reports</Link>
-          </Button>
-          <Button asChild>
-            <Link href={`/sites/${site.id}/performance`}>View Performance</Link>
-          </Button>
-        </div>
-      </div>
-
-      <SiteDetails site={site} />
-    </div>
-  )
+  // Default landing → Overview
+  return redirect(`/sites/${site.id}/overview`)
 }

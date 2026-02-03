@@ -336,6 +336,12 @@ Kritiske tests:
 - Organization membership
 - Site ownership verification
 - Performance thresholds
+- API smoke: overview, GSC keywords, GSC pages (added)
+
+## Recent changes (Phase 8)
+- Overview route/page added under /sites/[siteId]/overview and set as site default landing
+- Unified scoring to lib/scoring/calculator.ts (workers/processors). Performance uses latest MOBILE PSI PerfSnapshot.perfScore (fallback 0 if missing)
+- Added API smoke tests for overview and GSC endpoints
 
 ## Sikkerhed
 

@@ -1,6 +1,7 @@
 import { headers } from 'next/headers'
 import { auth } from '@/lib/auth'
 import PagesClient from './PagesClient'
+import { SiteNav } from '@/components/site/site-nav'
 
 async function fetchPages(siteId: string, params: URLSearchParams) {
   const qs = params.toString()
@@ -16,7 +17,10 @@ export default async function PagesPage({ params, searchParams }: any) {
 
   return (
     <div className="p-6 space-y-4">
-      <h1 className="text-2xl font-semibold">Pages</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Pages</h1>
+      </div>
+      <SiteNav siteId={siteId} active="pages" />
       {/* @ts-expect-error Server Component boundary */}
       <PagesClient siteId={siteId} initial={data} />
     </div>

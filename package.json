@@ -13,6 +13,7 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
+    "seed:alerts": "tsx scripts/seed-alerts.ts",
     "workers": "tsx scripts/start-workers.ts",
     "dev:all": "concurrently \"npm run dev\" \"npm run workers\"",
     "test": "vitest run"
