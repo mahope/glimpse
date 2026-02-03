@@ -43,23 +43,24 @@ export async function POST(req: NextRequest) {
 
     for (const rule of rules) {
       const series = bySite.get(rule.siteId) ?? []
+      const latestDate = series.sort((a, b) => +new Date(b.date) - +new Date(a.date))[0]?.date ?? new Date()
       const evalRes = evaluateRule(rule.metric, rule.threshold, rule.device, series)
 
-      // Debounce: if an OPEN event exists within last 24h for same tuple, do not create new
+      // Debounce: if an OPEN event already exists for the same (site,metric,device) on the same date, skip
+      const start = new Date(Date.UTC(latestDate.getUTCFullYear(), latestDate.getUTCMonth(), latestDate.getUTCDate()))
+      const end = new Date(start); end.setUTCDate(end.getUTCDate() + 1)
       const openRecent = await prisma.alertEvent.findFirst({
         where: {
           siteId: rule.siteId,
           metric: rule.metric,
           device: rule.device,
           status: 'OPEN',
-          // Debounce by event date to keep tests offline (no DB default timestamps)
-          date: { gte: subDays(new Date(), 1) },
+          date: { gte: start, lt: end },
         },
       })
 
       if (evalRes.violated) {
         if (!openRecent) {
-          const latestDate = series.sort((a, b) => +new Date(b.date) - +new Date(a.date))[0]?.date ?? new Date()
           const event = await prisma.alertEvent.create({
             data: {
               siteId: rule.siteId,
