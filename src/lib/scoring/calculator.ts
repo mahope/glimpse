@@ -512,20 +512,18 @@ export class SEOCalculator {
     const strengths: string[] = []
 
     try {
-      const latestPerformanceTest = await prisma.performanceTest.findFirst({
-        where: { 
-          siteId,
-          status: 'COMPLETED'
-        },
-        orderBy: { createdAt: 'desc' }
+      // Prefer latest MOBILE PageSpeed snapshot if available
+      const latestMobilePsi = await prisma.perfSnapshot.findFirst({
+        where: { siteId, strategy: 'MOBILE' },
+        orderBy: { date: 'desc' }
       })
 
-      if (!latestPerformanceTest || !latestPerformanceTest.score) {
+      const performanceScore = latestMobilePsi?.perfScore ?? null
+
+      if (performanceScore == null) {
         improvements.push('Run PageSpeed performance test to get score')
         return { score: 0, improvements, strengths }
       }
-
-      const performanceScore = latestPerformanceTest.score
 
       if (performanceScore >= 90) {
         strengths.push(`Excellent performance score (${performanceScore}/100)`)
