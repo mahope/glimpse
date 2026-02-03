@@ -5,7 +5,8 @@ const siteId = 'agg_site'
 
 const hasDb = !!process.env.DATABASE_URL
 
-const suite = hasDb ? describe : describe.skip
+// If no DB URL, skip whole suite to avoid prisma init errors
+const suite: typeof describe = hasDb ? describe : (describe.skip as any)
 
 suite('Aggregation routes', () => {
   beforeAll(async () => {
