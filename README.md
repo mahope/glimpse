@@ -52,7 +52,7 @@ Required environment variables:
 
 ```bash
 # Database
-DATABASE_URL="postgresql://username:password@localhost:5432/seo_tracker"
+DATABASE_URL="postgresql://username:password@localhost:5432/glimpse"
 
 # Better Auth
 BETTER_AUTH_SECRET="your-32-character-secret-key-here"

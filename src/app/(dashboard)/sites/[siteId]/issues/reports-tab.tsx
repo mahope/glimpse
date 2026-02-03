@@ -37,7 +37,7 @@ export function ReportsTab({ siteId }: { siteId: string }) {
                 <td className="py-2 pr-4 text-yellow-600">{totals.warnings ?? br.warnings?.count ?? 0}</td>
                 <td className="py-2 pr-4 text-blue-600">{totals.info ?? br.info?.count ?? 0}</td>
                 <td className="py-2 pr-4">
-                  <Link className="text-blue-600 hover:underline" href={`/sites/${siteId}/reports?reportId=${r.id}`}>View</Link>
+                  <Link className="text-blue-600 hover:underline" href={`/sites/${siteId}/reports/${r.id}`}>View</Link>
                 </td>
               </tr>
             )

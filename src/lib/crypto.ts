@@ -4,10 +4,19 @@ const ALGO = 'aes-256-gcm'
 
 function getKey(): Buffer {
   const key = process.env.ENCRYPTION_KEY || ''
+  const isProd = process.env.NODE_ENV === 'production'
   if (key.length !== 32) {
-    console.error('ENCRYPTION_KEY must be 32 bytes (ASCII). Current length:', key.length)
+    const msg = `ENCRYPTION_KEY must be exactly 32 bytes (ASCII). Current length: ${key.length}`
+    if (isProd) {
+      throw new Error(msg)
+    } else {
+      console.warn('[dev] ' + msg)
+    }
   }
-  return Buffer.from(key, 'utf8')
+  // If shorter than 32 in dev, pad to avoid crypto throw; in prod we already threw
+  const buf = Buffer.alloc(32)
+  Buffer.from(key).copy(buf)
+  return buf
 }
 
 export function encrypt(text: string): string {
