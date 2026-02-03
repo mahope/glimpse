@@ -60,7 +60,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { siteId
   if (!isAdmin && !hasOrgAccess) return NextResponse.json({ error: 'Access denied' }, { status: 403 })
 
   const raw = await request.json().catch(() => ({}))
-  const updateSchema = RuleSchema.partial().extend({ id: z.string().cuid() })
+  const updateSchema = RuleSchema.partial().extend({ id: z.string().min(1) })
   const data = updateSchema.parse(raw)
 
   const existing = await prisma.alertRule.findFirst({ where: { id: data.id, siteId: site.id } })
