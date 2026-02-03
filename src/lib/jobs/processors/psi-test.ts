@@ -22,7 +22,7 @@ export default async function psiTestProcessor(job: Job<PsiTestJob>) {
 
     // Persist snapshot and daily aggregate (idempotent upsert)
     await saveSnapshot(siteId, psi)
-    await upsertDaily(siteId, psi.date)
+    await upsertDaily(siteId, psi.date, device as any)
 
     await prisma.performanceTest.update({ where: { id: test.id }, data: {
       status: 'COMPLETED',

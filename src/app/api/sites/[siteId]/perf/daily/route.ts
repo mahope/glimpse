@@ -26,15 +26,12 @@ export async function GET(request: NextRequest, { params }: { params: { siteId: 
     since.setDate(since.getDate() - days)
 
     const rows = await prisma.sitePerfDaily.findMany({
-      where: { siteId: site.id, date: { gte: since } },
+      where: { siteId: site.id, date: { gte: since }, ...(device === 'ALL' ? {} : { device }) },
       orderBy: { date: 'asc' },
     })
 
-    // Note: current SitePerfDaily aggregates are site-wide; device filter placeholder for future
-    const filtered = rows // could split by device in future schema
-
     return NextResponse.json({
-      items: filtered.map(r => ({
+      items: rows.map(r => ({
         date: r.date,
         lcp: r.lcpPctl ?? null,
         inp: r.inpPctl ?? null,

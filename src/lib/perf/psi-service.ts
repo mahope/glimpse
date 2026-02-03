@@ -141,27 +141,29 @@ export async function saveSnapshot(siteId: string, m: PsiMetrics) {
   })
 }
 
-export async function upsertDaily(siteId: string, date: Date) {
-  // Compute latest daily aggregates from snapshots of that date
+export async function upsertDaily(siteId: string, date: Date, device: 'ALL' | 'MOBILE' | 'DESKTOP' = 'ALL') {
+  // Compute latest daily aggregates from snapshots of that date (optionally per device)
   const start = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
   const end = new Date(start)
   end.setUTCDate(end.getUTCDate() + 1)
 
-  const snaps = await prisma.perfSnapshot.findMany({
-    where: { siteId, date: { gte: start, lt: end } },
-  })
+  const where: any = { siteId, date: { gte: start, lt: end } }
+  if (device !== 'ALL') where.strategy = device
+
+  const snaps = await prisma.perfSnapshot.findMany({ where })
 
   const perfScores = snaps.map(s => s.perfScore).filter((n): n is number => n != null)
   const avg = perfScores.length ? Math.round(perfScores.reduce((a, b) => a + b, 0) / perfScores.length) : null
 
-  // Use field percentiles preferentially
-  const lcpPctl = snaps.map(s => s.raw?.loadingExperience?.metrics?.LARGEST_CONTENTFUL_PAINT_MS?.percentile).filter(Boolean)[0] || null
-  const inpPctl = snaps.map(s => s.raw?.loadingExperience?.metrics?.INTERACTION_TO_NEXT_PAINT?.percentile).filter(Boolean)[0] || null
-  const clsPctl = snaps.map(s => s.raw?.loadingExperience?.metrics?.CUMULATIVE_LAYOUT_SHIFT_SCORE?.percentile).filter(Boolean)[0] || null
+  // Use field percentiles preferentially (first available)
+  const lcpPctl = snaps.map(s => s.raw?.loadingExperience?.metrics?.LARGEST_CONTENTFUL_PAINT_MS?.percentile).find((v): v is number => !!v) || null
+  const inpPctl = snaps.map(s => s.raw?.loadingExperience?.metrics?.INTERACTION_TO_NEXT_PAINT?.percentile).find((v): v is number => !!v) || null
+  const clsPctl = snaps.map(s => s.raw?.loadingExperience?.metrics?.CUMULATIVE_LAYOUT_SHIFT_SCORE?.percentile).find((v): v is number => !!v) || null
 
   await prisma.sitePerfDaily.upsert({
-    where: { siteId_date: { siteId, date: start } },
+    where: { siteId_date_device: { siteId, date: start, device } as any },
     update: {
+      device,
       perfScoreAvg: avg,
       lcpPctl: lcpPctl ? Math.round(lcpPctl) : null,
       inpPctl: inpPctl ? Math.round(inpPctl) : null,
@@ -171,6 +173,7 @@ export async function upsertDaily(siteId: string, date: Date) {
     create: {
       siteId,
       date: start,
+      device,
       perfScoreAvg: avg,
       lcpPctl: lcpPctl ? Math.round(lcpPctl) : null,
       inpPctl: inpPctl ? Math.round(inpPctl) : null,
