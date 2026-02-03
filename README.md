@@ -11,6 +11,7 @@ A comprehensive SEO dashboard for tracking WordPress site performance via Google
 - 📧 Magic Link Authentication — Passwordless login with email
 - 🎯 SEO Scoring — Calculated scores with component breakdown
 - 📈 Historical Data — Long-term tracking and trend analysis
+- 🚨 Alerts & Notifications — Device-aware alert rules (LCP/INP/CLS thresholds, score drop) with email + in‑app badge
 
 ## Tech Stack
 
@@ -28,6 +29,7 @@ A comprehensive SEO dashboard for tracking WordPress site performance via Google
 - Copy .env.example to .env
 - PSI: set PAGESPEED_API_KEY or GOOGLE_PSI_API_KEY. If neither is set, set MOCK_PSI="true" to use demo data.
 - GSC: set Google OAuth credentials or MOCK_GSC="true" for demo data.
+- Alerts: set RESEND_API_KEY, EMAIL_FROM, and optionally NEXT_PUBLIC_APP_URL for links.
 
 2) DB and run
 - npm run db:generate; npm run db:migrate
@@ -39,10 +41,26 @@ A comprehensive SEO dashboard for tracking WordPress site performance via Google
 - GET /api/sites/[siteId]/perf/daily?days=30&device=ALL|MOBILE|DESKTOP — Daily aggregates for charts. Returns [{ date, scoreAvg, lcp, inp, cls }].
 - GET /api/sites/[siteId]/perf/latest?strategy=MOBILE — Latest snapshot per URL for a device.
 
+## Alerts
+
+- Metrics supported: LCP p75, INP p75, CLS p75, Performance score day‑over‑day drop.
+- Default thresholds (recommended):
+  - LCP p75: > 2500ms (mobile), > 2000ms (desktop)
+  - INP p75: > 200ms
+  - CLS p75: > 0.1
+  - Score drop: > 10 points
+- Rules are per‑site and per‑device (ALL | MOBILE | DESKTOP). Each rule stores recipients[] for emails.
+- Persistence: AlertRule and AlertEvent tables with unique (siteId,metric,device,date) to dedupe same‑day events.
+- Cron: POST /api/cron/alerts evaluates rules on the latest data (and previous day for score drop), creates events, debounces duplicates if another OPEN exists within 24h, and resolves when back to normal next day.
+- Notifications:
+  - Email via Resend with concise subject/body and dashboard link
+  - In‑app: Performance page shows an Alerts badge when an OPEN event exists in the last 24h
+
 ## UI
 
-- Performance page shows latest PSI cards, queue buttons, and a line chart with 30/90d range and device toggle.
-- Queue buttons use headless toasts for success/error and disable while requests are in-flight.
+- Performance page shows latest PSI cards, queue buttons, and a line chart with 30/90d range and device toggle. Displays an "Alerts" badge linking to the Alerts page when recent open alerts exist.
+- Alerts page lists AlertEvents with date, metric, device, value, status.
+- Settings → Alerts lists existing AlertRules with metric/device/threshold/recipients.
 
 ## Jobs
 
@@ -51,6 +69,7 @@ A comprehensive SEO dashboard for tracking WordPress site performance via Google
   - POST /api/cron/performance-test
   - POST /api/cron/calculate-scores
   - POST /api/cron/crawl-site
+  - POST /api/cron/alerts
 - Manual triggers (org-scoped): POST /api/sites/[siteId]/jobs — body: { kind, params }
 
 ## Notes on PSI consolidation
