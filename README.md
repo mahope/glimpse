@@ -37,6 +37,9 @@ A comprehensive SEO dashboard for tracking WordPress site performance via Google
 
 ## API Reference (selected)
 
+- GET /api/sites/[siteId]/overview — Overview KPIs + timeline (clicks, impressions, CTR, position) with days/device/country filters.
+- GET /api/sites/[siteId]/gsc/keywords — Paginated keywords list with trends and sorting.
+- GET /api/sites/[siteId]/gsc/pages — Paginated pages list with trends and sorting.
 - GET /api/sites/[siteId]/perf — Latest PSI (mobile+desktop) with in-memory cache. ?refresh=1 bypasses cache.
 - GET /api/sites/[siteId]/perf/daily?days=30&device=ALL|MOBILE|DESKTOP — Daily aggregates for charts. Returns [{ date, scoreAvg, lcp, inp, cls }].
 - GET /api/sites/[siteId]/perf/latest?strategy=MOBILE — Latest snapshot per URL for a device.
