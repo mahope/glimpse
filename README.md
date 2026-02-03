@@ -44,6 +44,10 @@ npm install
 
 Copy `.env.example` to `.env` and fill in your configuration:
 
+PageSpeed Insights configuration:
+- Set PAGESPEED_API_KEY or GOOGLE_PSI_API_KEY. If neither is set, set MOCK_PSI="true" to use demo data.
+- Dashboard shows mobile and desktop cards on Sites → Performance.
+
 ```bash
 cp .env.example .env
 ```
@@ -111,6 +115,21 @@ npm run workers
   - gsc:fetch — ingest GSC daily rows via fetchAndStoreGSCDaily
 
 ## API Routes
+
+### Performance (PageSpeed Insights)
+
+- `GET /api/sites/[siteId]/perf?strategy=mobile|desktop` — Returns normalized metrics for the site homepage. Defaults to both strategies when not specified. Add `?refresh=1` to bypass in-memory cache.
+  - Response example:
+  ```json
+  {
+    "siteId": "...",
+    "url": "https://example.com",
+    "results": {
+      "mobile": { "score": 88, "lcp": 2300, "inp": 160, "cls": 0.07, "fcp": 1200, "tbt": 120, "reportLink": "..." },
+      "desktop": { ... }
+    }
+  }
+  ```
 
 ### GSC
 
