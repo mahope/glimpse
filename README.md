@@ -88,6 +88,8 @@ You can customize per site by editing scripts/seed-alerts.ts or creating rules v
 
 ## Notes on PSI consolidation
 
+See docs/IMPLEMENTATION-STATUS.md for current implementation coverage and next steps. Legacy seo-tracker dir is deprecated; glimpse is the canonical repo.
+
 - Canonical PSI module is under src/lib/perf/* (psi.ts and psi-service.ts).
 - Jobs processors use runPsi from psi-service and persist PerfSnapshot, then upsert SitePerfDaily.
 - Legacy src/lib/performance/* kept for thresholds; page-speed client replaced by perf/*.
@@ -104,3 +106,4 @@ You can customize per site by editing scripts/seed-alerts.ts or creating rules v
 - Without a PSI API key, set MOCK_PSI=true to render demo data and keep tests offline.
 
 Private project for mahope.dk WordPress customers.
+
