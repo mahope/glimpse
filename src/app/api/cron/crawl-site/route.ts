@@ -10,9 +10,8 @@ export async function POST(request: NextRequest) {
   const sites = await prisma.site.findMany({ where: { isActive: true }, select: { id: true, organizationId: true, url: true } })
   let enqueued = 0
   for (const s of sites) {
-    await scheduleJob.performanceTest({ siteId: s.id, organizationId: s.organizationId, url: s.url, device: 'MOBILE' })
-    await scheduleJob.performanceTest({ siteId: s.id, organizationId: s.organizationId, url: s.url, device: 'DESKTOP' })
-    enqueued += 2
+    await scheduleJob.siteCrawl({ siteId: s.id, organizationId: s.organizationId, url: s.url, maxPages: 50 })
+    enqueued++
   }
   return NextResponse.json({ enqueued, skipped: 0 })
 }

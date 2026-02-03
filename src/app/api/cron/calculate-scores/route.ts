@@ -7,12 +7,11 @@ export async function POST(request: NextRequest) {
   const unauthorized = verifyCronSecret(request)
   if (unauthorized) return unauthorized
 
-  const sites = await prisma.site.findMany({ where: { isActive: true }, select: { id: true, organizationId: true, url: true } })
+  const sites = await prisma.site.findMany({ where: { isActive: true }, select: { id: true, organizationId: true } })
   let enqueued = 0
   for (const s of sites) {
-    await scheduleJob.performanceTest({ siteId: s.id, organizationId: s.organizationId, url: s.url, device: 'MOBILE' })
-    await scheduleJob.performanceTest({ siteId: s.id, organizationId: s.organizationId, url: s.url, device: 'DESKTOP' })
-    enqueued += 2
+    await scheduleJob.scoreCalculation({ siteId: s.id, organizationId: s.organizationId })
+    enqueued++
   }
   return NextResponse.json({ enqueued, skipped: 0 })
 }

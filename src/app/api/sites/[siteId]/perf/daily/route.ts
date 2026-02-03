@@ -9,6 +9,8 @@ export async function GET(request: NextRequest, { params }: { params: { siteId: 
 
     const { searchParams } = new URL(request.url)
     const days = Math.min(90, Math.max(1, parseInt(searchParams.get('days') || '30', 10)))
+    const deviceParam = (searchParams.get('device') || 'ALL').toUpperCase()
+    const device = deviceParam === 'MOBILE' || deviceParam === 'DESKTOP' ? deviceParam : 'ALL'
 
     // Verify org access
     const site = await prisma.site.findUnique({
@@ -24,18 +26,18 @@ export async function GET(request: NextRequest, { params }: { params: { siteId: 
     since.setDate(since.getDate() - days)
 
     const rows = await prisma.sitePerfDaily.findMany({
-      where: { siteId: site.id, date: { gte: since } },
+      where: { siteId: site.id, date: { gte: since }, ...(device === 'ALL' ? {} : { device }) },
       orderBy: { date: 'asc' },
     })
 
     return NextResponse.json({
       items: rows.map(r => ({
         date: r.date,
-        lcpPctl: r.lcpPctl,
-        inpPctl: r.inpPctl,
-        clsPctl: r.clsPctl,
-        perfScoreAvg: r.perfScoreAvg,
-        pagesMeasured: r.pagesMeasured,
+        lcp: r.lcpPctl ?? null,
+        inp: r.inpPctl ?? null,
+        cls: r.clsPctl ?? null,
+        scoreAvg: r.perfScoreAvg ?? null,
+        pages: r.pagesMeasured,
       })),
     })
   } catch (err) {

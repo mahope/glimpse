@@ -1,138 +1,67 @@
-import { Queue, Worker, Job } from 'bullmq'
+import { Queue } from 'bullmq'
 import Redis from 'ioredis'
+import { z } from 'zod'
+import { GSCSyncSchema, PsiTestSchema, CrawlSchema, ScoreCalcSchema } from './types'
 
-// Redis connection
-const redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+export const redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
   maxRetriesPerRequest: 3,
 })
 
-// Job Types
-export type GSCSyncJobData = {
-  siteId: string
-  organizationId: string
-}
+export type GSCSyncJobData = z.infer<typeof GSCSyncSchema>
+export type PerformanceTestJobData = z.infer<typeof PsiTestSchema>
+export type SiteCrawlJobData = z.infer<typeof CrawlSchema>
+export type ScoreCalculationJobData = z.infer<typeof ScoreCalcSchema>
 
-export type PerformanceTestJobData = {
-  siteId: string
-  organizationId: string
-  url: string
-  device: 'MOBILE' | 'DESKTOP'
-}
-
-export type SiteCrawlJobData = {
-  siteId: string
-  organizationId: string
-  url: string
-  maxPages?: number
-}
-
-export type ScoreCalculationJobData = {
-  siteId: string
-  organizationId: string
-  date?: string
-}
-
-// Create queues
 export const gscSyncQueue = new Queue<GSCSyncJobData>('gsc-sync', {
   connection: redisConnection,
   defaultJobOptions: {
-    removeOnComplete: 50,
-    removeOnFail: 20,
+    removeOnComplete: 200,
+    removeOnFail: 50,
     attempts: 3,
-    backoff: {
-      type: 'exponential',
-      delay: 5000,
-    },
+    backoff: { type: 'exponential', delay: 5000 },
   },
 })
 
 export const performanceQueue = new Queue<PerformanceTestJobData>('performance-test', {
   connection: redisConnection,
   defaultJobOptions: {
-    removeOnComplete: 100,
-    removeOnFail: 20,
+    removeOnComplete: 200,
+    removeOnFail: 50,
     attempts: 2,
-    backoff: {
-      type: 'exponential',
-      delay: 10000,
-    },
+    backoff: { type: 'exponential', delay: 10000 },
   },
 })
 
 export const crawlQueue = new Queue<SiteCrawlJobData>('site-crawl', {
   connection: redisConnection,
   defaultJobOptions: {
-    removeOnComplete: 20,
-    removeOnFail: 10,
+    removeOnComplete: 100,
+    removeOnFail: 50,
     attempts: 2,
-    backoff: {
-      type: 'exponential',
-      delay: 15000,
-    },
+    backoff: { type: 'exponential', delay: 15000 },
   },
 })
 
 export const scoreQueue = new Queue<ScoreCalculationJobData>('score-calculation', {
   connection: redisConnection,
   defaultJobOptions: {
-    removeOnComplete: 100,
-    removeOnFail: 20,
+    removeOnComplete: 200,
+    removeOnFail: 50,
     attempts: 3,
-    backoff: {
-      type: 'exponential',
-      delay: 2000,
-    },
+    backoff: { type: 'exponential', delay: 2000 },
   },
 })
 
-// Helper function to add jobs with proper scheduling
 export const scheduleJob = {
-  gscSync: async (siteId: string, organizationId: string) => {
-    return gscSyncQueue.add('sync-gsc-data', { siteId, organizationId }, {
-      // Run daily at 2 AM
-      repeat: { cron: '0 2 * * *' }
-    })
-  },
-
-  performanceTest: async (siteId: string, organizationId: string, url: string, device: 'MOBILE' | 'DESKTOP') => {
-    return performanceQueue.add('test-performance', { siteId, organizationId, url, device }, {
-      // Run daily at 4 AM
-      repeat: { cron: '0 4 * * *' }
-    })
-  },
-
-  siteCrawl: async (siteId: string, organizationId: string, url: string, maxPages = 50) => {
-    return crawlQueue.add('crawl-site', { siteId, organizationId, url, maxPages }, {
-      // Run weekly on Sunday at 5 AM
-      repeat: { cron: '0 5 * * 0' }
-    })
-  },
-
-  scoreCalculation: async (siteId: string, organizationId: string, date?: string) => {
-    return scoreQueue.add('calculate-scores', { siteId, organizationId, date }, {
-      // Run daily at 6 AM
-      repeat: { cron: '0 6 * * *' }
-    })
-  },
+  gscSync: async (payload: GSCSyncJobData) => gscSyncQueue.add('sync-gsc-data', GSCSyncSchema.parse(payload), { repeat: { cron: '0 2 * * *' }, jobId: `gsc:${payload.siteId}` }),
+  performanceTest: async (payload: PerformanceTestJobData) => performanceQueue.add('test-performance', PsiTestSchema.parse(payload), { repeat: { cron: '0 4 * * *' }, jobId: `perf:${payload.siteId}:${payload.device.toLowerCase()}` }),
+  siteCrawl: async (payload: SiteCrawlJobData) => crawlQueue.add('crawl-site', CrawlSchema.parse(payload), { repeat: { cron: '0 5 * * 0' }, jobId: `crawl:${payload.siteId}` }),
+  scoreCalculation: async (payload: ScoreCalculationJobData) => scoreQueue.add('calculate-scores', ScoreCalcSchema.parse(payload), { repeat: { cron: '0 6 * * *' }, jobId: `score:${payload.siteId}` }),
 }
 
-// Manual job triggering (for immediate execution)
 export const triggerJob = {
-  gscSync: async (siteId: string, organizationId: string) => {
-    return gscSyncQueue.add('sync-gsc-data-manual', { siteId, organizationId })
-  },
-
-  performanceTest: async (siteId: string, organizationId: string, url: string, device: 'MOBILE' | 'DESKTOP') => {
-    return performanceQueue.add('test-performance-manual', { siteId, organizationId, url, device })
-  },
-
-  siteCrawl: async (siteId: string, organizationId: string, url: string, maxPages = 50) => {
-    return crawlQueue.add('crawl-site-manual', { siteId, organizationId, url, maxPages })
-  },
-
-  scoreCalculation: async (siteId: string, organizationId: string, date?: string) => {
-    return scoreQueue.add('calculate-scores-manual', { siteId, organizationId, date })
-  },
+  gscSync: async (siteId: string, organizationId: string) => gscSyncQueue.add('sync-gsc-data-manual', GSCSyncSchema.parse({ siteId, organizationId }), { jobId: `gsc:${siteId}:${Date.now()}` }),
+  performanceTest: async (siteId: string, organizationId: string, url: string, device: 'MOBILE' | 'DESKTOP') => performanceQueue.add('test-performance-manual', PsiTestSchema.parse({ siteId, organizationId, url, device }), { jobId: `perf:${siteId}:${device}:${Date.now()}` }),
+  siteCrawl: async (siteId: string, organizationId: string, url: string, maxPages = 50) => crawlQueue.add('crawl-site-manual', CrawlSchema.parse({ siteId, organizationId, url, maxPages }), { jobId: `crawl:${siteId}:${Date.now()}` }),
+  scoreCalculation: async (siteId: string, organizationId: string, date?: string) => scoreQueue.add('calculate-scores-manual', ScoreCalcSchema.parse({ siteId, organizationId, date }), { jobId: `score:${siteId}:${Date.now()}` }),
 }
-
-export { redisConnection }
