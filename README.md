@@ -60,7 +60,21 @@ A comprehensive SEO dashboard for tracking WordPress site performance via Google
 
 - Performance page shows latest PSI cards, queue buttons, and a line chart with 30/90d range and device toggle. Displays an "Alerts" badge linking to the Alerts page when recent open alerts exist.
 - Alerts page lists AlertEvents with date, metric, device, value, status.
-- Settings → Alerts lists existing AlertRules with metric/device/threshold/recipients.
+- Settings → Alerts has interactive CRUD for AlertRules (create, edit inline, delete). Client-side validation and optimistic updates included. Empty state suggests recommended defaults.
+
+### Seeding default rules
+
+Seed recommended defaults for all active sites lacking rules:
+- LCP MOBILE 2500
+- LCP DESKTOP 2000
+- INP ALL 200
+- CLS ALL 0.1
+- SCORE_DROP ALL 10
+
+Run:
+- npm run seed:alerts
+
+You can customize per site by editing scripts/seed-alerts.ts or creating rules via the UI.
 
 ## Jobs
 
