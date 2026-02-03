@@ -8,8 +8,10 @@ export type PageRow = {
   impressions30: number
   ctr30: number
   position30: number
-  trendClick: number
-  trendImpr: number
+  trendClicks: number
+  trendImpressions: number
+  trendCtr: number
+  trendPosition: number
 }
 
 export function PageTable({ items }: { items: PageRow[] }) {
@@ -22,7 +24,7 @@ export function PageTable({ items }: { items: PageRow[] }) {
           <th>Impr.</th>
           <th>CTR</th>
           <th>Avg Pos.</th>
-          <th>Trend</th>
+          <th>Trends</th>
         </tr>
       </thead>
       <tbody>
@@ -33,7 +35,12 @@ export function PageTable({ items }: { items: PageRow[] }) {
             <td>{row.impressions30}</td>
             <td>{row.ctr30.toFixed(1)}%</td>
             <td>{row.position30.toFixed(1)}</td>
-            <td><TrendBadge value={row.trendClick} /></td>
+            <td className="space-x-1">
+              <TrendBadge value={row.trendClicks} />
+              <TrendBadge value={row.trendImpressions} />
+              <TrendBadge value={row.trendCtr} />
+              <TrendBadge value={-row.trendPosition} />
+            </td>
           </tr>
         ))}
       </tbody>
