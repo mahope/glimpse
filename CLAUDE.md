@@ -1,4 +1,4 @@
-# SEO Tracker - CLAUDE.md
+# Glimpse - CLAUDE.md
 
 > Dette dokument guider AI-assistenter (primært Claude) i hvordan de skal arbejde med dette projekt.
 

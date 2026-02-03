@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { pageSpeedClient } from "@/lib/performance/pagespeed-client"
+import { verifyCronSecret } from '@/lib/cron/auth'
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify cron secret
-    const authHeader = request.headers.get('authorization')
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const unauthorized = verifyCronSecret(request)
+    if (unauthorized) return unauthorized
 
     console.log('Starting performance tests...')
 
@@ -27,7 +25,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`Found ${sites.length} sites to test`)
 
-    const results = []
+    const results = [] as any[]
     
     for (const site of sites) {
       try {

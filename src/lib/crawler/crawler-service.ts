@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db'
 import { WebCrawler, CrawlResult, SEOIssue, categorizeIssues } from './crawler'
+import { PageAnalyzer } from './analyzer'
 
 export class CrawlerService {
   /**
@@ -40,28 +41,31 @@ export class CrawlerService {
       let storedResultsCount = 0
 
       for (const result of crawlResults) {
-        // Store main crawl result
+        // Store main crawl result in new schema format
         const crawlResultRecord = await prisma.crawlResult.create({
           data: {
             siteId,
             crawlDate,
             url: result.url,
             statusCode: result.statusCode,
+            loadTimeMs: result.loadTime,
             title: result.title,
             metaDescription: result.metaDescription,
             h1Count: result.h1Tags.length,
+            h2Count: result.h2Tags.length,
+            totalImages: result.images.length,
             imagesWithoutAlt: result.images.filter(img => !img.hasAlt).length,
-            loadTimeMs: result.loadTime,
             wordCount: result.wordCount,
             contentLength: result.contentLength,
-            issues: JSON.stringify(result.issues)
+            totalLinks: result.links.length,
+            internalLinks: result.links.filter(link => link.isInternal).length,
+            externalLinks: result.links.filter(link => !link.isInternal).length,
+            brokenLinks: 0, // Would need actual link checking
+            issues: result.issues
           }
         })
 
         storedResultsCount++
-
-        // Store additional structured data if needed
-        // Could add separate tables for images, links, etc. if detailed analysis is needed
       }
 
       console.log(`Stored ${storedResultsCount} crawl results for ${site.domain}`)

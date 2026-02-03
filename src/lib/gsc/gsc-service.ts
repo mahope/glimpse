@@ -21,7 +21,7 @@ export class GSCService {
         throw new Error(`GSC not connected for site: ${site.domain}`)
       }
 
-      // Decrypt the refresh token (implement encryption/decryption)
+      // Decrypt the refresh token
       const refreshToken = await this.decryptToken(site.gscRefreshToken)
       
       // Initialize GSC client
@@ -330,18 +330,21 @@ export class GSCService {
    * Placeholder for token decryption - implement with your encryption method
    */
   private static async decryptToken(encryptedToken: string): Promise<string> {
-    // TODO: Implement actual encryption/decryption
-    // For now, return the token as-is (assuming it's not actually encrypted in development)
-    return encryptedToken
+    const { decrypt } = await import('@/lib/crypto')
+    try {
+      return decrypt(encryptedToken)
+    } catch (e) {
+      console.warn('Failed to decrypt GSC token, falling back to raw value in dev?', e)
+      return encryptedToken
+    }
   }
 
   /**
-   * Encrypt token for storage - implement with your encryption method
+   * Encrypt token for storage
    */
   static async encryptToken(token: string): Promise<string> {
-    // TODO: Implement actual encryption/decryption
-    // For now, return the token as-is (for development only)
-    return token
+    const { encrypt } = await import('@/lib/crypto')
+    return encrypt(token)
   }
 }
 

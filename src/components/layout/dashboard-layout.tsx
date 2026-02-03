@@ -16,10 +16,11 @@ import {
   X
 } from "lucide-react"
 
-const navigation = [
+const getNavigation = (isAdmin: boolean) => [
   { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
   { name: 'Sites', href: '/sites', icon: Globe },
   { name: 'Performance', href: '/performance', icon: TrendingUp },
+  ...(isAdmin ? [{ name: 'Jobs Monitor', href: '/dashboard/jobs', icon: Settings }] : []),
   { name: 'Settings', href: '/settings', icon: Settings },
 ]
 
@@ -30,6 +31,8 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { data: session } = useSession()
+  const isAdmin = (session?.user as any)?.role === 'ADMIN'
+  const navigation = getNavigation(isAdmin)
 
   const handleSignOut = async () => {
     await signOut()
@@ -43,7 +46,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
         <div className="fixed inset-y-0 left-0 flex w-64 flex-col bg-white shadow-xl">
           <div className="flex h-16 items-center justify-between px-4">
-            <div className="text-xl font-bold text-gray-900">SEO Tracker</div>
+            <div className="text-xl font-bold text-gray-900">Glimpse</div>
             <button
               onClick={() => setSidebarOpen(false)}
               className="text-gray-400 hover:text-gray-600"
@@ -72,7 +75,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="flex min-h-0 flex-1 flex-col bg-white shadow">
           <div className="flex flex-1 flex-col overflow-y-auto pt-5 pb-4">
             <div className="flex flex-shrink-0 items-center px-4">
-              <div className="text-xl font-bold text-gray-900">SEO Tracker</div>
+              <div className="text-xl font-bold text-gray-900">Glimpse</div>
             </div>
             <nav className="mt-5 flex-1 space-y-1 bg-white px-2">
               {navigation.map((item) => (

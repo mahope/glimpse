@@ -28,26 +28,26 @@ export const auth = betterAuth({
       sendMagicLink: async ({ email, url, token }) => {
         try {
           await resend.emails.send({
-            from: "SEO Tracker <noreply@yourdomain.com>",
+            from: "Glimpse <noreply@yourdomain.com>",
             to: email,
-            subject: "Sign in to SEO Tracker",
+            subject: "Sign in to Glimpse",
             html: `
               <!DOCTYPE html>
               <html>
                 <head>
                   <meta charset="utf-8">
                   <meta name="viewport" content="width=device-width, initial-scale=1">
-                  <title>Sign in to SEO Tracker</title>
+                  <title>Sign in to Glimpse</title>
                 </head>
                 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
                   <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 10px; text-align: center; margin-bottom: 30px;">
-                    <h1 style="color: white; margin: 0; font-size: 28px;">SEO Tracker</h1>
+                    <h1 style="color: white; margin: 0; font-size: 28px;">Glimpse</h1>
                     <p style="color: white; margin: 10px 0 0 0; opacity: 0.9;">Your SEO Dashboard</p>
                   </div>
                   
                   <h2 style="color: #333; margin-bottom: 20px;">Sign in to your account</h2>
                   
-                  <p>Click the button below to sign in to your SEO Tracker dashboard:</p>
+                  <p>Click the button below to sign in to your Glimpse dashboard:</p>
                   
                   <div style="text-align: center; margin: 30px 0;">
                     <a href="${url}" 
@@ -59,7 +59,7 @@ export const auth = betterAuth({
                               font-weight: bold; 
                               display: inline-block;
                               font-size: 16px;">
-                      Sign In to SEO Tracker
+                      Sign In to Glimpse
                     </a>
                   </div>
                   
@@ -69,7 +69,7 @@ export const auth = betterAuth({
                   
                   <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px; text-align: center;">
                     <p style="color: #888; font-size: 12px; margin: 0;">
-                      SEO Tracker Dashboard | Powered by mahope.dk
+                      Glimpse Dashboard | Powered by mahope.dk
                     </p>
                   </div>
                 </body>

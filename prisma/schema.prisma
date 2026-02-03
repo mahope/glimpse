@@ -121,6 +121,7 @@ model Site {
   gscPropertyUrl   String?      @map("gsc_property_url")
   gscRefreshToken  String?      @map("gsc_refresh_token") // Encrypted
   gscConnectedAt   DateTime?    @map("gsc_connected_at")
+  gscLastSyncedAt  DateTime?    @map("gsc_last_synced_at")
   
   // Settings
   isActive         Boolean      @default(true)
@@ -132,6 +133,13 @@ model Site {
   searchConsoleData SearchConsoleData[]
   performanceTests PerformanceTest[]
   seoScores        SeoScore[]
+  crawlResults     CrawlResult[]
+  crawlReports     CrawlReport[]
+  perfSnapshots    PerfSnapshot[]
+  perfDaily        SitePerfDaily[]
+  searchStatsDaily SearchStatDaily[]
+  keywordSummaries KeywordSummary[]
+  pageSummaries    PageSummary[]
   
   @@unique([organizationId, domain])
   @@map("site")
@@ -163,6 +171,70 @@ model SearchConsoleData {
   @@index([siteId, query])
   @@index([siteId, page])
   @@map("search_console_data")
+}
+
+// New GSC daily raw rows
+model SearchStatDaily {
+  id          String   @id @default(cuid())
+  siteId      String   @map("site_id")
+  date        DateTime
+  pageUrl     String   @map("page_url")
+  query       String
+  device      String
+  country     String
+  clicks      Int      @default(0)
+  impressions Int      @default(0)
+  ctr         Float    @default(0)
+  position    Float    @default(0)
+  createdAt   DateTime @default(now())
+
+  site        Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, date, pageUrl, query, device, country])
+  @@index([siteId, date])
+  @@index([siteId, query])
+  @@index([siteId, pageUrl])
+  @@map("search_stat_daily")
+}
+
+// Aggregated 30-day keyword summary per site
+model KeywordSummary {
+  id           String   @id @default(cuid())
+  siteId       String   @map("site_id")
+  query        String
+  clicks30     Int      @default(0) @map("clicks_30")
+  impressions30 Int     @default(0) @map("impressions_30")
+  ctr30        Float    @default(0) @map("ctr_30")
+  position30   Float    @default(0) @map("position_30")
+  trendClick   Float    @default(0) @map("trend_click")
+  trendImpr    Float    @default(0) @map("trend_impr")
+  updatedAt    DateTime @default(now()) @updatedAt
+
+  site         Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, query])
+  @@index([siteId, clicks30])
+  @@map("keyword_summary")
+}
+
+// Aggregated 30-day page summary per site
+model PageSummary {
+  id           String   @id @default(cuid())
+  siteId       String   @map("site_id")
+  pageUrl      String   @map("page_url")
+  clicks30     Int      @default(0) @map("clicks_30")
+  impressions30 Int     @default(0) @map("impressions_30")
+  ctr30        Float    @default(0) @map("ctr_30")
+  position30   Float    @default(0) @map("position_30")
+  trendClick   Float    @default(0) @map("trend_click")
+  trendImpr    Float    @default(0) @map("trend_impr")
+  updatedAt    DateTime @default(now()) @updatedAt
+
+  site         Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, pageUrl])
+  @@index([siteId, clicks30])
+  @@map("page_summary")
 }
 
 model PerformanceTest {
@@ -200,6 +272,51 @@ model PerformanceTest {
   @@map("performance_test")
 }
 
+// PSI v5 snapshots per URL/strategy
+model PerfSnapshot {
+  id         String     @id @default(cuid())
+  siteId     String     @map("site_id")
+  url        String
+  strategy   DeviceType
+  date       DateTime
+  // Metrics (ms/score)
+  lcpMs      Int?
+  inpMs      Int?
+  cls        Float?
+  ttfbMs     Int?
+  perfScore  Int?
+  // Field vs lab flags
+  isField    Boolean?   @map("is_field")
+  isLab      Boolean?   @map("is_lab")
+  raw        Json?
+
+  site       Site       @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId, date])
+  @@index([siteId, url])
+  @@index([siteId, strategy, date])
+  @@map("perf_snapshot")
+}
+
+// Daily aggregate per site
+model SitePerfDaily {
+  id            String   @id @default(cuid())
+  siteId        String   @map("site_id")
+  date          DateTime
+  lcpPctl       Int?     @map("lcp_pctl")
+  inpPctl       Int?     @map("inp_pctl")
+  clsPctl       Int?     @map("cls_pctl")
+  perfScoreAvg  Int?     @map("perf_score_avg")
+  pagesMeasured Int      @default(0) @map("pages_measured")
+  notes         String?
+
+  site          Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, date])
+  @@index([siteId, date])
+  @@map("site_perf_daily")
+}
+
 model SeoScore {
   id                String   @id @default(cuid())
   siteId            String   @map("site_id")
@@ -224,6 +341,65 @@ model SeoScore {
   @@unique([siteId, date])
   @@index([siteId, date])
   @@map("seo_score")
+}
+
+model CrawlResult {
+  id                     String       @id @default(cuid())
+  siteId                 String       @map("site_id")
+  crawlDate              DateTime     @map("crawl_date")
+  url                    String
+  
+  // Response Info
+  statusCode             Int          @map("status_code")
+  loadTimeMs             Int          @map("load_time_ms")
+  
+  // SEO Content
+  title                  String?
+  metaDescription        String?      @map("meta_description") @db.Text
+  h1Count                Int          @map("h1_count") @default(0)
+  h2Count                Int          @map("h2_count") @default(0)
+  
+  // Images
+  totalImages            Int          @map("total_images") @default(0)
+  imagesWithoutAlt       Int          @map("images_without_alt") @default(0)
+  
+  // Content Metrics
+  wordCount              Int          @map("word_count") @default(0)
+  contentLength          Int          @map("content_length") @default(0)
+  
+  // Links
+  totalLinks             Int          @map("total_links") @default(0)
+  internalLinks          Int          @map("internal_links") @default(0)
+  externalLinks          Int          @map("external_links") @default(0)
+  brokenLinks            Int          @map("broken_links") @default(0)
+  
+  // Issues & Analysis
+  issues                 Json?        // Array of SEOIssue objects
+  
+  createdAt              DateTime     @default(now())
+  
+  site                   Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  
+  @@index([siteId, crawlDate])
+  @@index([siteId, url])
+  @@map("crawl_result")
+}
+
+model CrawlReport {
+  id              String   @id @default(cuid())
+  siteId          String   @map("site_id")
+  startedAt       DateTime @map("started_at")
+  finishedAt      DateTime? @map("finished_at")
+  pagesCrawled    Int      @default(0) @map("pages_crawled")
+  totals          Json?
+  issueBreakdown  Json?    @map("issue_breakdown")
+  topIssues       Json?    @map("top_issues")
+  summary         String?  @db.Text
+
+  site            Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId, startedAt])
+  @@map("crawl_report")
 }
 
 // Enums

@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
+import { verifyCronSecret } from '@/lib/cron/auth'
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify cron secret
-    const authHeader = request.headers.get('authorization')
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const unauthorized = verifyCronSecret(request)
+    if (unauthorized) return unauthorized
 
     console.log('Starting GSC data sync...')
 
@@ -24,24 +22,16 @@ export async function POST(request: NextRequest) {
 
     console.log(`Found ${sites.length} sites to sync`)
 
-    const results = []
+    const results: any[] = []
     
     for (const site of sites) {
       try {
-        // TODO: Implement actual GSC sync logic
-        // 1. Decrypt refresh token
-        // 2. Get fresh access token
-        // 3. Fetch GSC data for last 30 days
-        // 4. Store in SearchConsoleData table
-        
         console.log(`Syncing GSC data for ${site.domain}`)
-        
-        // Placeholder for now
+        // TODO: integrate with real sync service
         results.push({
           siteId: site.id,
           domain: site.domain,
-          status: 'success',
-          recordsProcessed: 0,
+          status: 'queued'
         })
         
       } catch (siteError) {
@@ -55,8 +45,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('GSC sync completed')
-    
     return NextResponse.json({
       success: true,
       message: `Processed ${sites.length} sites`,

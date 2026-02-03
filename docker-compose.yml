@@ -27,6 +27,25 @@ services:
     networks:
       - seo_network
 
+  workers:
+    build: .
+    command: npm run workers
+    environment:
+      - DATABASE_URL=postgresql://postgres:seo_dashboard_2026@db:5432/seo_dashboard
+      - REDIS_URL=redis://redis:6379
+      - CRON_SECRET=${CRON_SECRET}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+    depends_on:
+      app:
+        condition: service_started
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - seo_network
+
   db:
     image: postgres:17-alpine
     environment:
