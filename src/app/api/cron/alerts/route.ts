@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
 
           // Send email with per-rule recipients or fallback to site owners
           const site = sites.find(s => s.id === rule.siteId)!
-          const owners = site.organization.members.filter(m => m.role === 'OWNER').map(m => m.user.email).filter(Boolean) as string[]
+          const owners = (site.organization?.members ?? []).filter(m => m.role === 'OWNER').map(m => (m as any).user?.email).filter(Boolean) as string[]
           await sendAlertEmail(site, rule, event, owners)
           results.push({ ruleId: rule.id, created: event.id })
         } else {
