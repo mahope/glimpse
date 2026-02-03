@@ -140,6 +140,8 @@ model Site {
   searchStatsDaily SearchStatDaily[]
   keywordSummaries KeywordSummary[]
   pageSummaries    PageSummary[]
+  alertRules       AlertRule[]
+  alertEvents      AlertEvent[]
   
   @@unique([organizationId, domain])
   @@map("site")
@@ -318,6 +320,46 @@ model SitePerfDaily {
   @@map("site_perf_daily")
 }
 
+// Alerts
+model AlertRule {
+  id          String      @id @default(cuid())
+  siteId      String      @map("site_id")
+  metric      AlertMetric
+  device      PerfDevice  @default(ALL)
+  threshold   Float
+  windowDays  Int         @default(1) @map("window_days")
+  enabled     Boolean     @default(true)
+  recipients  String[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  site        Site        @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  events      AlertEvent[]
+
+  @@index([siteId, metric, device])
+  @@map("alert_rule")
+}
+
+model AlertEvent {
+  id        String       @id @default(cuid())
+  siteId    String       @map("site_id")
+  metric    AlertMetric
+  device    PerfDevice   @default(ALL)
+  date      DateTime
+  value     Float
+  ruleId    String?      @map("rule_id")
+  status    AlertStatus  @default(OPEN)
+  resolvedAt DateTime?   @map("resolved_at")
+  createdAt DateTime     @default(now())
+
+  site      Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  rule      AlertRule?   @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+
+  @@unique([siteId, metric, device, date])
+  @@index([siteId, status, date])
+  @@map("alert_event")
+}
+
 model SeoScore {
   id                String   @id @default(cuid())
   siteId            String   @map("site_id")
@@ -431,4 +473,16 @@ enum TestStatus {
   RUNNING
   COMPLETED
   FAILED
+}
+
+enum AlertMetric {
+  LCP
+  INP
+  CLS
+  SCORE_DROP
+}
+
+enum AlertStatus {
+  OPEN
+  RESOLVED
 }
