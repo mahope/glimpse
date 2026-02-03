@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { QueueButtons } from '@/components/perf/QueueButtons'
 import { PerfChart } from '@/components/perf/PerfChart'
+import { PerfTable } from '@/components/perf/PerfTable'
 
 function StatusPill({ status }: { status: 'pass' | 'warn' | 'fail' | 'na' }) {
   const cls = status === 'pass' ? 'bg-green-100 text-green-800'
@@ -97,6 +98,13 @@ export default async function PerformancePage({ params }: { params: { siteId: st
       <div>
         <h2 className="text-xl font-semibold mt-6 mb-2">History</h2>
         <PerfChart siteId={site.id} days={30} />
+      </div>
+
+      <div>
+        <h2 className="text-xl font-semibold mt-6 mb-2">Latest per URL</h2>
+        {/* Client component renders latest snapshots table */}
+        {/* @ts-expect-error Server Component boundary */}
+        <PerfTable siteId={site.id} />
       </div>
     </div>
   )
