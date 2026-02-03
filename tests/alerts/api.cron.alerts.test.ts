@@ -13,6 +13,8 @@ vi.mock('@/lib/db', () => {
     { siteId: 's1', date: new Date('2026-02-01'), device: 'MOBILE', lcpPctl: 2400, inpPctl: 180, clsPctl: 0.05, perfScoreAvg: 85 },
     { siteId: 's1', date: new Date('2026-02-02'), device: 'DESKTOP', lcpPctl: 2100, inpPctl: 180, clsPctl: 0.05, perfScoreAvg: 70 },
     { siteId: 's1', date: new Date('2026-02-01'), device: 'DESKTOP', lcpPctl: 1800, inpPctl: 180, clsPctl: 0.05, perfScoreAvg: 85 },
+    { siteId: 's1', date: new Date('2026-02-02'), device: 'ALL', lcpPctl: 2550, inpPctl: 180, clsPctl: 0.05, perfScoreAvg: 70 },
+    { siteId: 's1', date: new Date('2026-02-01'), device: 'ALL', lcpPctl: 2300, inpPctl: 180, clsPctl: 0.05, perfScoreAvg: 85 },
   ]
 
   const events: any[] = []
