@@ -4,7 +4,8 @@ import { prisma } from '@/lib/db'
 import { redirect, notFound } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { use } from 'react'
+import { PerfTrends } from '@/components/perf/PerfTrends'
+import { QueueButtons } from '@/components/perf/QueueButtons'
 
 function StatusPill({ status }: { status: 'pass' | 'warn' | 'fail' | 'na' }) {
   const cls = status === 'pass' ? 'bg-green-100 text-green-800'
@@ -73,15 +74,21 @@ export default async function PerformancePage({ params }: { params: { siteId: st
           <h1 className="text-3xl font-bold text-gray-900">Performance - {site.name}</h1>
           <p className="text-gray-600 mt-2">Core Web Vitals and PageSpeed Insights</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-3 items-center">
           <Button asChild variant="outline"><Link href={`/sites/${site.id}`}>← Back to Site</Link></Button>
           <Button asChild><Link href={`/sites/${site.id}/performance?refresh=1`}>Refresh PSI</Link></Button>
+          <QueueButtons siteId={site.id} />
         </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card title="Mobile" payload={(data.results as any)?.mobile} />
         <Card title="Desktop" payload={(data.results as any)?.desktop} />
+      </div>
+
+      <div>
+        <h2 className="text-xl font-semibold mt-6 mb-2">History (30d)</h2>
+        <PerfTrends siteId={site.id} days={30} />
       </div>
     </div>
   )

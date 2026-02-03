@@ -79,6 +79,10 @@ REDIS_URL="redis://localhost:6379"
 
 # GSC mock mode (seed mock rows when creds missing)
 MOCK_GSC="true"
+
+# PSI
+PAGESPEED_API_KEY="your-pagespeed-api-key" # or GOOGLE_PAGESPEED_API_KEY, or set MOCK_PSI=true
+MOCK_PSI="false"
 ```
 
 Also see `.env.example` for SERVICE_ACCOUNT_JSON (if using service accounts) and more.
@@ -111,6 +115,7 @@ npm run workers
 ```
 
 - Starts BullMQ workers. If `REDIS_URL` is not set, workers print a warning and exit safely.
+- Workers auto-load: gsc-sync, performance-test, score-calc, crawl-site
 - Queues:
   - gsc:fetch — ingest GSC daily rows via fetchAndStoreGSCDaily
   - gsc-sync — GSC daily sync (02:00)
@@ -129,31 +134,16 @@ npm run workers
 - Manual triggers (org-scoped):
   - POST /api/sites/[siteId]/jobs — body: { kind, params }
 
-## API Routes
+### Performance History
 
-### Performance (PageSpeed Insights)
+- GET `/api/sites/[siteId]/perf` — Latest PSI (mobile+desktop) with in-memory cache. `?refresh=1` bypasses cache.
+- GET `/api/sites/[siteId]/perf/daily?days=30` — Daily aggregates used by the Performance page history widget.
+- GET `/api/sites/[siteId]/perf/latest?strategy=MOBILE` — Latest snapshot per URL for a device.
 
-- `GET /api/sites/[siteId]/perf?strategy=mobile|desktop` — Returns normalized metrics for the site homepage. Defaults to both strategies when not specified. Add `?refresh=1` to bypass in-memory cache.
-  - Response example:
-  ```json
-  {
-    "siteId": "...",
-    "url": "https://example.com",
-    "results": {
-      "mobile": { "score": 88, "lcp": 2300, "inp": 160, "cls": 0.07, "fcp": 1200, "tbt": 120, "reportLink": "..." },
-      "desktop": { ... }
-    }
-  }
-  ```
+### UI Actions (Performance page)
 
-### GSC
-
-- `POST /api/cron/gsc-refresh?siteId=&days=30` — Direct fetch from GSC and upsert SearchStatDaily (Authorization: Bearer ${CRON_SECRET})
-- `POST /api/jobs/gsc-enqueue?days=30` — Enqueue gsc:fetch jobs for all active sites (Authorization: Bearer ${CRON_SECRET})
-- `POST /api/jobs/register-on-boot` — Best-effort enqueue on app boot (Authorization: Bearer ${CRON_SECRET})
-
-- `GET /api/sites/[siteId]/gsc/keywords?days=30&page=1&pageSize=50&device=all&country=all` — Aggregated keywords view
-- `GET /api/sites/[siteId]/gsc/pages?days=30&page=1&pageSize=50` — Aggregated pages view
+- Queue PSI test (Mobile/Desktop): POST `/api/sites/[siteId]/jobs` body `{ "kind": "performance-test", "params": { "device": "MOBILE" | "DESKTOP" } }`
+- Recalculate SEO score: POST `/api/sites/[siteId]/jobs` body `{ "kind": "score-calculation" }`
 
 All routes require an authenticated session and are organization-scoped unless noted.
 
@@ -168,21 +158,14 @@ All routes require an authenticated session and are organization-scoped unless n
 ## Development
 
 - UI for Keywords and Pages now supports server-side sorting via clickable headers with visual arrows; sort + direction sync to the URL and persist across pagination/filters.
-  - Endpoints: GET /api/sites/[siteId]/gsc/keywords and /pages
-  - Query params:
-    - days (default 30), page, pageSize
-    - device (all|desktop|mobile), country (ALL or ISO)
-    - sort (clicks|impressions|ctr|position), dir (asc|desc), default clicks desc
-  - Response includes: items[], page, pageSize, totalItems, totalPages, sortField, sortDir
-  - Trend fields per item: trendClicks, trendImpressions, trendCtr, trendPosition (positive = better rank)
-  - CTR sort details: CTR is computed from clicks/impressions; for deterministic order we apply tie-breakers (clicks desc, impressions desc, key asc). Position sort treats lower as better. Pagination is applied after sorting.
-- Integration tests that touch DB are conditionally skipped if Postgres isn’t available.
-- MOCK_GSC preserves demo mode; trends synthesize a previous window for non-zero deltas.
+- Performance page shows latest PSI (both devices), queue buttons, and a small history widget (30 days) derived from persisted snapshots and daily aggregates.
+- Integration tests include org-boundary coverage for performance history and enqueue API.
 
 ## Troubleshooting
 
 - If you don’t have Redis locally, workers will log "REDIS_URL not set. Worker disabled." and no-op.
 - If you don’t have Google OAuth credentials, set `MOCK_GSC=true` to seed mock rows so the UI is usable.
+- If you don’t have a PSI API key, set `MOCK_PSI=true` to render demo data.
 
 ## License
 
