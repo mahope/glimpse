@@ -2,8 +2,10 @@ import { describe, it, expect, vi } from 'vitest'
 import scoreCalc from '@/lib/jobs/processors/score-calc'
 
 vi.mock('@/lib/db', () => ({ prisma: {
-  site: { findFirst: vi.fn().mockResolvedValue({ id: 's1', organizationId: 'o1', isActive: true }) },
-  site: { update: vi.fn().mockResolvedValue({}) },
+  site: {
+    findFirst: vi.fn().mockResolvedValue({ id: 's1', organizationId: 'o1', isActive: true }),
+    update: vi.fn().mockResolvedValue({})
+  },
 }}))
 
 vi.mock('@/lib/scoring/calculator', () => ({
