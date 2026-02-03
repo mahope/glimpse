@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
 import { parseParams, ctr, safePctDelta, positionImprovementPct } from '@/lib/gsc/params'
+import { sortItems } from '@/lib/gsc/sort'
 
 export async function GET(req: NextRequest, { params }: { params: { siteId: string } }) {
   const session = await auth.api.getSession({ headers: await headers() })
@@ -21,22 +22,17 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
 
   const whereBase = { siteId: site.id, ...(device === 'all' ? {} : { device }), ...(country === 'ALL' ? {} : { country }) }
 
-  // mapping for orderBy
-  const orderBy = (() => {
-    if (sortField === 'position') return { _avg: { position: sortDir } as any }
-    if (sortField === 'ctr') return { _sum: { clicks: sortDir, impressions: sortDir } as any } // CTR approximated by ordering on clicks/impr
-    if (sortField === 'impressions') return { _sum: { impressions: sortDir } as any }
-    return { _sum: { clicks: sortDir } as any }
-  })()
+  // Strategy: fetch top N by traffic, then compute CTR and sort in-memory for CTR/position stability.
+  // We use a safe cap to avoid heavy memory. N = page * pageSize + safety buffer.
+  const cap = Math.min(page * pageSize + 500, 5000)
 
   const rows = await prisma.searchStatDaily.groupBy({
     by: ['query'],
     where: { ...whereBase, date: { gte: start, lte: end } },
     _sum: { clicks: true, impressions: true },
     _avg: { position: true },
-    orderBy,
-    skip: (page - 1) * pageSize,
-    take: pageSize,
+    orderBy: { _sum: { clicks: 'desc' } },
+    take: cap,
   })
 
   // totals
@@ -57,7 +53,7 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
   })
   const prevMap = new Map(prevRows.map(r => [r.query!, r]))
 
-  const items = rows.map(r => {
+  const itemsAll = rows.map(r => {
     const clicks = r._sum.clicks || 0
     const impressions = r._sum.impressions || 0
     const position = r._avg.position || 0
@@ -78,6 +74,7 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
     const prevCtr = ctr(pClicks, pImpr)
 
     return {
+      key: r.query!,
       query: r.query!,
       clicks30: clicks,
       impressions30: impressions,
@@ -89,6 +86,10 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
       trendPosition: positionImprovementPct(position, pPos),
     }
   })
+
+  const sorted = sortItems(itemsAll, sortField as any, sortDir as any)
+  const startIdx = (page - 1) * pageSize
+  const items = sorted.slice(startIdx, startIdx + pageSize)
 
   return NextResponse.json({ items, page, pageSize, totalItems, totalPages, sortField, sortDir })
 }
