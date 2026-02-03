@@ -133,7 +133,7 @@ All routes require an authenticated session and are organization-scoped unless n
 
 ## Development
 
-- UI for Keywords and Pages now supports server-side sorting, totals, and trend metrics.
+- UI for Keywords and Pages now supports server-side sorting via clickable headers with visual arrows; sort + direction sync to the URL and persist across pagination/filters.
   - Endpoints: GET /api/sites/[siteId]/gsc/keywords and /pages
   - Query params:
     - days (default 30), page, pageSize
@@ -141,6 +141,7 @@ All routes require an authenticated session and are organization-scoped unless n
     - sort (clicks|impressions|ctr|position), dir (asc|desc), default clicks desc
   - Response includes: items[], page, pageSize, totalItems, totalPages, sortField, sortDir
   - Trend fields per item: trendClicks, trendImpressions, trendCtr, trendPosition (positive = better rank)
+  - CTR sort details: CTR is computed from clicks/impressions; for deterministic order we apply tie-breakers (clicks desc, impressions desc, key asc). Position sort treats lower as better. Pagination is applied after sorting.
 - Integration tests that touch DB are conditionally skipped if Postgres isn’t available.
 - MOCK_GSC preserves demo mode; trends synthesize a previous window for non-zero deltas.
 
