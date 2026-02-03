@@ -3,7 +3,11 @@ import { prisma } from '@/lib/db'
 
 const siteId = 'agg_site'
 
-describe('Aggregation routes', () => {
+const hasDb = !!process.env.DATABASE_URL
+
+const suite = hasDb ? describe : describe.skip
+
+suite('Aggregation routes', () => {
   beforeAll(async () => {
     await prisma.site.upsert({ where: { id: siteId }, update: {}, create: { id: siteId, name: 'Agg', domain: 'agg.dev', url: 'https://agg.dev', organizationId: 'org1' } })
     const day = new Date('2026-01-05')
