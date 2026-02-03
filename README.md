@@ -113,6 +113,21 @@ npm run workers
 - Starts BullMQ workers. If `REDIS_URL` is not set, workers print a warning and exit safely.
 - Queues:
   - gsc:fetch — ingest GSC daily rows via fetchAndStoreGSCDaily
+  - gsc-sync — GSC daily sync (02:00)
+  - performance-test — PSI tests, MOBILE+DESKTOP (04:00)
+  - site-crawl — weekly crawl (Sun 05:00)
+  - score-calculation — SEO score recompute (06:00)
+
+### Background jobs
+
+- Cron endpoints (Authorization: Bearer ${CRON_SECRET}):
+  - POST /api/cron/sync-gsc
+  - POST /api/cron/performance-test
+  - POST /api/cron/calculate-scores
+  - POST /api/cron/crawl-site
+
+- Manual triggers (org-scoped):
+  - POST /api/sites/[siteId]/jobs — body: { kind, params }
 
 ## API Routes
 
