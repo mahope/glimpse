@@ -32,6 +32,12 @@ async function fetchPerf(siteId: string, strategy?: 'mobile'|'desktop'|null, ref
   return res.json() as Promise<{ url: string; results: Record<string, any> }>
 }
 
+async function hasOpenAlerts(siteId: string) {
+  const since = new Date(Date.now() - 24*60*60*1000)
+  const count = await prisma.alertEvent.count({ where: { siteId, status: 'OPEN', createdAt: { gte: since } } })
+  return count > 0
+}
+
 export default async function PerformancePage({ params }: { params: { siteId: string } }) {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session?.user) redirect('/auth/sign-in')
@@ -43,6 +49,7 @@ export default async function PerformancePage({ params }: { params: { siteId: st
   if (!site) notFound()
 
   const data = await fetchPerf(site.id, null, false)
+  const showBadge = await hasOpenAlerts(site.id)
 
   const Card = ({ title, payload }: { title: string; payload?: any }) => (
     <div className="rounded border p-4">
@@ -75,6 +82,7 @@ export default async function PerformancePage({ params }: { params: { siteId: st
           <p className="text-gray-600 mt-2">Core Web Vitals and PageSpeed Insights</p>
         </div>
         <div className="flex gap-3 items-center">
+          {showBadge && <Link href={`/sites/${site.id}/alerts`} className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">Alerts</Link>}
           <Button asChild variant="outline"><Link href={`/sites/${site.id}`}>← Back to Site</Link></Button>
           <Button asChild><Link href={`/sites/${site.id}/performance?refresh=1`}>Refresh PSI</Link></Button>
           <QueueButtons siteId={site.id} />
