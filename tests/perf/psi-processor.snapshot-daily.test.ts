@@ -1,18 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import psiProcessor from '@/lib/jobs/processors/psi-test'
 
-// Mock DB and PSI service
-vi.mock('@/lib/db', () => ({ prisma: {
-  site: { findFirst: vi.fn().mockResolvedValue({ id: 's1', organizationId: 'o1', isActive: true }) },
-  performanceTest: {
-    findFirst: vi.fn().mockResolvedValue(null),
-    create: vi.fn().mockResolvedValue({ id: 't1' }),
-    update: vi.fn().mockResolvedValue({})
-  },
-  perfSnapshot: { create: vi.fn().mockResolvedValue({ id: 'ps1' }) },
-  sitePerfDaily: { upsert: vi.fn().mockResolvedValue({ id: 'd1' }) },
-}}))
-
+// Define fixtures BEFORE vi.mock hoists
 const fakePsi = {
   url: 'https://e.com',
   strategy: 'MOBILE',
@@ -24,6 +13,18 @@ const fakePsi = {
   ttfbMs: 180,
   raw: { lighthouseResult: { lighthouseVersion: '12.0.0' }, loadingExperience: { metrics: {} }},
 }
+
+// Mock DB and PSI service
+vi.mock('@/lib/db', () => ({ prisma: {
+  site: { findFirst: vi.fn().mockResolvedValue({ id: 's1', organizationId: 'o1', isActive: true }) },
+  performanceTest: {
+    findFirst: vi.fn().mockResolvedValue(null),
+    create: vi.fn().mockResolvedValue({ id: 't1' }),
+    update: vi.fn().mockResolvedValue({})
+  },
+  perfSnapshot: { create: vi.fn().mockResolvedValue({ id: 'ps1' }) },
+  sitePerfDaily: { upsert: vi.fn().mockResolvedValue({ id: 'd1' }) },
+}}))
 
 vi.mock('@/lib/perf/psi-service', () => ({
   runPsi: vi.fn().mockResolvedValue(fakePsi),
