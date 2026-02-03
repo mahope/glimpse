@@ -59,6 +59,11 @@ A comprehensive SEO dashboard for tracking WordPress site performance via Google
 - Jobs processors use runPsi from psi-service and persist PerfSnapshot, then upsert SitePerfDaily.
 - Legacy src/lib/performance/* kept for thresholds; page-speed client replaced by perf/*.
 
+### Per-device daily aggregates (2026-02-03)
+- SitePerfDaily now has a device column (enum PerfDevice: ALL | MOBILE | DESKTOP). Existing rows are backfilled to ALL via migration.
+- PSI processor writes PerfSnapshot.strategy per device and upserts SitePerfDaily by (siteId, date, device).
+- GET /api/sites/[siteId]/perf/daily accepts ?device=ALL|MOBILE|DESKTOP and returns device-specific series.
+
 ## Troubleshooting
 
 - Without Redis, workers will no-op safely.
