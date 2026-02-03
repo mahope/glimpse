@@ -1,6 +1,6 @@
 import { Worker, Job } from 'bullmq'
 import { redisConnection, ScoreCalculationJobData } from '../queue'
-import { calculateSEOScore } from '@/lib/scoring/seo-scoring'
+import { SEOCalculator } from '@/lib/scoring/calculator'
 import { prisma } from '@/lib/db'
 
 export const scoreWorker = new Worker<ScoreCalculationJobData>(
@@ -39,12 +39,14 @@ export const scoreWorker = new Worker<ScoreCalculationJobData>(
 
       await job.updateProgress(50)
 
-      // Calculate the SEO score
-      const scoreResult = await calculateSEOScore(siteId, targetDate)
+      // Calculate the SEO score using unified calculator (PRD-aligned)
+      const scoreResult = await SEOCalculator.calculateSEOScore(siteId)
+      // TODO: SEOCalculator already persists a score row for "now"; this worker also upserts at targetDate.
+      // Consider de-duplicating persistence to avoid double writes.
 
       await job.updateProgress(80)
 
-      // Update or create the SEO score record
+      // Update or create the SEO score record for the requested targetDate
       const seoScore = await prisma.seoScore.upsert({
         where: {
           siteId_date: {
@@ -53,24 +55,40 @@ export const scoreWorker = new Worker<ScoreCalculationJobData>(
           },
         },
         update: {
-          score: scoreResult.overallScore,
-          clickTrend: scoreResult.components.clickTrend,
-          positionTrend: scoreResult.components.positionTrend,
-          impressionTrend: scoreResult.components.impressionTrend,
-          ctrBenchmark: scoreResult.components.ctrBenchmark,
-          performanceScore: scoreResult.components.performanceScore,
-          breakdown: scoreResult.breakdown,
+          score: scoreResult.overall,
+          clickTrend: scoreResult.clickTrend,
+          positionTrend: scoreResult.positionTrend,
+          impressionTrend: scoreResult.impressionTrend,
+          ctrBenchmark: scoreResult.ctrBenchmark,
+          performanceScore: scoreResult.performanceScore,
+          breakdown: {
+            overall: scoreResult.overall,
+            clickTrend: scoreResult.clickTrend,
+            positionTrend: scoreResult.positionTrend,
+            impressionTrend: scoreResult.impressionTrend,
+            ctrBenchmark: scoreResult.ctrBenchmark,
+            performanceScore: scoreResult.performanceScore,
+            grade: scoreResult.grade,
+          },
         },
         create: {
           siteId,
           date: targetDate,
-          score: scoreResult.overallScore,
-          clickTrend: scoreResult.components.clickTrend,
-          positionTrend: scoreResult.components.positionTrend,
-          impressionTrend: scoreResult.components.impressionTrend,
-          ctrBenchmark: scoreResult.components.ctrBenchmark,
-          performanceScore: scoreResult.components.performanceScore,
-          breakdown: scoreResult.breakdown,
+          score: scoreResult.overall,
+          clickTrend: scoreResult.clickTrend,
+          positionTrend: scoreResult.positionTrend,
+          impressionTrend: scoreResult.impressionTrend,
+          ctrBenchmark: scoreResult.ctrBenchmark,
+          performanceScore: scoreResult.performanceScore,
+          breakdown: {
+            overall: scoreResult.overall,
+            clickTrend: scoreResult.clickTrend,
+            positionTrend: scoreResult.positionTrend,
+            impressionTrend: scoreResult.impressionTrend,
+            ctrBenchmark: scoreResult.ctrBenchmark,
+            performanceScore: scoreResult.performanceScore,
+            grade: scoreResult.grade,
+          },
         },
       })
 
@@ -80,7 +98,7 @@ export const scoreWorker = new Worker<ScoreCalculationJobData>(
         success: true,
         siteId,
         date: targetDate.toISOString(),
-        score: scoreResult.overallScore,
+        score: scoreResult.overall,
         isUpdate: !!existingScore,
         seoScoreId: seoScore.id,
       }
