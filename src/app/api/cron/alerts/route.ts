@@ -52,7 +52,8 @@ export async function POST(req: NextRequest) {
           metric: rule.metric,
           device: rule.device,
           status: 'OPEN',
-          createdAt: { gte: subDays(new Date(), 1) },
+          // Debounce by event date to keep tests offline (no DB default timestamps)
+          date: { gte: subDays(new Date(), 1) },
         },
       })
 
