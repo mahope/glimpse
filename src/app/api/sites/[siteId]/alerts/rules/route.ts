@@ -2,11 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { AlertMetric, PerfDevice } from '@prisma/client'
 
 const RuleSchema = z.object({
-  metric: z.nativeEnum(AlertMetric),
-  device: z.nativeEnum(PerfDevice).default('ALL'),
+  metric: z.enum(['LCP','INP','CLS','SCORE_DROP']),
+  device: z.enum(['ALL','MOBILE','DESKTOP']).default('ALL'),
   threshold: z.number().finite(),
   windowDays: z.number().int().min(1).max(30).default(1),
   enabled: z.boolean().default(true),
@@ -67,7 +66,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { siteId
   const existing = await prisma.alertRule.findFirst({ where: { id: data.id, siteId: site.id } })
   if (!existing) return NextResponse.json({ error: 'Rule not found' }, { status: 404 })
 
-  const updated = await prisma.alertRule.update({ where: { id: data.id }, data: { ...data, id: undefined as any } })
+  const { id, ...patch } = data as any
+  const updated = await prisma.alertRule.update({ where: { id }, data: patch })
   return NextResponse.json({ item: updated })
 }
 
