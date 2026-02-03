@@ -49,9 +49,7 @@ describe('Alert Rules API', () => {
 
   it('updates a rule', async () => {
     const r = await (await route.POST(makeReq('POST', { metric: 'INP', device: 'ALL', threshold: 200, recipients: [] }), { params: { siteId: 'site1' } } as any)).json()
-    // Our mocked IDs are not cuid; relax schema for tests by passing a valid cuid-like string
-    const id = r.item.id.length > 10 ? r.item.id : 'cktestid00000000000000000' // ensure cuid format
-    const res = await route.PATCH(makeReq('PATCH', { id, threshold: 300 }), { params: { siteId: 'site1' } } as any)
+    const res = await route.PATCH(makeReq('PATCH', { id: r.item.id, threshold: 300 }), { params: { siteId: 'site1' } } as any)
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.item.threshold).toBe(300)
