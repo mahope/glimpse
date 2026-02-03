@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { verifyCronSecret } from '@/lib/cron/auth'
-import { addDays, subDays, isAfter } from 'date-fns'
-import { AlertMetric, AlertStatus, PerfDevice } from '@prisma/client'
-import { evaluateRule, SeriesPoint } from '@/lib/alerts'
+import { subDays, isAfter } from 'date-fns'
+import { evaluateRule } from '@/lib/alerts/evaluator'
+import { SeriesPoint } from '@/lib/alerts/types'
 import { sendAlertEmail } from '@/lib/email/alerts'
 
 export async function POST(req: NextRequest) {
@@ -11,8 +11,11 @@ export async function POST(req: NextRequest) {
     const unauthorized = verifyCronSecret(req)
     if (unauthorized) return unauthorized
 
-    // Load active sites and rules
-    const sites = await prisma.site.findMany({ where: { isActive: true } })
+    // Load active sites with owners for fallback recipients
+    const sites = await prisma.site.findMany({
+      where: { isActive: true },
+      include: { organization: { include: { members: { include: { user: true } } } } },
+    })
     const siteIds = sites.map(s => s.id)
 
     const rules = await prisma.alertRule.findMany({ where: { siteId: { in: siteIds }, enabled: true } })
@@ -73,9 +76,10 @@ export async function POST(req: NextRequest) {
             },
           })
 
-          // Send email
+          // Send email with per-rule recipients or fallback to site owners
           const site = sites.find(s => s.id === rule.siteId)!
-          await sendAlertEmail(site, rule, event)
+          const owners = site.organization.members.filter(m => m.role === 'OWNER').map(m => m.user.email).filter(Boolean) as string[]
+          await sendAlertEmail(site, rule, event, owners)
           results.push({ ruleId: rule.id, created: event.id })
         } else {
           results.push({ ruleId: rule.id, skipped: 'open-recent' })

@@ -14,7 +14,7 @@ function deviceLabel(d: PerfDevice) {
   return d.toLowerCase()
 }
 
-export async function sendAlertEmail(site: Site, rule: AlertRule, event: AlertEvent) {
+export async function sendAlertEmail(site: Site, rule: AlertRule, event: AlertEvent, ownerFallback?: string[]) {
   const m = metricLabel(rule.metric)
   const d = deviceLabel(rule.device)
   const subject = `Glimpse Alert • ${site.name} • ${m} (${d})`
@@ -37,6 +37,6 @@ export async function sendAlertEmail(site: Site, rule: AlertRule, event: AlertEv
     </div>
   `
 
-  const to = rule.recipients.length ? rule.recipients : [process.env.ALERTS_FALLBACK_EMAIL || 'alerts@example.com']
+  const to = rule.recipients.length ? rule.recipients : (ownerFallback && ownerFallback.length ? ownerFallback : [process.env.ALERTS_FALLBACK_EMAIL || 'alerts@example.com'])
   await sendEmail({ to, subject, html })
 }
