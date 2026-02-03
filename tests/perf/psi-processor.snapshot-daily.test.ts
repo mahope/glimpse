@@ -1,19 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import psiProcessor from '@/lib/jobs/processors/psi-test'
 
-// Define fixtures BEFORE vi.mock hoists
-const fakePsi = {
-  url: 'https://e.com',
-  strategy: 'MOBILE',
-  date: new Date('2026-02-03T00:00:00.000Z'),
-  perfScore: 91,
-  lcpMs: 2100,
-  inpMs: 120,
-  cls: 0.08,
-  ttfbMs: 180,
-  raw: { lighthouseResult: { lighthouseVersion: '12.0.0' }, loadingExperience: { metrics: {} }},
-}
-
 // Mock DB and PSI service
 vi.mock('@/lib/db', () => ({ prisma: {
   site: { findFirst: vi.fn().mockResolvedValue({ id: 's1', organizationId: 'o1', isActive: true }) },
@@ -27,7 +14,17 @@ vi.mock('@/lib/db', () => ({ prisma: {
 }}))
 
 vi.mock('@/lib/perf/psi-service', () => ({
-  runPsi: vi.fn().mockResolvedValue(fakePsi),
+  runPsi: vi.fn().mockResolvedValue({
+    url: 'https://e.com',
+    strategy: 'MOBILE',
+    date: new Date('2026-02-03T00:00:00.000Z'),
+    perfScore: 91,
+    lcpMs: 2100,
+    inpMs: 120,
+    cls: 0.08,
+    ttfbMs: 180,
+    raw: { lighthouseResult: { lighthouseVersion: '12.0.0' }, loadingExperience: { metrics: {} }},
+  }),
   saveSnapshot: vi.fn(async (_siteId: string, _m: any) => {
     const { prisma } = await import('@/lib/db') as any
     await prisma.perfSnapshot.create({ data: {} as any })
