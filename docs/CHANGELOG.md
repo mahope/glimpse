@@ -3,19 +3,23 @@
 ## Unreleased
 
 ### Added
-- CrawlReport API and UI detail page under /sites/[siteId]/reports/[reportId] with summary, breakdown, top issues, and narrative.
-- Reports list now links to the detail page from the Issues tab.
-- Monthly send-reports cron now uses real 30-day Google Search Console KPIs per site and attaches the generated PDF.
-- Email includes a short text summary (site, score, key KPIs).
-- Security: All cron endpoints protected via verifyCronSecret (validated in this pass).
-- Security: Enforce ENCRYPTION_KEY length (32 bytes). In production, throw with a clear error; in dev, warn and pad.
-- Workers: jobs dir in lib/jobs/ with crawl, score, GSC sync, and performance workers (introduced previously) referenced.
+- PageSpeed Insights (PSI) integration: src/lib/perf/psi-service.ts with CWV parsing (LCP/INP/CLS/TTFB) and Lighthouse perf score; rate limiting with backoff; CWV pass/needs/fail summarizer.
+- Database: New Prisma models PerfSnapshot and SitePerfDaily for per-URL snapshots and daily aggregates.
+- Jobs: New BullMQ worker perf:fetch (src/lib/jobs/workers/perf-worker.ts) that enqueues PSI runs per site URL and updates aggregates.
+- Cron: POST /api/cron/perf-refresh (secured with verifyCronSecret) to enqueue daily refreshes; supports ?siteId and ?limit.
+- API: New routes
+  - GET /api/sites/[siteId]/perf/latest?strategy=mobile|desktop&page=&pageSize= — latest snapshot per URL with pagination
+  - GET /api/sites/[siteId]/perf/daily?days=30 — 30-day aggregates from SitePerfDaily
+- UI: New Performance tab with Latest table and Trends (30-day KPIs). Responsive with loading/empty/error states.
+- Env: .env.example lists PAGESPEED_API_KEY, CRON_SECRET, REDIS_URL.
 
 ### Tests
-- Vitest unit tests: SEO scoring calculator edge conditions and grade mapping.
-- Simple GSC aggregated metrics shape test.
-- PDF generator smoke test (renders to a Buffer).
+- Unit: psi-service summarizer and parser tests.
+- Integration: seeds snapshots and asserts latest/daily query shapes.
+
+### DX
+- NPM scripts: db:migrate, db:generate, db:studio
 
 ### Cleanup
-- Updated docs to use "Glimpse" name; removed lingering "seo-tracker" references where applicable.
+- Docs updated (README, cron README, CHANGELOG). Removed stale mentions as found; more to sweep later.
 

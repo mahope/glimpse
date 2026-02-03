@@ -2,9 +2,10 @@ import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
 import { prisma } from '@/lib/db'
 import { redirect, notFound } from 'next/navigation'
-import { SitePerformance } from '@/components/dashboard/site-performance'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
+import { PerfTable } from '@/components/perf/PerfTable'
+import { PerfTrends } from '@/components/perf/PerfTrends'
 
 interface PerformancePageProps {
   params: {
@@ -13,37 +14,15 @@ interface PerformancePageProps {
 }
 
 export default async function PerformancePage({ params }: PerformancePageProps) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  })
+  const session = await auth.api.getSession({ headers: await headers() })
+  if (!session?.user) redirect('/auth/sign-in')
 
-  if (!session?.user) {
-    redirect('/auth/sign-in')
-  }
-
-  const organizationId = session.session.activeOrganizationId
-  if (!organizationId) {
-    redirect('/dashboard')
-  }
-
-  // Fetch site with performance data
+  // Verify site access
   const site = await prisma.site.findFirst({
-    where: {
-      id: params.siteId,
-      organizationId: organizationId,
-      isActive: true,
-    },
-    include: {
-      performanceTests: {
-        orderBy: { createdAt: 'desc' },
-        take: 50, // Last 50 tests
-      },
-    },
+    where: { id: params.siteId, organization: { members: { some: { userId: session.user.id } } }, isActive: true },
+    select: { id: true, name: true },
   })
-
-  if (!site) {
-    notFound()
-  }
+  if (!site) notFound()
 
   return (
     <div className="space-y-6">
@@ -62,7 +41,16 @@ export default async function PerformancePage({ params }: PerformancePageProps) 
         </div>
       </div>
 
-      <SitePerformance site={site} />
+      <div className="grid gap-6">
+        <section className="space-y-2">
+          <h2 className="text-xl font-semibold">Latest</h2>
+          <PerfTable siteId={site.id} />
+        </section>
+        <section className="space-y-2">
+          <h2 className="text-xl font-semibold">Trends (30 days)</h2>
+          <PerfTrends siteId={site.id} days={30} />
+        </section>
+      </div>
     </div>
   )
 }

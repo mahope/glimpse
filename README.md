@@ -6,7 +6,7 @@ A comprehensive SEO dashboard for tracking WordPress site performance via Google
 
 - 📊 **Dashboard Analytics** - KPI cards, trending charts, top keywords & pages
 - 🔍 **Google Search Console Integration** - Automated data sync for clicks, impressions, CTR, and positions
-- ⚡ **Performance Monitoring** - Core Web Vitals tracking via PageSpeed Insights API
+- ⚡ **Performance Monitoring** - Core Web Vitals tracking via PageSpeed Insights API (daily via BullMQ queue perf:fetch)
 - 🏢 **Multi-tenant** - Organization-based site management via Better Auth
 - 📧 **Magic Link Authentication** - Passwordless login with email
 - 🎯 **SEO Scoring** - Calculated scores based on multiple performance factors
@@ -71,11 +71,14 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ### 3. Database Setup
 
 ```bash
-# Push schema to database
-npm run db:push
+# Generate Prisma client
+npm run db:generate
 
-# Or run migrations (recommended for production)
+# Apply migrations (recommended)
 npm run db:migrate
+
+# Open Prisma Studio (optional)
+npm run db:studio
 ```
 
 ### 4. Run Development Server
@@ -143,13 +146,18 @@ glimpse/
 
 - `GET /api/sites` - List organization sites
 - `POST /api/sites` - Create new site
-- `POST /api/sites/[id]/performance/test` - Manual performance test
-- `GET /api/sites/[id]/performance` - Get performance data
+
+### Performance
+
+- `GET /api/sites/[siteId]/perf/latest?strategy=mobile|desktop&page=1&pageSize=50` — Latest PSI snapshot per URL for the site/strategy. Includes pagination totals.
+- `GET /api/sites/[siteId]/perf/daily?days=30` — Aggregated daily CWV percentiles (p75) and average Lighthouse perf score from SitePerfDaily.
+
+Both routes are organization-scoped and require an authenticated session.
 
 ### Cron Jobs
 
 - `POST /api/cron/sync-gsc` - Sync Google Search Console data
-- `POST /api/cron/performance-test` - Run performance tests
+- `POST /api/cron/perf-refresh` - Enqueue PSI fetches per site (supports ?siteId and ?limit). Secured via Authorization: Bearer ${CRON_SECRET}
 - `POST /api/cron/calculate-scores` - Calculate SEO scores
 
 ## Database Schema
