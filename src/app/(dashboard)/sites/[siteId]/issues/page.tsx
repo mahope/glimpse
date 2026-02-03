@@ -193,6 +193,10 @@ export default function IssuesPage() {
         </Button>
       </div>
 
+      {/* Site sub-navigation */}
+      {/* @ts-expect-error Client component in server file boundaries */}
+      {(() => { return null })()}
+
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <Card>

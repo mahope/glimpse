@@ -2,6 +2,7 @@ import { headers } from 'next/headers'
 import { auth } from '@/lib/auth'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import { SiteNav } from '@/components/site/site-nav'
 
 async function fetchOverview(siteId: string, params: URLSearchParams) {
   const qs = params.toString()
@@ -44,6 +45,8 @@ export default async function OverviewPage({ params, searchParams }: any) {
           <a href={`?days=365`} className={days==='365'? 'font-semibold' : ''}>365d</a>
         </div>
       </div>
+
+      <SiteNav siteId={siteId} active="overview" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Kpi title="Total Clicks" value={data.kpis.clicks.value} delta={data.kpis.clicks.deltaPct} />
