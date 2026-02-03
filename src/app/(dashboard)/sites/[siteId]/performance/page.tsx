@@ -4,8 +4,8 @@ import { prisma } from '@/lib/db'
 import { redirect, notFound } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { PerfTrends } from '@/components/perf/PerfTrends'
 import { QueueButtons } from '@/components/perf/QueueButtons'
+import { PerfChart } from '@/components/perf/PerfChart'
 
 function StatusPill({ status }: { status: 'pass' | 'warn' | 'fail' | 'na' }) {
   const cls = status === 'pass' ? 'bg-green-100 text-green-800'
@@ -87,8 +87,8 @@ export default async function PerformancePage({ params }: { params: { siteId: st
       </div>
 
       <div>
-        <h2 className="text-xl font-semibold mt-6 mb-2">History (30d)</h2>
-        <PerfTrends siteId={site.id} days={30} />
+        <h2 className="text-xl font-semibold mt-6 mb-2">History</h2>
+        <PerfChart siteId={site.id} days={30} />
       </div>
     </div>
   )

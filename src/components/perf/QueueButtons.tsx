@@ -2,14 +2,13 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { toast } from '@/components/ui/toast'
 
 export function QueueButtons({ siteId }: { siteId: string }) {
   const [loadingKind, setLoadingKind] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
 
   const call = async (kind: 'performance-test' | 'score-calculation', device?: 'MOBILE' | 'DESKTOP') => {
     try {
-      setMessage(null)
       setLoadingKind(device ? `${kind}:${device}` : kind)
       const res = await fetch(`/api/sites/${siteId}/jobs`, {
         method: 'POST',
@@ -18,26 +17,27 @@ export function QueueButtons({ siteId }: { siteId: string }) {
       })
       if (!res.ok) throw new Error(await res.text())
       const data = await res.json()
-      setMessage('Queued! Job ' + (data.jobId || ''))
+      toast('success', 'Queued ' + kind + (data.jobId ? ` (#${data.jobId})` : ''))
     } catch (e: any) {
-      setMessage(e.message || 'Failed')
+      toast('error', e.message || 'Failed to queue')
     } finally {
       setLoadingKind(null)
     }
   }
 
+  const disabled = loadingKind !== null
+
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      <Button size="sm" onClick={() => call('performance-test', 'MOBILE')} disabled={loadingKind !== null}>
+      <Button size="sm" onClick={() => call('performance-test', 'MOBILE')} disabled={disabled}>
         {loadingKind === 'performance-test:MOBILE' ? 'Queuing…' : 'Queue PSI (Mobile)'}
       </Button>
-      <Button size="sm" variant="outline" onClick={() => call('performance-test', 'DESKTOP')} disabled={loadingKind !== null}>
+      <Button size="sm" variant="outline" onClick={() => call('performance-test', 'DESKTOP')} disabled={disabled}>
         {loadingKind === 'performance-test:DESKTOP' ? 'Queuing…' : 'Queue PSI (Desktop)'}
       </Button>
-      <Button size="sm" variant="secondary" onClick={() => call('score-calculation')} disabled={loadingKind !== null}>
+      <Button size="sm" variant="secondary" onClick={() => call('score-calculation')} disabled={disabled}>
         {loadingKind === 'score-calculation' ? 'Queuing…' : 'Recalculate SEO score'}
       </Button>
-      {message && <span className="text-xs text-gray-600 ml-2">{message}</span>}
     </div>
   )
 }
