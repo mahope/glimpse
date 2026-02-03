@@ -1,5 +1,6 @@
 import { headers } from 'next/headers'
 import { auth } from '@/lib/auth'
+import PagesClient from './PagesClient'
 
 async function fetchPages(siteId: string, params: URLSearchParams) {
   const qs = params.toString()
@@ -20,8 +21,4 @@ export default async function PagesPage({ params, searchParams }: any) {
       <PagesClient siteId={siteId} initial={data} />
     </div>
   )
-}
-
-function PagesClient({ siteId, initial }: any) {
-  return <div suppressHydrationWarning>Implement client fetching with PageTable in a follow-up.</div>
 }

@@ -1,5 +1,6 @@
 import { headers } from 'next/headers'
 import { auth } from '@/lib/auth'
+import KeywordsClient from './KeywordsClient'
 
 async function fetchKeywords(siteId: string, params: URLSearchParams) {
   const qs = params.toString()
@@ -16,13 +17,8 @@ export default async function KeywordsPage({ params, searchParams }: any) {
   return (
     <div className="p-6 space-y-4">
       <h1 className="text-2xl font-semibold">Keywords</h1>
-      {/* Client table renders filters and rows */}
       {/* @ts-expect-error Server Component boundary */}
       <KeywordsClient siteId={siteId} initial={data} />
     </div>
   )
-}
-
-function KeywordsClient({ siteId, initial }: any) {
-  return <div suppressHydrationWarning>Implement client fetching with KeywordTable in a follow-up.</div>
 }
