@@ -2,7 +2,7 @@ import { AlertMetric, PerfDevice } from '@prisma/client'
 import { SeriesPoint, EvalResult } from './types'
 
 export function pickLatest(series: SeriesPoint[], device: PerfDevice): { latest?: SeriesPoint; prev?: SeriesPoint } {
-  const filtered = series.filter(s => s.device === device)
+  const filtered = device === 'ALL' ? series.slice() : series.filter(s => s.device === device)
   const byDate = filtered.sort((a, b) => +new Date(b.date) - +new Date(a.date))
   const latest = byDate[0]
   const prev = byDate[1]

@@ -11,6 +11,8 @@ vi.mock('@/lib/db', () => {
   const perf = [
     { siteId: 's1', date: new Date('2026-02-02'), device: 'MOBILE', lcpPctl: 2600, inpPctl: 180, clsPctl: 0.05, perfScoreAvg: 70 },
     { siteId: 's1', date: new Date('2026-02-01'), device: 'MOBILE', lcpPctl: 2400, inpPctl: 180, clsPctl: 0.05, perfScoreAvg: 85 },
+    { siteId: 's1', date: new Date('2026-02-02'), device: 'DESKTOP', lcpPctl: 2100, inpPctl: 180, clsPctl: 0.05, perfScoreAvg: 70 },
+    { siteId: 's1', date: new Date('2026-02-01'), device: 'DESKTOP', lcpPctl: 1800, inpPctl: 180, clsPctl: 0.05, perfScoreAvg: 85 },
   ]
 
   const events: any[] = []
@@ -62,8 +64,10 @@ describe('cron alerts', () => {
     expect(skipped.length).toBeGreaterThan(0)
   })
 
-  it('resolves open events when condition clears next day', async () => {
-    // Modify mock perf to clear LCP on later day
+  it('resolves next day when condition clears', async () => {
+    // trigger create first
+    await POST(req() as any)
+    // Now mock clear next day
     const mod = (await import('@/lib/db')).prisma.sitePerfDaily.findMany as any
     mod.mockResolvedValueOnce([
       { siteId: 's1', date: new Date('2026-02-03'), device: 'MOBILE', lcpPctl: 2000, perfScoreAvg: 70 },
