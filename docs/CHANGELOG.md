@@ -3,6 +3,15 @@
 ## Unreleased
 
 ### Added
+- GSC aggregation endpoints now support:
+  - Server-side sorting via `sort` (clicks|impressions|ctr|position) and `dir` (asc|desc)
+  - Pagination totals: responses include `totalItems` and `totalPages`
+  - Trend metrics per row: `trendClicks`, `trendImpressions`, `trendCtr`, `trendPosition`
+- UI updated to consume totals and sort direction; basic pagination controls show `Page X / Y`.
+- Tests: unit tests for param parsing/validation and trend helpers.
+- Docs: README updated with sort, totals, and trend behavior.
+
+### Existing (from previous phase)
 - Google Search Console daily ingestion pipeline:
   - New tables: search_stat_daily, keyword_summary, page_summary
   - Cron route: POST /api/cron/gsc-refresh?siteId=&days=30

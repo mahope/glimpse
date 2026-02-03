@@ -133,8 +133,16 @@ All routes require an authenticated session and are organization-scoped unless n
 
 ## Development
 
-- UI for Keywords and Pages is wired to the aggregation routes with client-side filters, sorting, and pagination. Works with MOCK_GSC.
+- UI for Keywords and Pages now supports server-side sorting, totals, and trend metrics.
+  - Endpoints: GET /api/sites/[siteId]/gsc/keywords and /pages
+  - Query params:
+    - days (default 30), page, pageSize
+    - device (all|desktop|mobile), country (ALL or ISO)
+    - sort (clicks|impressions|ctr|position), dir (asc|desc), default clicks desc
+  - Response includes: items[], page, pageSize, totalItems, totalPages, sortField, sortDir
+  - Trend fields per item: trendClicks, trendImpressions, trendCtr, trendPosition (positive = better rank)
 - Integration tests that touch DB are conditionally skipped if Postgres isn’t available.
+- MOCK_GSC preserves demo mode; trends synthesize a previous window for non-zero deltas.
 
 ## Troubleshooting
 
