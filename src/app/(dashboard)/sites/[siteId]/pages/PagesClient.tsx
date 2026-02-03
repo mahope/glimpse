@@ -60,23 +60,18 @@ export default function PagesClient({ siteId, initial }: { siteId: string; initi
           <option value={50}>50</option>
           <option value={100}>100</option>
         </select>
-        <select className="border rounded px-2 py-1" value={sortField} onChange={e=>setSortField(e.target.value)}>
-          <option value="clicks">Clicks</option>
-          <option value="impressions">Impressions</option>
-          <option value="ctr">CTR</option>
-          <option value="position">Position</option>
-        </select>
-        <select className="border rounded px-2 py-1" value={sortDir} onChange={e=>setSortDir(e.target.value as any)}>
-          <option value="desc">Desc</option>
-          <option value="asc">Asc</option>
-        </select>
       </div>
 
       {loading && <div className="text-sm text-gray-500">Loading…</div>}
       {error && <div className="text-sm text-red-600">{error}</div>}
       {!loading && !error && items.length === 0 && <div className="text-sm text-gray-500">No data</div>}
 
-      <PageTable items={items} />
+      <PageTable
+        items={items}
+        sortField={sortField}
+        sortDir={sortDir}
+        onSort={(f, dir)=>{ setSortField(f); setSortDir(dir) }}
+      />
 
       <div className="flex items-center gap-2">
         <button className="border rounded px-2 py-1" disabled={page<=1} onClick={()=>setPage(p=>p-1)}>Prev</button>

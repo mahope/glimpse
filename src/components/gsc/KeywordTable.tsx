@@ -14,11 +14,23 @@ export type KeywordRow = {
   trendPosition: number
 }
 
-export function KeywordTable({ items, onFilter }: { items: KeywordRow[]; onFilter?: (f: { device: string; country: string }) => void }) {
+export function KeywordTable({ items, onFilter, sortField, sortDir, onSort }:
+  { items: KeywordRow[]; onFilter?: (f: { device: string; country: string }) => void; sortField?: string; sortDir?: 'asc'|'desc'; onSort?: (f: string, dir: 'asc'|'desc') => void }) {
   const [device, setDevice] = React.useState('all')
   const [country, setCountry] = React.useState('all')
 
   React.useEffect(() => { onFilter?.({ device, country }) }, [device, country])
+
+  const toggleSort = (field: string) => {
+    if (!onSort) return
+    const dir: 'asc'|'desc' = sortField === field ? (sortDir === 'asc' ? 'desc' : 'asc') : 'desc'
+    onSort(field, dir)
+  }
+  const Arrow = ({ active, dir }: { active: boolean; dir?: 'asc'|'desc' }) => (
+    <span className="ml-1 inline-block align-middle" aria-hidden data-testid={`arrow-${active?dir:'off'}`}>
+      {active ? (dir === 'asc' ? '▲' : '▼') : '↕'}
+    </span>
+  )
 
   return (
     <div className="space-y-3">
@@ -34,10 +46,26 @@ export function KeywordTable({ items, onFilter }: { items: KeywordRow[]; onFilte
         <thead>
           <tr className="text-left border-b">
             <th className="py-2">Query</th>
-            <th>Clicks</th>
-            <th>Impr.</th>
-            <th>CTR</th>
-            <th>Avg Pos.</th>
+            <th>
+              <button data-testid="sort-clicks" className="hover:underline" onClick={()=>toggleSort('clicks')}>
+                Clicks <Arrow active={sortField==='clicks'} dir={sortDir} />
+              </button>
+            </th>
+            <th>
+              <button data-testid="sort-impressions" className="hover:underline" onClick={()=>toggleSort('impressions')}>
+                Impr. <Arrow active={sortField==='impressions'} dir={sortDir} />
+              </button>
+            </th>
+            <th>
+              <button data-testid="sort-ctr" className="hover:underline" onClick={()=>toggleSort('ctr')}>
+                CTR <Arrow active={sortField==='ctr'} dir={sortDir} />
+              </button>
+            </th>
+            <th>
+              <button data-testid="sort-position" className="hover:underline" onClick={()=>toggleSort('position')}>
+                Avg Pos. <Arrow active={sortField==='position'} dir={sortDir} />
+              </button>
+            </th>
             <th>Trends</th>
           </tr>
         </thead>
