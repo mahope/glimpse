@@ -29,9 +29,9 @@ vi.mock('@/lib/perf/psi-service', () => ({
     const { prisma } = await import('@/lib/db') as any
     await prisma.perfSnapshot.create({ data: {} as any })
   }),
-  upsertDaily: vi.fn(async (_siteId: string, _date: Date) => {
+  upsertDaily: vi.fn(async (_siteId: string, _date: Date, _device?: any) => {
     const { prisma } = await import('@/lib/db') as any
-    await prisma.sitePerfDaily.upsert({ where: { siteId_date: { siteId: 's1', date: new Date('2026-02-03') } } } as any)
+    await prisma.sitePerfDaily.upsert({ where: { siteId_date_device: { siteId: 's1', date: new Date('2026-02-03'), device: 'MOBILE' } } } as any)
   }),
 }))
 
