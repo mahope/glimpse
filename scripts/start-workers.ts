@@ -20,17 +20,16 @@ config({ path: path.resolve(process.cwd(), '.env.local') })
 config({ path: path.resolve(process.cwd(), '.env') })
 
 // Import workers after env is loaded
-import '../src/lib/jobs/workers'
+import { startAllWorkers } from '../src/lib/jobs'
+
+startAllWorkers()
 
 console.log('🚀 Background workers started successfully!')
 console.log('🎯 Monitoring queues:')
-console.log('  - gsc-sync (GSC data synchronization)')
-console.log('  - performance-test (PageSpeed testing)')
-console.log('  - site-crawl (Site crawling and analysis)')
-console.log('  - score-calculation (SEO score calculations)')
+console.log('  - gsc:fetch (GSC data synchronization)')
 console.log('')
-console.log('📊 Redis connection:', process.env.REDIS_URL || 'redis://localhost:6379')
-console.log('🗄️  Database connection:', process.env.DATABASE_URL ? 'Connected' : 'Not configured')
+console.log('📊 Redis connection:', process.env.REDIS_URL || 'not configured')
+console.log('🗄️  Database connection:', process.env.DATABASE_URL ? 'Configured' : 'Not configured')
 console.log('')
 console.log('Press Ctrl+C to stop workers')
 

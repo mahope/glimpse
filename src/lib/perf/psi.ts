@@ -1,0 +1,158 @@
+import type { NextRequest } from 'next/server'
+
+export type Strategy = 'mobile' | 'desktop'
+
+export type PsiLabMetrics = {
+  score?: number // 0-100
+  lcp?: number // ms
+  inp?: number // ms
+  cls?: number // unitless
+  fcp?: number // ms
+  tbt?: number // ms
+  fid?: number // ms (legacy)
+}
+
+export type PsiFieldMetrics = {
+  lcp?: number // ms (75th pctl)
+  inp?: number // ms (75th pctl)
+  cls?: number // 75th pctl * 1000 in PSI payload, normalized here
+  fcp?: number // ms (75th pctl)
+}
+
+export type PsiDiagnostics = {
+  lighthouseVersion?: string
+  fetchTime?: string
+  finalUrl?: string
+  formFactor?: string
+  runtimeError?: string
+  reportLink?: string
+}
+
+export type PsiNormalized = {
+  timestamp: string // ISO
+  url: string
+  strategy: Strategy
+  lab: PsiLabMetrics
+  field: PsiFieldMetrics
+  diagnostics: PsiDiagnostics
+}
+
+const PSI_ENDPOINT = 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed'
+
+function getApiKey(): string | undefined {
+  return (
+    process.env.PAGESPEED_API_KEY ||
+    process.env.GOOGLE_PAGESPEED_API_KEY ||
+    process.env.GOOGLE_PSI_API_KEY ||
+    undefined
+  )
+}
+
+export function buildPsiParams(url: string, strategy: Strategy = 'mobile'): URLSearchParams {
+  const params = new URLSearchParams({ url, strategy, category: 'performance' })
+  const key = getApiKey()
+  if (key) params.set('key', key)
+  return params
+}
+
+export type RawPsi = any
+
+export function extractLab(data: RawPsi): PsiLabMetrics {
+  const lh = data?.lighthouseResult
+  const audits = lh?.audits || {}
+  const score = lh?.categories?.performance?.score
+  return {
+    score: typeof score === 'number' ? Math.round(score * 100) : undefined,
+    lcp: audits['largest-contentful-paint']?.numericValue,
+    inp: audits['interaction-to-next-paint']?.numericValue,
+    cls: audits['cumulative-layout-shift']?.numericValue,
+    fcp: audits['first-contentful-paint']?.numericValue,
+    tbt: audits['total-blocking-time']?.numericValue,
+    fid: audits['max-potential-fid']?.numericValue,
+  }
+}
+
+export function extractField(data: RawPsi): PsiFieldMetrics {
+  const m = data?.loadingExperience?.metrics || {}
+  // CLS percentile comes as an integer scaled by 1000 (e.g., 100 == 0.1)
+  const clsRaw = m?.CUMULATIVE_LAYOUT_SHIFT_SCORE?.percentile
+  return {
+    lcp: m?.LARGEST_CONTENTFUL_PAINT_MS?.percentile,
+    inp: m?.INTERACTION_TO_NEXT_PAINT?.percentile,
+    cls: typeof clsRaw === 'number' ? clsRaw / 1000 : undefined,
+    fcp: m?.FIRST_CONTENTFUL_PAINT_MS?.percentile,
+  }
+}
+
+export function extractDiagnostics(data: RawPsi): PsiDiagnostics {
+  const lh = data?.lighthouseResult
+  const runtimeError = lh?.runtimeError?.message || data?.analysisUTCTimestampError
+  const reportLink = data?.lighthouseResult?.finalDisplayedUrl
+    ? `https://pagespeed.web.dev/analysis?url=${encodeURIComponent(data.lighthouseResult.finalDisplayedUrl)}`
+    : undefined
+  return {
+    lighthouseVersion: lh?.lighthouseVersion,
+    fetchTime: lh?.fetchTime || data?.analysisUTCTimestamp,
+    finalUrl: lh?.finalDisplayedUrl || data?.id,
+    formFactor: lh?.configSettings?.formFactor,
+    runtimeError,
+    reportLink,
+  }
+}
+
+export function normalizePsi(data: RawPsi, url: string, strategy: Strategy): PsiNormalized {
+  return {
+    timestamp: new Date().toISOString(),
+    url,
+    strategy,
+    lab: extractLab(data),
+    field: extractField(data),
+    diagnostics: extractDiagnostics(data),
+  }
+}
+
+export async function fetchPsi(url: string, strategy: Strategy = 'mobile') {
+  const key = getApiKey()
+  const mock = (process.env.MOCK_PSI || process.env.MOCK_PAGESPEED_API) === 'true'
+  if (!key && !mock) {
+    const err = new Error('PageSpeed Insights API key missing. Set GOOGLE_PSI_API_KEY or PAGESPEED_API_KEY, or set MOCK_PSI=true for demos.')
+    ;(err as any).code = 'NO_API_KEY'
+    throw err
+  }
+
+  if (mock) {
+    // lightweight mock for demos/tests (no network)
+    const fake = {
+      lighthouseResult: {
+        categories: { performance: { score: 0.88 } },
+        audits: {
+          'largest-contentful-paint': { numericValue: 2300 },
+          'interaction-to-next-paint': { numericValue: 160 },
+          'cumulative-layout-shift': { numericValue: 0.07 },
+          'first-contentful-paint': { numericValue: 1200 },
+          'total-blocking-time': { numericValue: 120 },
+        },
+      },
+      loadingExperience: {
+        metrics: {
+          LARGEST_CONTENTFUL_PAINT_MS: { percentile: 2400 },
+          INTERACTION_TO_NEXT_PAINT: { percentile: 170 },
+          CUMULATIVE_LAYOUT_SHIFT_SCORE: { percentile: 70 },
+          FIRST_CONTENTFUL_PAINT_MS: { percentile: 1300 },
+        },
+      },
+    }
+    return normalizePsi(fake, url, strategy)
+  }
+
+  const params = buildPsiParams(url, strategy)
+  const res = await fetch(`${PSI_ENDPOINT}?${params.toString()}`, { headers: { Accept: 'application/json' } })
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    const error = new Error(`PSI request failed: ${res.status} ${text}`)
+    ;(error as any).status = res.status
+    throw error
+  }
+  const data = await res.json()
+  return normalizePsi(data, url, strategy)
+}

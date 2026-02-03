@@ -3,23 +3,28 @@
 ## Unreleased
 
 ### Added
-- PageSpeed Insights (PSI) integration: src/lib/perf/psi-service.ts with CWV parsing (LCP/INP/CLS/TTFB) and Lighthouse perf score; rate limiting with backoff; CWV pass/needs/fail summarizer.
-- Database: New Prisma models PerfSnapshot and SitePerfDaily for per-URL snapshots and daily aggregates.
-- Jobs: New BullMQ worker perf:fetch (src/lib/jobs/workers/perf-worker.ts) that enqueues PSI runs per site URL and updates aggregates.
-- Cron: POST /api/cron/perf-refresh (secured with verifyCronSecret) to enqueue daily refreshes; supports ?siteId and ?limit.
-- API: New routes
-  - GET /api/sites/[siteId]/perf/latest?strategy=mobile|desktop&page=&pageSize= — latest snapshot per URL with pagination
-  - GET /api/sites/[siteId]/perf/daily?days=30 — 30-day aggregates from SitePerfDaily
-- UI: New Performance tab with Latest table and Trends (30-day KPIs). Responsive with loading/empty/error states.
-- Env: .env.example lists PAGESPEED_API_KEY, CRON_SECRET, REDIS_URL.
+- UI: Keywords and Pages tables now have clickable sortable headers; current sort shown with up/down arrows. Sort and direction sync to URL and persist across pagination and filters.
+- API: CTR sorting made consistent by computing CTR from clicks/impressions and applying a deterministic in-memory sort with tie-breakers (clicks desc, impressions desc, key asc). Pagination slices after sort for stability. Position sort treats lower as better.
+- Tests: Added parseParams coverage for sort + dir; added unit tests for CTR sort behavior and tie-breakers (uses pure functions, no DB/Redis). Existing tests remain green; DB-dependent tests are skipped when DB is not available.
+- Docs: README updated with sortable headers, CTR sort behavior, tie-breakers, and pagination details.
 
-### Tests
-- Unit: psi-service summarizer and parser tests.
-- Integration: seeds snapshots and asserts latest/daily query shapes.
+### Existing (from previous phase)
+- Google Search Console daily ingestion pipeline:
+  - New tables: search_stat_daily, keyword_summary, page_summary
+  - Cron route: POST /api/cron/gsc-refresh?siteId=&days=30
+  - Aggregation routes:
+    - GET /api/sites/[siteId]/gsc/keywords
+    - GET /api/sites/[siteId]/gsc/pages
+- Keywords/Pages dashboard wiring (client) with filters, sorting, pagination, and loading/empty/error states
+- BullMQ worker `gsc:fetch` with backoff/limiter; safe no-op when REDIS_URL missing
+- Scheduler endpoints:
+  - POST /api/jobs/gsc-enqueue (Authorization: Bearer ${CRON_SECRET})
+  - POST /api/jobs/register-on-boot (Authorization: Bearer ${CRON_SECRET})
+- README updated with worker runbook and MOCK_GSC instructions
+- .env.example entries for SERVICE_ACCOUNT_JSON and MOCK_GSC
 
-### DX
-- NPM scripts: db:migrate, db:generate, db:studio
+### Changed
+- Site: added gscLastSyncedAt
 
-### Cleanup
-- Docs updated (README, cron README, CHANGELOG). Removed stale mentions as found; more to sweep later.
-
+### Notes
+- Prisma SQL migration created offline due to missing local Postgres. Run `npm run db:migrate` after starting db to apply.

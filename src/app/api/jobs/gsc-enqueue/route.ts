@@ -5,10 +5,8 @@ import { enqueueDailyForActiveSites } from '@/lib/jobs/gscQueue'
 export async function POST(req: NextRequest) {
   const unauthorized = verifyCronSecret(req)
   if (unauthorized) return unauthorized
-  try {
-    const result = await enqueueDailyForActiveSites(30)
-    return NextResponse.json({ ok: true, ...result })
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e.message }, { status: 500 })
-  }
+  const { searchParams } = new URL(req.url)
+  const days = Number(searchParams.get('days') || '30')
+  const result = await enqueueDailyForActiveSites(days)
+  return NextResponse.json(result)
 }

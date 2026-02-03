@@ -121,6 +121,7 @@ model Site {
   gscPropertyUrl   String?      @map("gsc_property_url")
   gscRefreshToken  String?      @map("gsc_refresh_token") // Encrypted
   gscConnectedAt   DateTime?    @map("gsc_connected_at")
+  gscLastSyncedAt  DateTime?    @map("gsc_last_synced_at")
   
   // Settings
   isActive         Boolean      @default(true)
@@ -136,6 +137,9 @@ model Site {
   crawlReports     CrawlReport[]
   perfSnapshots    PerfSnapshot[]
   perfDaily        SitePerfDaily[]
+  searchStatsDaily SearchStatDaily[]
+  keywordSummaries KeywordSummary[]
+  pageSummaries    PageSummary[]
   
   @@unique([organizationId, domain])
   @@map("site")
@@ -167,6 +171,70 @@ model SearchConsoleData {
   @@index([siteId, query])
   @@index([siteId, page])
   @@map("search_console_data")
+}
+
+// New GSC daily raw rows
+model SearchStatDaily {
+  id          String   @id @default(cuid())
+  siteId      String   @map("site_id")
+  date        DateTime
+  pageUrl     String   @map("page_url")
+  query       String
+  device      String
+  country     String
+  clicks      Int      @default(0)
+  impressions Int      @default(0)
+  ctr         Float    @default(0)
+  position    Float    @default(0)
+  createdAt   DateTime @default(now())
+
+  site        Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, date, pageUrl, query, device, country])
+  @@index([siteId, date])
+  @@index([siteId, query])
+  @@index([siteId, pageUrl])
+  @@map("search_stat_daily")
+}
+
+// Aggregated 30-day keyword summary per site
+model KeywordSummary {
+  id           String   @id @default(cuid())
+  siteId       String   @map("site_id")
+  query        String
+  clicks30     Int      @default(0) @map("clicks_30")
+  impressions30 Int     @default(0) @map("impressions_30")
+  ctr30        Float    @default(0) @map("ctr_30")
+  position30   Float    @default(0) @map("position_30")
+  trendClick   Float    @default(0) @map("trend_click")
+  trendImpr    Float    @default(0) @map("trend_impr")
+  updatedAt    DateTime @default(now()) @updatedAt
+
+  site         Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, query])
+  @@index([siteId, clicks30])
+  @@map("keyword_summary")
+}
+
+// Aggregated 30-day page summary per site
+model PageSummary {
+  id           String   @id @default(cuid())
+  siteId       String   @map("site_id")
+  pageUrl      String   @map("page_url")
+  clicks30     Int      @default(0) @map("clicks_30")
+  impressions30 Int     @default(0) @map("impressions_30")
+  ctr30        Float    @default(0) @map("ctr_30")
+  position30   Float    @default(0) @map("position_30")
+  trendClick   Float    @default(0) @map("trend_click")
+  trendImpr    Float    @default(0) @map("trend_impr")
+  updatedAt    DateTime @default(now()) @updatedAt
+
+  site         Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, pageUrl])
+  @@index([siteId, clicks30])
+  @@map("page_summary")
 }
 
 model PerformanceTest {
