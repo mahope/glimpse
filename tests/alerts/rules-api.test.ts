@@ -35,7 +35,7 @@ describe('Alert Rules API', () => {
   })
 
   it('creates and lists rules', async () => {
-    const res1 = await route.POST(makeReq('POST'), { params: { siteId: 'site1' } } as any)
+    const res1 = await route.POST(makeReq('POST', { metric: 'LCP', device: 'MOBILE', threshold: 2500, recipients: ['a@example.com'] }), { params: { siteId: 'site1' } } as any)
     expect(res1.status).toBe(201)
     const created = await res1.json()
     expect(created.item).toBeTruthy()
@@ -57,7 +57,8 @@ describe('Alert Rules API', () => {
 
   it('deletes a rule', async () => {
     const r = await (await route.POST(makeReq('POST', { metric: 'CLS', device: 'ALL', threshold: 0.1, recipients: [] }), { params: { siteId: 'site1' } } as any)).json()
-    const res = await route.DELETE(makeReq('DELETE?'+new URLSearchParams({ id: r.item.id }).toString()), { params: { siteId: 'site1' } } as any)
+    const req = new NextRequest('http://localhost/api/sites/site1/alerts/rules?id=' + r.item.id, { method: 'DELETE' } as any)
+    const res = await route.DELETE(req, { params: { siteId: 'site1' } } as any)
     expect(res.status).toBe(200)
   })
 })
