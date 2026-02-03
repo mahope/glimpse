@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       // Debounce: if an OPEN event already exists for the same (site,metric,device) on the same date, skip
       const start = new Date(Date.UTC(latestDate.getUTCFullYear(), latestDate.getUTCMonth(), latestDate.getUTCDate()))
       const end = new Date(start); end.setUTCDate(end.getUTCDate() + 1)
-      const openRecent = await prisma.alertEvent.findFirst({
+      const openRecentList = await prisma.alertEvent.findMany({
         where: {
           siteId: rule.siteId,
           metric: rule.metric,
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
       })
 
       if (evalRes.violated) {
-        if (!openRecent) {
+        if (!openRecentList.length) {
           const event = await prisma.alertEvent.create({
             data: {
               siteId: rule.siteId,
