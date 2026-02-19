@@ -1000,7 +1000,7 @@ Sammenlign dine GSC-keywords med konkurrenters synlige keywords. Kræver at konk
 
 ---
 
-### 11. Konkurrent rank-sammenligning
+### ~~11. Konkurrent rank-sammenligning~~ DONE
 
 **Filer:** Udvidelse af konkurrent-UI, ny API-route
 

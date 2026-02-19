@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { SiteNav } from '@/components/site/site-nav'
 import { toast } from '@/components/ui/toast'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell } from 'recharts'
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell } from 'recharts'
 import { Plus, Trash2, Loader2, Zap, Search, ArrowUp, ArrowDown, X } from 'lucide-react'
 
 interface PerfData {
@@ -73,6 +73,20 @@ interface KeywordOverlapData {
   }
 }
 
+interface RankTimelinePoint {
+  date: string
+  sourcePosition: number | null
+  competitorPosition: number | null
+}
+
+interface RankCompareData {
+  available: boolean
+  query: string
+  siteName: string
+  competitorName: string
+  timeline: RankTimelinePoint[]
+}
+
 type OverlapTab = 'shared' | 'onlySource' | 'onlyCompetitor'
 
 function cwvColor(metric: string, value: number | null): string {
@@ -130,6 +144,9 @@ export function CompetitorsClient({ siteId }: { siteId: string }) {
   const [overlapData, setOverlapData] = useState<KeywordOverlapData | null>(null)
   const [overlapLoading, setOverlapLoading] = useState(false)
   const [overlapTab, setOverlapTab] = useState<OverlapTab>('shared')
+  const [rankData, setRankData] = useState<RankCompareData | null>(null)
+  const [rankLoading, setRankLoading] = useState(false)
+  const [rankQuery, setRankQuery] = useState<string | null>(null)
 
   const fetchData = useCallback(() => {
     setLoading(true)
@@ -203,11 +220,15 @@ export function CompetitorsClient({ siteId }: { siteId: string }) {
     if (overlapCompetitorId === competitorId) {
       setOverlapCompetitorId(null)
       setOverlapData(null)
+      setRankQuery(null)
+      setRankData(null)
       return
     }
     setOverlapCompetitorId(competitorId)
     setOverlapLoading(true)
     setOverlapTab('shared')
+    setRankQuery(null)
+    setRankData(null)
     try {
       const res = await fetch(`/api/sites/${siteId}/competitors/${competitorId}/keywords`)
       if (!res.ok) throw new Error()
@@ -217,6 +238,29 @@ export function CompetitorsClient({ siteId }: { siteId: string }) {
       setOverlapCompetitorId(null)
     } finally {
       setOverlapLoading(false)
+    }
+  }
+
+  const handleRankCompare = async (query: string) => {
+    if (!overlapCompetitorId) return
+    if (rankQuery === query) {
+      setRankQuery(null)
+      setRankData(null)
+      return
+    }
+    setRankQuery(query)
+    setRankLoading(true)
+    try {
+      const res = await fetch(
+        `/api/sites/${siteId}/competitors/${overlapCompetitorId}/rank-compare?query=${encodeURIComponent(query)}&days=90`
+      )
+      if (!res.ok) throw new Error()
+      setRankData(await res.json())
+    } catch {
+      toast('error', 'Kunne ikke hente rank-sammenligning')
+      setRankQuery(null)
+    } finally {
+      setRankLoading(false)
     }
   }
 
@@ -497,7 +541,11 @@ export function CompetitorsClient({ siteId }: { siteId: string }) {
                             </TableHeader>
                             <TableBody>
                               {overlapData.shared!.slice(0, 100).map(k => (
-                                <TableRow key={k.query}>
+                                <TableRow
+                                  key={k.query}
+                                  className={`cursor-pointer hover:bg-accent/50 ${rankQuery === k.query ? 'bg-accent' : ''}`}
+                                  onClick={() => handleRankCompare(k.query)}
+                                >
                                   <TableCell className="font-medium max-w-48 truncate">{k.query}</TableCell>
                                   <TableCell>{k.sourcePosition.toFixed(1)}</TableCell>
                                   <TableCell>{k.competitorPosition.toFixed(1)}</TableCell>
@@ -520,6 +568,7 @@ export function CompetitorsClient({ siteId }: { siteId: string }) {
                               ))}
                             </TableBody>
                           </Table>
+                          <p className="text-xs text-muted-foreground mt-2">Klik på et keyword for at se rank-sammenligning over tid</p>
                         </div>
                       )
                     )}
@@ -582,6 +631,62 @@ export function CompetitorsClient({ siteId }: { siteId: string }) {
                           </Table>
                         </div>
                       )
+                    )}
+
+                    {/* Rank comparison chart */}
+                    {rankQuery && (
+                      <div className="border-t pt-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-sm font-medium">
+                            Rank-sammenligning: <span className="text-blue-600">&quot;{rankQuery}&quot;</span>
+                          </h3>
+                          <Button variant="ghost" size="sm" onClick={() => { setRankQuery(null); setRankData(null) }}>
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        {rankLoading ? (
+                          <Skeleton className="h-56 rounded" />
+                        ) : rankData && rankData.available && rankData.timeline.length > 0 ? (
+                          <div className="h-56">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <LineChart data={rankData.timeline} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                                <XAxis
+                                  dataKey="date"
+                                  tickFormatter={d => new Date(d).toLocaleDateString('da-DK', { day: 'numeric', month: 'short' })}
+                                  tick={{ fontSize: 11 }}
+                                />
+                                <YAxis reversed tick={{ fontSize: 11 }} label={{ value: 'Position', angle: -90, position: 'insideLeft', style: { fontSize: 11 } }} />
+                                <Tooltip
+                                  labelFormatter={d => new Date(d).toLocaleDateString('da-DK', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                  formatter={(v: number, name: string) => [v.toFixed(1), name]}
+                                />
+                                <Legend />
+                                <Line
+                                  type="monotone"
+                                  dataKey="sourcePosition"
+                                  name={rankData.siteName}
+                                  stroke="#3b82f6"
+                                  dot={false}
+                                  strokeWidth={2}
+                                  connectNulls
+                                />
+                                <Line
+                                  type="monotone"
+                                  dataKey="competitorPosition"
+                                  name={rankData.competitorName}
+                                  stroke="#ef4444"
+                                  dot={false}
+                                  strokeWidth={2}
+                                  connectNulls
+                                />
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </div>
+                        ) : (
+                          <p className="py-4 text-center text-muted-foreground text-sm">Ikke nok data til at vise rank-sammenligning.</p>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}

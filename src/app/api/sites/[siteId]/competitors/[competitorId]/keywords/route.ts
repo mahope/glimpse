@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
 import { analyzeKeywordOverlap } from '@/lib/competitors/keyword-analysis'
+import { findMatchedSite } from '@/lib/competitors/match-site'
 
 export async function GET(req: NextRequest, { params }: { params: { siteId: string; competitorId: string } }) {
   const session = await auth.api.getSession({ headers: await headers() })
@@ -18,27 +19,7 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
   })
   if (!competitor) return NextResponse.json({ error: 'Competitor not found' }, { status: 404 })
 
-  // Try to find a matching site in the same org (internal comparison)
-  const competitorUrl = competitor.url.replace(/\/+$/, '')
-  const competitorDomain = (() => {
-    try { return new URL(competitorUrl).hostname.replace(/^www\./, '') } catch { return '' }
-  })()
-
-  const matchedSite = competitorDomain
-    ? await prisma.site.findFirst({
-        where: {
-          organizationId,
-          id: { not: site.id },
-          OR: [
-            { domain: competitorDomain },
-            { domain: `www.${competitorDomain}` },
-            { url: { startsWith: `https://${competitorDomain}` } },
-            { url: { startsWith: `https://www.${competitorDomain}` } },
-            { url: { startsWith: `http://${competitorDomain}` } },
-          ],
-        },
-      })
-    : null
+  const matchedSite = await findMatchedSite(competitor.url, organizationId, site.id)
 
   if (!matchedSite) {
     return NextResponse.json({
