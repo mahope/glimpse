@@ -36,8 +36,8 @@ export function SitesList({ sites }: SitesListProps) {
     return (
       <Card className="text-center py-12">
         <CardContent className="space-y-4">
-          <div className="text-6xl text-gray-300 mb-4">🌐</div>
-          <CardTitle className="text-xl text-gray-600">No Sites Connected</CardTitle>
+          <div className="text-6xl mb-4 opacity-30">&#127760;</div>
+          <CardTitle className="text-xl text-muted-foreground">No Sites Connected</CardTitle>
           <CardDescription>
             Get started by connecting your first website to track its SEO performance
           </CardDescription>

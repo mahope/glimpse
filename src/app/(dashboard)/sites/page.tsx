@@ -15,13 +15,19 @@ export default async function SitesPage() {
     redirect('/auth/sign-in')
   }
 
+  // Redirect to onboarding if not completed
+  const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { onboardingCompletedAt: true } })
+  if (!user?.onboardingCompletedAt) {
+    redirect('/onboarding')
+  }
+
   const organizationId = session.session.activeOrganizationId
   if (!organizationId) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <h2 className="text-2xl font-semibold mb-4">No Organization Selected</h2>
-          <p className="text-gray-600 mb-6">
+          <p className="text-muted-foreground mb-6">
             You need to be a member of an organization to manage sites.
           </p>
           <Button asChild>
@@ -62,8 +68,8 @@ export default async function SitesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Sites</h1>
-          <p className="text-gray-600 mt-2">
+          <h1 className="text-3xl font-bold text-foreground">Sites</h1>
+          <p className="text-muted-foreground mt-2">
             Manage your connected websites and their SEO performance
           </p>
         </div>

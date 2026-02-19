@@ -20,14 +20,15 @@ model User {
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   role              UserRole           @default(CUSTOMER)
-  
+  onboardingCompletedAt DateTime?      @map("onboarding_completed_at")
+
   // Better Auth relations
   sessions          Session[]
   accounts          Account[]
-  
+
   // Organization relations
   members           Member[]
-  
+
   @@map("user")
 }
 

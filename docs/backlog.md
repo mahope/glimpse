@@ -522,7 +522,7 @@ Tabeller har inkonsistent styling:
 
 ---
 
-### 33. Implementer onboarding-wizard for nye brugere
+### 33. ~~Implementer onboarding-wizard for nye brugere~~ DONE
 
 **Filer:** Nye komponenter + route
 
