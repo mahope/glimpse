@@ -3,7 +3,9 @@ import { prisma } from '@/lib/db'
 import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
 import { parseParams, ctr, safePctDelta, positionImprovementPct } from '@/lib/gsc/params'
-import { toCsv, csvResponse } from '@/lib/csv'
+import { csvStreamResponse } from '@/lib/csv'
+
+const BATCH_SIZE = 2000
 
 export async function GET(req: NextRequest, { params }: { params: { siteId: string } }) {
   const session = await auth.api.getSession({ headers: await headers() })
@@ -58,69 +60,83 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
   const orderExpr = orderByMap[sortField] || orderByMap.clicks
   const orderDir = sortDir === 'asc' ? 'ASC' : 'DESC'
 
-  const rows = await prisma.$queryRawUnsafe<Array<{
-    page_url: string
-    clicks: bigint
-    impressions: bigint
-    position: number
-  }>>(
-    `SELECT "page_url", SUM("clicks") as clicks, SUM("impressions") as impressions, AVG("position")::float8 as position
-     FROM "search_stat_daily"
-     WHERE ${baseWhere}
-     GROUP BY "page_url"
-     ORDER BY ${orderExpr} ${orderDir}, "page_url" ASC
-     LIMIT 10000`,
-    ...baseParams,
-  )
-
-  const pageUrls = rows.map(r => r.page_url)
-  let prevMap = new Map<string, { clicks: number; impressions: number; position: number }>()
-  if (pageUrls.length > 0) {
-    const prevRows = await prisma.searchStatDaily.groupBy({
-      by: ['pageUrl'],
-      where: {
-        siteId: site.id,
-        date: { gte: prevStart, lte: prevEnd },
-        pageUrl: { in: pageUrls },
-        ...(deviceFilter ? { device: deviceFilter } : {}),
-        ...(countryFilter ? { country: countryFilter } : {}),
-      },
-      _sum: { clicks: true, impressions: true },
-      _avg: { position: true },
-    })
-    prevMap = new Map(prevRows.map(r => [r.pageUrl!, {
-      clicks: r._sum.clicks ?? 0,
-      impressions: r._sum.impressions ?? 0,
-      position: r._avg.position ?? 0,
-    }]))
-  }
-
   const csvHeaders = ['Page URL', 'Clicks', 'Impressions', 'CTR (%)', 'Avg Position', 'Clicks Trend (%)', 'Impressions Trend (%)', 'CTR Trend (%)', 'Position Trend (%)']
-  const csvRows = rows.map(r => {
-    const clicks = Number(r.clicks)
-    const impressions = Number(r.impressions)
-    const position = Number(r.position) || 0
-    const prev = prevMap.get(r.page_url)
-    const pClicks = prev?.clicks ?? 0
-    const pImpr = prev?.impressions ?? 0
-    const pPos = prev?.position ?? 0
-    const currCtr = ctr(clicks, impressions)
-    const prevCtr = ctr(pClicks, pImpr)
-
-    return [
-      r.page_url,
-      clicks,
-      impressions,
-      currCtr.toFixed(1),
-      position.toFixed(1),
-      safePctDelta(clicks, pClicks).toFixed(1),
-      safePctDelta(impressions, pImpr).toFixed(1),
-      safePctDelta(currCtr, prevCtr).toFixed(1),
-      positionImprovementPct(position, pPos).toFixed(1),
-    ]
-  })
 
   const date = new Date().toISOString().split('T')[0]
   const filename = `${site.domain}-pages-${date}.csv`
-  return csvResponse(toCsv(csvHeaders, csvRows), filename)
+
+  return csvStreamResponse(csvHeaders, () => {
+    return (async function*() {
+      let offset = 0
+      let hasMore = true
+
+      while (hasMore) {
+        const rows = await prisma.$queryRawUnsafe<Array<{
+          page_url: string
+          clicks: bigint
+          impressions: bigint
+          position: number
+        }>>(
+          `SELECT "page_url", SUM("clicks") as clicks, SUM("impressions") as impressions, AVG("position")::float8 as position
+           FROM "search_stat_daily"
+           WHERE ${baseWhere}
+           GROUP BY "page_url"
+           ORDER BY ${orderExpr} ${orderDir}, "page_url" ASC
+           LIMIT ${BATCH_SIZE} OFFSET ${offset}`,
+          ...baseParams,
+        )
+
+        if (rows.length === 0) break
+        hasMore = rows.length === BATCH_SIZE
+
+        const pageUrls = rows.map(r => r.page_url)
+        let prevMap = new Map<string, { clicks: number; impressions: number; position: number }>()
+        if (pageUrls.length > 0) {
+          const prevRows = await prisma.searchStatDaily.groupBy({
+            by: ['pageUrl'],
+            where: {
+              siteId: site.id,
+              date: { gte: prevStart, lte: prevEnd },
+              pageUrl: { in: pageUrls },
+              ...(deviceFilter ? { device: deviceFilter } : {}),
+              ...(countryFilter ? { country: countryFilter } : {}),
+            },
+            _sum: { clicks: true, impressions: true },
+            _avg: { position: true },
+          })
+          prevMap = new Map(prevRows.map(r => [r.pageUrl!, {
+            clicks: r._sum.clicks ?? 0,
+            impressions: r._sum.impressions ?? 0,
+            position: r._avg.position ?? 0,
+          }]))
+        }
+
+        for (const r of rows) {
+          const clicks = Number(r.clicks)
+          const impressions = Number(r.impressions)
+          const position = Number(r.position) || 0
+          const prev = prevMap.get(r.page_url)
+          const pClicks = prev?.clicks ?? 0
+          const pImpr = prev?.impressions ?? 0
+          const pPos = prev?.position ?? 0
+          const currCtr = ctr(clicks, impressions)
+          const prevCtr = ctr(pClicks, pImpr)
+
+          yield [
+            r.page_url,
+            clicks,
+            impressions,
+            currCtr.toFixed(1),
+            position.toFixed(1),
+            safePctDelta(clicks, pClicks).toFixed(1),
+            safePctDelta(impressions, pImpr).toFixed(1),
+            safePctDelta(currCtr, prevCtr).toFixed(1),
+            positionImprovementPct(position, pPos).toFixed(1),
+          ]
+        }
+
+        offset += BATCH_SIZE
+      }
+    })()
+  }, filename)
 }

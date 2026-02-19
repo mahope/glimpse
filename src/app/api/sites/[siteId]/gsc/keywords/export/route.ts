@@ -3,7 +3,9 @@ import { prisma } from '@/lib/db'
 import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
 import { parseParams, ctr, safePctDelta, positionImprovementPct } from '@/lib/gsc/params'
-import { toCsv, csvResponse } from '@/lib/csv'
+import { csvStreamResponse } from '@/lib/csv'
+
+const BATCH_SIZE = 2000
 
 export async function GET(req: NextRequest, { params }: { params: { siteId: string } }) {
   const session = await auth.api.getSession({ headers: await headers() })
@@ -42,6 +44,8 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
     whereParts.push(`"query" ILIKE $${baseParams.length}`)
   }
 
+  const csvHeaders = ['Keyword', 'Clicks', 'Impressions', 'CTR (%)', 'Avg Position', 'Position Delta', 'Clicks Trend (%)', 'Impressions Trend (%)', 'CTR Trend (%)', 'Position Trend (%)']
+
   if (tagId) {
     const taggedKeywords = await prisma.keywordTagAssignment.findMany({
       where: { tagId, siteId: site.id },
@@ -49,7 +53,7 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
     })
     const taggedQueries = taggedKeywords.map(t => t.query)
     if (taggedQueries.length === 0) {
-      return csvResponse(toCsv([], []), `${site.domain}-keywords-${new Date().toISOString().split('T')[0]}.csv`)
+      return csvStreamResponse(csvHeaders, () => (async function*() {})(), `${site.domain}-keywords-${new Date().toISOString().split('T')[0]}.csv`)
     }
     baseParams.push(taggedQueries)
     whereParts.push(`"query" = ANY($${baseParams.length}::text[])`)
@@ -75,74 +79,86 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
   const orderExpr = orderByMap[sortField] || orderByMap.clicks
   const orderDir = sortDir === 'asc' ? 'ASC' : 'DESC'
 
-  // Fetch ALL rows (no pagination limit for export)
-  const rows = await prisma.$queryRawUnsafe<Array<{
-    query: string
-    clicks: bigint
-    impressions: bigint
-    position: number
-  }>>(
-    `SELECT "query", SUM("clicks") as clicks, SUM("impressions") as impressions, AVG("position")::float8 as position
-     FROM "search_stat_daily"
-     WHERE ${baseWhere}
-     GROUP BY "query"
-     ${havingClause}
-     ORDER BY ${orderExpr} ${orderDir}, "query" ASC
-     LIMIT 10000`,
-    ...baseParams,
-  )
-
-  // Fetch prev data for all keywords
-  const keywords = rows.map(r => r.query)
-  let prevMap = new Map<string, { clicks: number; impressions: number; position: number }>()
-  if (keywords.length > 0) {
-    const prevRows = await prisma.searchStatDaily.groupBy({
-      by: ['query'],
-      where: {
-        siteId: site.id,
-        date: { gte: prevStart, lte: prevEnd },
-        query: { in: keywords },
-        ...(deviceFilter ? { device: deviceFilter } : {}),
-        ...(countryFilter ? { country: countryFilter } : {}),
-      },
-      _sum: { clicks: true, impressions: true },
-      _avg: { position: true },
-    })
-    prevMap = new Map(prevRows.map(r => [r.query!, {
-      clicks: r._sum.clicks ?? 0,
-      impressions: r._sum.impressions ?? 0,
-      position: r._avg.position ?? 0,
-    }]))
-  }
-
-  const csvHeaders = ['Keyword', 'Clicks', 'Impressions', 'CTR (%)', 'Avg Position', 'Position Delta', 'Clicks Trend (%)', 'Impressions Trend (%)', 'CTR Trend (%)', 'Position Trend (%)']
-  const csvRows = rows.map(r => {
-    const clicks = Number(r.clicks)
-    const impressions = Number(r.impressions)
-    const position = Number(r.position) || 0
-    const prev = prevMap.get(r.query)
-    const pClicks = prev?.clicks ?? 0
-    const pImpr = prev?.impressions ?? 0
-    const pPos = prev?.position ?? 0
-    const currCtr = ctr(clicks, impressions)
-    const prevCtr = ctr(pClicks, pImpr)
-    const positionDelta = pPos > 0 ? (pPos - position).toFixed(1) : '0'
-
-    return [
-      r.query,
-      clicks,
-      impressions,
-      currCtr.toFixed(1),
-      position.toFixed(1),
-      positionDelta,
-      safePctDelta(clicks, pClicks).toFixed(1),
-      safePctDelta(impressions, pImpr).toFixed(1),
-      safePctDelta(currCtr, prevCtr).toFixed(1),
-      positionImprovementPct(position, pPos).toFixed(1),
-    ]
-  })
-
   const date = new Date().toISOString().split('T')[0]
   const filename = `${site.domain}-keywords-${date}.csv`
-  return csvResponse(toCsv(csvHeaders, csvRows), filename)
+
+  // Streaming: fetch in batches using LIMIT/OFFSET
+  return csvStreamResponse(csvHeaders, () => {
+    return (async function*() {
+      let offset = 0
+      let hasMore = true
+
+      while (hasMore) {
+        const rows = await prisma.$queryRawUnsafe<Array<{
+          query: string
+          clicks: bigint
+          impressions: bigint
+          position: number
+        }>>(
+          `SELECT "query", SUM("clicks") as clicks, SUM("impressions") as impressions, AVG("position")::float8 as position
+           FROM "search_stat_daily"
+           WHERE ${baseWhere}
+           GROUP BY "query"
+           ${havingClause}
+           ORDER BY ${orderExpr} ${orderDir}, "query" ASC
+           LIMIT ${BATCH_SIZE} OFFSET ${offset}`,
+          ...baseParams,
+        )
+
+        if (rows.length === 0) break
+        hasMore = rows.length === BATCH_SIZE
+
+        // Fetch prev data for this batch
+        const keywords = rows.map(r => r.query)
+        let prevMap = new Map<string, { clicks: number; impressions: number; position: number }>()
+        if (keywords.length > 0) {
+          const prevRows = await prisma.searchStatDaily.groupBy({
+            by: ['query'],
+            where: {
+              siteId: site.id,
+              date: { gte: prevStart, lte: prevEnd },
+              query: { in: keywords },
+              ...(deviceFilter ? { device: deviceFilter } : {}),
+              ...(countryFilter ? { country: countryFilter } : {}),
+            },
+            _sum: { clicks: true, impressions: true },
+            _avg: { position: true },
+          })
+          prevMap = new Map(prevRows.map(r => [r.query!, {
+            clicks: r._sum.clicks ?? 0,
+            impressions: r._sum.impressions ?? 0,
+            position: r._avg.position ?? 0,
+          }]))
+        }
+
+        for (const r of rows) {
+          const clicks = Number(r.clicks)
+          const impressions = Number(r.impressions)
+          const position = Number(r.position) || 0
+          const prev = prevMap.get(r.query)
+          const pClicks = prev?.clicks ?? 0
+          const pImpr = prev?.impressions ?? 0
+          const pPos = prev?.position ?? 0
+          const currCtr = ctr(clicks, impressions)
+          const prevCtr = ctr(pClicks, pImpr)
+          const positionDelta = pPos > 0 ? (pPos - position).toFixed(1) : '0'
+
+          yield [
+            r.query,
+            clicks,
+            impressions,
+            currCtr.toFixed(1),
+            position.toFixed(1),
+            positionDelta,
+            safePctDelta(clicks, pClicks).toFixed(1),
+            safePctDelta(impressions, pImpr).toFixed(1),
+            safePctDelta(currCtr, prevCtr).toFixed(1),
+            positionImprovementPct(position, pPos).toFixed(1),
+          ]
+        }
+
+        offset += BATCH_SIZE
+      }
+    })()
+  }, filename)
 }

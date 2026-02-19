@@ -33,12 +33,16 @@ export default function PagesClient({ siteId, initial }: { siteId: string; initi
   const [totalPages, setTotalPages] = React.useState<number>(initial.totalPages || 1)
   const [device, setDevice] = React.useState(searchParams.get('device') || 'all')
   const [country, setCountry] = React.useState(searchParams.get('country') || 'ALL')
+  const [countryInput, setCountryInput] = React.useState(searchParams.get('country') || 'ALL')
   const [search, setSearch] = React.useState(searchParams.get('search') || '')
   const [searchInput, setSearchInput] = React.useState(searchParams.get('search') || '')
   const [pathPrefix, setPathPrefix] = React.useState(searchParams.get('pathPrefix') || '')
   const [showGroups, setShowGroups] = React.useState(false)
   const [pathGroups, setPathGroups] = React.useState<PathGroup[]>([])
+  const [debouncing, setDebouncing] = React.useState(false)
   const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const countryDebounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const urlDebounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const fetchData = React.useCallback(async () => {
     setLoading(true)
@@ -78,31 +82,52 @@ export default function PagesClient({ siteId, initial }: { siteId: string; initi
   React.useEffect(() => { fetchData() }, [fetchData])
 
   React.useEffect(() => {
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      if (countryDebounceRef.current) clearTimeout(countryDebounceRef.current)
+      if (urlDebounceRef.current) clearTimeout(urlDebounceRef.current)
+    }
   }, [])
 
   const handleSearchInput = React.useCallback((value: string) => {
     setSearchInput(value)
+    setDebouncing(true)
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
       setSearch(value)
       setPage(1)
+      setDebouncing(false)
     }, 300)
   }, [])
 
-  // keep URL in sync
+  const handleCountryInput = React.useCallback((value: string) => {
+    const upper = value.toUpperCase()
+    setCountryInput(upper)
+    setDebouncing(true)
+    if (countryDebounceRef.current) clearTimeout(countryDebounceRef.current)
+    countryDebounceRef.current = setTimeout(() => {
+      setCountry(upper)
+      setPage(1)
+      setDebouncing(false)
+    }, 300)
+  }, [])
+
+  // keep URL in sync (debounced to reduce router churn)
   React.useEffect(() => {
-    const sp = new URLSearchParams()
-    dateRangeToSearchParams(sp, dateRange)
-    sp.set('page', String(page))
-    sp.set('pageSize', String(pageSize))
-    sp.set('sort', sortField)
-    sp.set('dir', sortDir)
-    sp.set('device', device)
-    sp.set('country', country)
-    if (search) sp.set('search', search)
-    if (pathPrefix) sp.set('pathPrefix', pathPrefix)
-    router.replace(`?${sp.toString()}`)
+    if (urlDebounceRef.current) clearTimeout(urlDebounceRef.current)
+    urlDebounceRef.current = setTimeout(() => {
+      const sp = new URLSearchParams()
+      dateRangeToSearchParams(sp, dateRange)
+      sp.set('page', String(page))
+      sp.set('pageSize', String(pageSize))
+      sp.set('sort', sortField)
+      sp.set('dir', sortDir)
+      sp.set('device', device)
+      sp.set('country', country)
+      if (search) sp.set('search', search)
+      if (pathPrefix) sp.set('pathPrefix', pathPrefix)
+      router.replace(`?${sp.toString()}`)
+    }, 150)
   }, [dateRange, page, pageSize, sortField, sortDir, device, country, search, pathPrefix])
 
   return (
@@ -130,8 +155,8 @@ export default function PagesClient({ siteId, initial }: { siteId: string; initi
           <option value="mobile">Mobil</option>
         </select>
         <input
-          value={country}
-          onChange={e => { setCountry(e.target.value.toUpperCase()); setPage(1) }}
+          value={countryInput}
+          onChange={e => handleCountryInput(e.target.value)}
           className="border rounded px-2 py-1 text-sm bg-background w-20"
           placeholder="Land"
         />
@@ -164,6 +189,12 @@ export default function PagesClient({ siteId, initial }: { siteId: string; initi
         </Button>
       </div>
 
+      {debouncing && !loading && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground py-1">
+          <div className="h-3 w-3 rounded-full border-2 border-muted-foreground border-t-transparent animate-spin" />
+          Venter på input...
+        </div>
+      )}
       {loading && (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 rounded" />)}

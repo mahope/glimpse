@@ -33,3 +33,48 @@ export function csvResponse(csv: string, filename: string): Response {
     },
   })
 }
+
+/** Create a streaming CSV Response that writes rows in chunks */
+export function csvStreamResponse(
+  headers: string[],
+  rowGenerator: () => AsyncGenerator<(string | number | null | undefined)[], void, unknown>,
+  filename: string,
+): Response {
+  const safeFilename = filename.replace(/[^a-zA-Z0-9.\-_]/g, '_')
+  const encoded = encodeURIComponent(filename)
+  const encoder = new TextEncoder()
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        // Write header row
+        controller.enqueue(encoder.encode(headers.map(escapeField).join(',') + '\n'))
+
+        // Write data rows in chunks
+        const CHUNK_SIZE = 200
+        let buffer: string[] = []
+        for await (const row of rowGenerator()) {
+          buffer.push(row.map(escapeField).join(','))
+          if (buffer.length >= CHUNK_SIZE) {
+            controller.enqueue(encoder.encode(buffer.join('\n') + '\n'))
+            buffer = []
+          }
+        }
+        if (buffer.length > 0) {
+          controller.enqueue(encoder.encode(buffer.join('\n') + '\n'))
+        }
+        controller.close()
+      } catch (err) {
+        controller.error(err)
+      }
+    },
+  })
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${safeFilename}"; filename*=UTF-8''${encoded}`,
+      'Cache-Control': 'private, no-cache',
+    },
+  })
+}

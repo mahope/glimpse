@@ -47,7 +47,9 @@ export default function KeywordsClient({ siteId, initial }: { siteId: string; in
   const [searchInput, setSearchInput] = React.useState(searchParams.get('search') || '')
   const [positionFilter, setPositionFilter] = React.useState<PositionFilter>((searchParams.get('positionFilter') as PositionFilter) || '')
   const [activeTagId, setActiveTagId] = React.useState(searchParams.get('tagId') || '')
+  const [debouncing, setDebouncing] = React.useState(false)
   const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const urlDebounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Tag management state
   const [tags, setTags] = React.useState<TagItem[]>([])
@@ -90,20 +92,26 @@ export default function KeywordsClient({ siteId, initial }: { siteId: string; in
 
   React.useEffect(() => { fetchData() }, [fetchData])
 
-  // Cleanup debounce timer on unmount
+  // Cleanup debounce timers on unmount
   React.useEffect(() => {
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      if (urlDebounceRef.current) clearTimeout(urlDebounceRef.current)
+    }
   }, [])
 
   // Debounced search
   const handleSearchInput = React.useCallback((value: string) => {
     setSearchInput(value)
+    setDebouncing(true)
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
       setSearch(value)
       setPage(1)
+      setDebouncing(false)
     }, 300)
   }, [])
+
 
   const handlePositionFilter = React.useCallback((value: PositionFilter) => {
     setPositionFilter(value)
@@ -150,20 +158,23 @@ export default function KeywordsClient({ siteId, initial }: { siteId: string; in
     }
   }
 
-  // keep URL in sync
+  // keep URL in sync (debounced to reduce router churn)
   React.useEffect(() => {
-    const sp = new URLSearchParams()
-    dateRangeToSearchParams(sp, dateRange)
-    sp.set('page', String(page))
-    sp.set('pageSize', String(pageSize))
-    sp.set('device', device)
-    sp.set('country', country)
-    sp.set('sort', sortField)
-    sp.set('dir', sortDir)
-    if (search) sp.set('search', search)
-    if (positionFilter) sp.set('positionFilter', positionFilter)
-    if (activeTagId) sp.set('tagId', activeTagId)
-    router.replace(`?${sp.toString()}`)
+    if (urlDebounceRef.current) clearTimeout(urlDebounceRef.current)
+    urlDebounceRef.current = setTimeout(() => {
+      const sp = new URLSearchParams()
+      dateRangeToSearchParams(sp, dateRange)
+      sp.set('page', String(page))
+      sp.set('pageSize', String(pageSize))
+      sp.set('device', device)
+      sp.set('country', country)
+      sp.set('sort', sortField)
+      sp.set('dir', sortDir)
+      if (search) sp.set('search', search)
+      if (positionFilter) sp.set('positionFilter', positionFilter)
+      if (activeTagId) sp.set('tagId', activeTagId)
+      router.replace(`?${sp.toString()}`)
+    }, 150)
   }, [dateRange, page, pageSize, device, country, sortField, sortDir, search, positionFilter, activeTagId])
 
   return (
@@ -272,6 +283,12 @@ export default function KeywordsClient({ siteId, initial }: { siteId: string; in
         </div>
       )}
 
+      {debouncing && !loading && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground py-1">
+          <div className="h-3 w-3 rounded-full border-2 border-muted-foreground border-t-transparent animate-spin" />
+          Venter på input...
+        </div>
+      )}
       {loading && (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 rounded" />)}

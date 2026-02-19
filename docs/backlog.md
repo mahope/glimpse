@@ -1212,7 +1212,7 @@ Automatisk ugentlig opsummering der sendes til site-ejere med de vigtigste ændr
 
 ---
 
-### 25. Performance-optimering af store queries og client-side debouncing
+### ~~25. Performance-optimering af store queries og client-side debouncing~~ DONE
 
 **Filer:** Export-routes, klient-komponenter med filtre
 
