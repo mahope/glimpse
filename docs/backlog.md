@@ -93,7 +93,7 @@ To shadcn-komponenter importeres men eksisterer ikke:
 
 ---
 
-### 6. Fix SiteSelector — erstat mock data med API-kald
+### ~~6. Fix SiteSelector — erstat mock data med API-kald~~ DONE
 
 **Fil:** `src/components/layout/site-selector.tsx` (linje 20)
 

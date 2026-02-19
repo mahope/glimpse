@@ -1,35 +1,85 @@
 'use client'
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
+import { usePathname, useRouter } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Globe, ChevronDown } from "lucide-react"
+import { Globe, Loader2 } from "lucide-react"
 
-// Mock data - replace with real API calls
-const mockSites = [
-  { id: '1', name: 'Example.com', domain: 'example.com', url: 'https://example.com' },
-  { id: '2', name: 'Shop Site', domain: 'shop.example.com', url: 'https://shop.example.com' },
-  { id: '3', name: 'Blog', domain: 'blog.example.com', url: 'https://blog.example.com' },
-]
+interface Site {
+  id: string
+  name: string
+  domain: string
+  url: string
+}
+
+function extractSiteIdFromPath(pathname: string): string | null {
+  const match = pathname.match(/\/sites\/([^/]+)/)
+  return match ? match[1] : null
+}
 
 export function SiteSelector() {
-  const [selectedSite, setSelectedSite] = useState<string>('')
-  const [sites, setSites] = useState(mockSites)
+  const [sites, setSites] = useState<Site[]>([])
+  const [loading, setLoading] = useState(true)
+  const pathname = usePathname()
+  const router = useRouter()
+
+  const currentSiteId = extractSiteIdFromPath(pathname)
 
   useEffect(() => {
-    // TODO: Fetch user's sites from API
-    // For now, use mock data and select first site
-    if (sites.length > 0 && !selectedSite) {
-      setSelectedSite(sites[0].id)
+    let cancelled = false
+    async function fetchSites() {
+      try {
+        const res = await fetch('/api/sites')
+        if (!res.ok) return
+        const data = await res.json()
+        if (!cancelled) {
+          setSites(Array.isArray(data) ? data : data.sites ?? [])
+        }
+      } catch {
+        // silently fail — selector stays empty
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     }
-  }, [sites, selectedSite])
+    fetchSites()
+    return () => { cancelled = true }
+  }, [])
 
-  const currentSite = sites.find(site => site.id === selectedSite)
+  const handleSiteChange = (siteId: string) => {
+    if (!siteId) {
+      router.push('/sites')
+      return
+    }
+    // Navigate to the same sub-page under the new site, or default to overview
+    const subPath = pathname.match(/\/sites\/[^/]+\/(.+)/)
+    const suffix = subPath ? `/${subPath[1]}` : '/overview'
+    router.push(`/sites/${siteId}${suffix}`)
+  }
+
+  const currentSite = sites.find(s => s.id === currentSiteId)
+
+  if (loading) {
+    return (
+      <div className="flex items-center space-x-2 text-gray-400">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <span className="text-sm">Loading sites...</span>
+      </div>
+    )
+  }
+
+  if (sites.length === 0) {
+    return (
+      <div className="flex items-center space-x-2 text-gray-400">
+        <Globe className="h-4 w-4" />
+        <span className="text-sm">No sites</span>
+      </div>
+    )
+  }
 
   return (
     <div className="flex items-center space-x-2">
       <Globe className="h-4 w-4 text-gray-500" />
-      <Select value={selectedSite} onValueChange={setSelectedSite}>
+      <Select value={currentSiteId ?? ''} onValueChange={handleSiteChange}>
         <SelectTrigger className="w-[200px]">
           <SelectValue placeholder="Select a site">
             {currentSite ? (
@@ -43,12 +93,6 @@ export function SiteSelector() {
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">
-            <div className="flex items-center space-x-2">
-              <div className="h-2 w-2 rounded-full bg-blue-500" />
-              <span>All Sites</span>
-            </div>
-          </SelectItem>
           {sites.map((site) => (
             <SelectItem key={site.id} value={site.id}>
               <div className="flex flex-col items-start">
