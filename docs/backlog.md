@@ -652,7 +652,7 @@ Brugere vil gerne sammenligne deres sites med konkurrenters performance (PSI-sco
 
 ---
 
-### 41. Implementer automatiske SEO-anbefalinger
+### ~~41. Implementer automatiske SEO-anbefalinger~~ DONE
 
 **Filer:** Ny `lib/recommendations/` modul, ny UI-komponent
 

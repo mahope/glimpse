@@ -5,6 +5,7 @@ import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { SiteNav } from '@/components/site/site-nav'
+import { RecommendationsPanel } from '@/components/dashboard/recommendations-panel'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TrendingUp, TrendingDown } from 'lucide-react'
 
@@ -271,6 +272,8 @@ export default function OverviewPage() {
               </div>
             </CardContent>
           </Card>
+
+          <RecommendationsPanel siteId={params.siteId} />
         </>
       )}
     </div>
