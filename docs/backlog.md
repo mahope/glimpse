@@ -410,7 +410,7 @@ POST-handleren kører crawl synkront i HTTP-requesten. En 25-sides crawl med 1s 
 
 ## Kategori 6: UI/UX Forbedringer
 
-### 26. Implementer dark mode toggle
+### ~~26. Implementer dark mode toggle~~ DONE
 
 **Filer:** `src/app/globals.css`, `src/app/layout.tsx`, ny `ThemeProvider`
 

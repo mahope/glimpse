@@ -3,6 +3,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { serverInit } from './server-init'
 import { ToastHost } from '@/components/ui/toast'
+import { ThemeProvider } from '@/components/theme-provider'
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -19,11 +20,12 @@ export default async function RootLayout({
 }>) {
   await serverInit()
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        {children}
-        {/* Global toasts */}
-        <ToastHost />
+        <ThemeProvider>
+          {children}
+          <ToastHost />
+        </ThemeProvider>
       </body>
     </html>
   )
