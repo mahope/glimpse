@@ -4,6 +4,7 @@ import { headers } from 'next/headers'
 import { triggerJob } from '@/lib/jobs/queue'
 import { prisma } from '@/lib/db'
 import { z } from 'zod'
+import { rateLimitOrNull } from '@/lib/rate-limit'
 
 const TriggerJobSchema = z.object({
   type: z.enum(['gsc-sync', 'performance-test', 'site-crawl', 'score-calculation']),
@@ -20,6 +21,10 @@ export async function POST(request: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    // Rate limit: max 10 job triggers per user per minute
+    const rl = await rateLimitOrNull(`jobs:${session.user.id}`, { limit: 10, windowSeconds: 60 })
+    if (rl) return rl
 
     const body = await request.json()
     const { type, siteId, device } = TriggerJobSchema.parse(body)

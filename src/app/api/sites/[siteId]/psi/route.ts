@@ -2,11 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { runPsi, saveSnapshot, type Strategy } from '@/lib/perf/psi-service'
+import { rateLimitOrNull } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest, { params }: { params: { siteId: string } }) {
   try {
     const session = await auth.api.getSession({ headers: Object.fromEntries(request.headers.entries()) })
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    // Rate limit: max 5 PSI tests per site per hour
+    const rl = await rateLimitOrNull(`psi:${params.siteId}`, { limit: 5, windowSeconds: 3600 })
+    if (rl) return rl
 
     const { url: bodyUrl } = await request.json().catch(() => ({} as any))
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { CrawlerService } from "@/lib/crawler/crawler-service"
+import { rateLimitOrNull } from "@/lib/rate-limit"
 
 export async function POST(
   request: NextRequest,
@@ -15,6 +16,10 @@ export async function POST(
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+
+    // Rate limit: max 1 crawl per site per hour
+    const rl = await rateLimitOrNull(`crawl:${params.siteId}`, { limit: 1, windowSeconds: 3600 })
+    if (rl) return rl
 
     const siteId = params.siteId
 

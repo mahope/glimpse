@@ -57,7 +57,7 @@ Tokens gemmes som plain JSON i en cookie under OAuth-flowet (1 times max-age). S
 
 ---
 
-### 4. Tilføj API rate limiting
+### ~~4. Tilføj API rate limiting~~ DONE
 
 **Filer:** Ny middleware eller per-route rate limiter
 
