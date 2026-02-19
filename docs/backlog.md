@@ -1076,7 +1076,7 @@ Pages-siden mangler søgning, device/country-filter (som keywords har), og mulig
 
 ---
 
-### 16. "Sidst opdateret"-indikator på alle datasider
+### ~~16. "Sidst opdateret"-indikator på alle datasider~~ DONE
 
 **Filer:** Ny komponent, diverse sider
 
