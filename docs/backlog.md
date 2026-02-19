@@ -554,7 +554,7 @@ Brugere kan ikke eksportere data. Keywords, pages og performance-data er kun syn
 
 ---
 
-### 35. Forbedre toast-systemet
+### 35. ~~Forbedre toast-systemet~~ DONE
 
 **Fil:** `src/components/ui/toast.tsx`
 
