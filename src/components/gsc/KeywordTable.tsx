@@ -4,7 +4,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { TrendBadge } from './TrendBadge'
 import { KeywordHistory } from './KeywordHistory'
-import { ChevronUp, ChevronDown, ChevronsUpDown, TrendingUp } from 'lucide-react'
+import { ChevronUp, ChevronDown, ChevronsUpDown, TrendingUp, ArrowUp, ArrowDown, Minus } from 'lucide-react'
 
 export type KeywordTag = {
   id: string
@@ -22,6 +22,7 @@ export type KeywordRow = {
   trendImpressions: number
   trendCtr: number
   trendPosition: number
+  positionDelta?: number
   tags?: KeywordTag[]
 }
 
@@ -121,6 +122,11 @@ export function KeywordTable({ items, siteId, onFilter, sortField, sortDir, onSo
                   Avg Pos. <SortIcon active={sortField === 'position'} dir={sortDir} />
                 </button>
               </TableHead>
+              <TableHead>
+                <button data-testid="sort-positionDelta" className="hover:text-foreground inline-flex items-center" onClick={() => toggleSort('positionDelta')}>
+                  Ændring <SortIcon active={sortField === 'positionDelta'} dir={sortDir} />
+                </button>
+              </TableHead>
               <TableHead>Trends</TableHead>
               {siteId && <TableHead className="w-8" />}
             </TableRow>
@@ -158,6 +164,26 @@ export function KeywordTable({ items, siteId, onFilter, sortField, sortDir, onSo
                 <TableCell>{row.impressions30.toLocaleString()}</TableCell>
                 <TableCell>{row.ctr30.toFixed(1)}%</TableCell>
                 <TableCell>{row.position30.toFixed(1)}</TableCell>
+                <TableCell>
+                  {(() => {
+                    const delta = row.positionDelta ?? 0
+                    if (delta > 0) return (
+                      <span className="inline-flex items-center gap-0.5 text-green-600" title={`+${delta.toFixed(1)} positioner`}>
+                        <ArrowUp className="h-3.5 w-3.5" /> {delta.toFixed(1)}
+                      </span>
+                    )
+                    if (delta < 0) return (
+                      <span className="inline-flex items-center gap-0.5 text-red-500" title={`${delta.toFixed(1)} positioner`}>
+                        <ArrowDown className="h-3.5 w-3.5" /> {Math.abs(delta).toFixed(1)}
+                      </span>
+                    )
+                    return (
+                      <span className="inline-flex items-center gap-0.5 text-muted-foreground" title="Ingen ændring">
+                        <Minus className="h-3.5 w-3.5" />
+                      </span>
+                    )
+                  })()}
+                </TableCell>
                 <TableCell className="space-x-1">
                   <TrendBadge value={row.trendClicks} />
                   <TrendBadge value={row.trendImpressions} />

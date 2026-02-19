@@ -70,6 +70,7 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
     impressions: 'SUM("impressions")',
     position: 'AVG("position")',
     ctr: 'CASE WHEN SUM("impressions") > 0 THEN SUM("clicks")::float / SUM("impressions") ELSE 0 END',
+    positionDelta: 'AVG("position")',
   }
   const orderExpr = orderByMap[sortField] || orderByMap.clicks
   const orderDir = sortDir === 'asc' ? 'ASC' : 'DESC'
@@ -114,7 +115,7 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
     }]))
   }
 
-  const csvHeaders = ['Keyword', 'Clicks', 'Impressions', 'CTR (%)', 'Avg Position', 'Clicks Trend (%)', 'Impressions Trend (%)', 'CTR Trend (%)', 'Position Trend (%)']
+  const csvHeaders = ['Keyword', 'Clicks', 'Impressions', 'CTR (%)', 'Avg Position', 'Position Delta', 'Clicks Trend (%)', 'Impressions Trend (%)', 'CTR Trend (%)', 'Position Trend (%)']
   const csvRows = rows.map(r => {
     const clicks = Number(r.clicks)
     const impressions = Number(r.impressions)
@@ -125,6 +126,7 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
     const pPos = prev?.position ?? 0
     const currCtr = ctr(clicks, impressions)
     const prevCtr = ctr(pClicks, pImpr)
+    const positionDelta = pPos > 0 ? (pPos - position).toFixed(1) : '0'
 
     return [
       r.query,
@@ -132,6 +134,7 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
       impressions,
       currCtr.toFixed(1),
       position.toFixed(1),
+      positionDelta,
       safePctDelta(clicks, pClicks).toFixed(1),
       safePctDelta(impressions, pImpr).toFixed(1),
       safePctDelta(currCtr, prevCtr).toFixed(1),

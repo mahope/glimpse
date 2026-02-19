@@ -935,7 +935,7 @@ Brugere har brug for at organisere keywords i grupper (branded, commercial, info
 
 ---
 
-### 7. Keyword rank change-indikatorer i tabelvisning
+### ~~7. Keyword rank change-indikatorer i tabelvisning~~ DONE (2026-02-19)
 
 **Fil:** `src/app/(dashboard)/sites/[siteId]/keywords/keywords-client.tsx`
 

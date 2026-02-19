@@ -26,20 +26,28 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
   const countryFilter = country === 'ALL' ? '' : country
 
   // Build WHERE clause fragments (use actual DB column names from @map)
+  // filterParts tracks device/country/search/tag parts (with $N refs) for reuse in prev-period CTE
   const whereParts: string[] = [`"site_id" = $1`, `"date" >= $2`, `"date" <= $3`]
+  const filterParts: string[] = []
   const baseParams: (string | Date | string[])[] = [site.id, start, end]
 
   if (deviceFilter) {
     baseParams.push(deviceFilter)
-    whereParts.push(`"device" = $${baseParams.length}`)
+    const part = `"device" = $${baseParams.length}`
+    whereParts.push(part)
+    filterParts.push(part)
   }
   if (countryFilter) {
     baseParams.push(countryFilter)
-    whereParts.push(`"country" = $${baseParams.length}`)
+    const part = `"country" = $${baseParams.length}`
+    whereParts.push(part)
+    filterParts.push(part)
   }
   if (search) {
     baseParams.push(`%${search}%`)
-    whereParts.push(`"query" ILIKE $${baseParams.length}`)
+    const part = `"query" ILIKE $${baseParams.length}`
+    whereParts.push(part)
+    filterParts.push(part)
   }
 
   // Tag filter: restrict to keywords assigned to a specific tag
@@ -55,7 +63,9 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
     }
     // Use ANY($N::text[]) for efficient IN clause
     baseParams.push(taggedQueries)
-    whereParts.push(`"query" = ANY($${baseParams.length}::text[])`)
+    const part = `"query" = ANY($${baseParams.length}::text[])`
+    whereParts.push(part)
+    filterParts.push(part)
   }
 
   const baseWhere = whereParts.join(' AND ')
@@ -86,27 +96,55 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
     position: 'AVG("position")',
     ctr: 'CASE WHEN SUM("impressions") > 0 THEN SUM("clicks")::float / SUM("impressions") ELSE 0 END',
   }
-  const orderExpr = orderByMap[sortField] || orderByMap.clicks
   const orderDir = sortDir === 'asc' ? 'ASC' : 'DESC'
   const offset = (page - 1) * pageSize
 
-  // Paginated grouped query with server-side sort
-  const nextParam = baseParams.length + 1
-  const rows = await prisma.$queryRawUnsafe<Array<{
-    query: string
-    clicks: bigint
-    impressions: bigint
-    position: number
-  }>>(
-    `SELECT "query", SUM("clicks") as clicks, SUM("impressions") as impressions, AVG("position")::float8 as position
-     FROM "search_stat_daily"
-     WHERE ${baseWhere}
-     GROUP BY "query"
-     ${havingClause}
-     ORDER BY ${orderExpr} ${orderDir}, "query" ASC
-     LIMIT $${nextParam} OFFSET $${nextParam + 1}`,
-    ...baseParams, pageSize, offset,
-  )
+  let rows: Array<{ query: string; clicks: bigint; impressions: bigint; position: number }>
+
+  if (sortField === 'positionDelta') {
+    // CTE-based query: join current and previous period to sort by actual position delta
+    const prevStartIdx = baseParams.length + 1
+    const prevEndIdx = baseParams.length + 2
+    const prevWhere = [`"site_id" = $1`, `"date" >= $${prevStartIdx}`, `"date" <= $${prevEndIdx}`, ...filterParts].join(' AND ')
+    const limitIdx = baseParams.length + 3
+    const offsetIdx = baseParams.length + 4
+
+    rows = await prisma.$queryRawUnsafe<Array<{ query: string; clicks: bigint; impressions: bigint; position: number }>>(
+      `WITH curr AS (
+         SELECT "query", SUM("clicks") as clicks, SUM("impressions") as impressions, AVG("position")::float8 as position
+         FROM "search_stat_daily"
+         WHERE ${baseWhere}
+         GROUP BY "query"
+         ${havingClause}
+       ),
+       prev AS (
+         SELECT "query", AVG("position")::float8 as prev_pos
+         FROM "search_stat_daily"
+         WHERE ${prevWhere}
+         GROUP BY "query"
+       )
+       SELECT c."query", c.clicks, c.impressions, c.position
+       FROM curr c
+       LEFT JOIN prev p ON c."query" = p."query"
+       ORDER BY (COALESCE(p.prev_pos, 0) - c.position) ${orderDir}, c."query" ASC
+       LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
+      ...baseParams, prevStart, prevEnd, pageSize, offset,
+    )
+  } else {
+    // Standard query with direct ORDER BY
+    const orderExpr = orderByMap[sortField] || orderByMap.clicks
+    const nextParam = baseParams.length + 1
+    rows = await prisma.$queryRawUnsafe<Array<{ query: string; clicks: bigint; impressions: bigint; position: number }>>(
+      `SELECT "query", SUM("clicks") as clicks, SUM("impressions") as impressions, AVG("position")::float8 as position
+       FROM "search_stat_daily"
+       WHERE ${baseWhere}
+       GROUP BY "query"
+       ${havingClause}
+       ORDER BY ${orderExpr} ${orderDir}, "query" ASC
+       LIMIT $${nextParam} OFFSET $${nextParam + 1}`,
+      ...baseParams, pageSize, offset,
+    )
+  }
 
   // Fetch tag assignments for keywords on this page
   const keywords = rows.map(r => r.query)
@@ -175,6 +213,7 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
       trendImpressions: safePctDelta(impressions, pImpr),
       trendCtr: safePctDelta(currCtr, prevCtr),
       trendPosition: positionImprovementPct(position, pPos),
+      positionDelta: pPos > 0 ? Number((pPos - position).toFixed(1)) : 0,
       tags: tagMap.get(r.query) || [],
     }
   })

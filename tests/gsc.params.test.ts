@@ -47,6 +47,10 @@ describe('parseParams', () => {
     const p = parseParams({ positionFilter: 'top99' })
     expect(p.positionFilter).toBe('')
   })
+  it('accepts positionDelta as sort field', () => {
+    const p = parseParams({ sort: 'positionDelta' })
+    expect(p.sortField).toBe('positionDelta')
+  })
 })
 
 describe('trend helpers', () => {

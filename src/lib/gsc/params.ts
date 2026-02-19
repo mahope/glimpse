@@ -1,4 +1,4 @@
-export type SortField = 'clicks' | 'impressions' | 'ctr' | 'position'
+export type SortField = 'clicks' | 'impressions' | 'ctr' | 'position' | 'positionDelta'
 export type SortDir = 'asc' | 'desc'
 
 export type PositionFilter = '' | 'top3' | 'top10' | 'top20' | '50plus'
@@ -15,7 +15,7 @@ export type ParsedParams = {
   positionFilter: PositionFilter
 }
 
-const SORT_FIELDS: SortField[] = ['clicks','impressions','ctr','position']
+const SORT_FIELDS: SortField[] = ['clicks','impressions','ctr','position','positionDelta']
 const SORT_DIRS: SortDir[] = ['asc','desc']
 
 export function parseParams(input: URLSearchParams | Record<string,string | number | undefined>): ParsedParams {
@@ -32,8 +32,9 @@ export function parseParams(input: URLSearchParams | Record<string,string | numb
   const device = (deviceRaw === 'desktop' || deviceRaw === 'mobile') ? deviceRaw : 'all'
   const country = String((get('country') ?? 'ALL')).toUpperCase()
 
-  const sortFieldRaw = String(get('sort') ?? get('sortField') ?? 'clicks').toLowerCase()
-  const sortField = (SORT_FIELDS as string[]).includes(sortFieldRaw) ? (sortFieldRaw as SortField) : 'clicks'
+  const sortFieldRaw = String(get('sort') ?? get('sortField') ?? 'clicks')
+  const sortField = (SORT_FIELDS as string[]).includes(sortFieldRaw) ? (sortFieldRaw as SortField)
+    : (SORT_FIELDS as string[]).includes(sortFieldRaw.toLowerCase()) ? (sortFieldRaw.toLowerCase() as SortField) : 'clicks'
   const sortDirRaw = String(get('dir') ?? get('direction') ?? 'desc').toLowerCase()
   const sortDir = (SORT_DIRS as string[]).includes(sortDirRaw) ? (sortDirRaw as SortDir) : 'desc'
 
