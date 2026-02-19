@@ -777,7 +777,7 @@ Manglende testdækning for:
 
 ---
 
-### 48. Tilføj CI pipeline med GitHub Actions
+### ~~48. Tilføj CI pipeline med GitHub Actions~~ DONE
 
 **Filer:** `.github/workflows/ci.yml`
 
