@@ -78,7 +78,7 @@ Ingen API-endpoints har rate limiting. En autentificeret bruger kan:
 
 ## Kategori 2: Stabilitet & Bugfixes
 
-### 5. Fix manglende shadcn-komponenter (Dialog, Progress)
+### ~~5. Fix manglende shadcn-komponenter (Dialog, Progress)~~ DONE
 
 **Filer:** `src/components/ui/dialog.tsx` (mangler), `src/components/ui/progress.tsx` (mangler)
 
