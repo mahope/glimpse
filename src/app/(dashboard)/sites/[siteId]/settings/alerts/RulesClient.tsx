@@ -3,6 +3,7 @@
 import useSWR from 'swr'
 import { useState } from 'react'
 import { AlertMetric, PerfDevice, AlertRule } from '@prisma/client'
+import { toast } from '@/components/ui/toast'
 
 const fetcher = (url: string) => fetch(url).then(r => r.json())
 
@@ -32,7 +33,7 @@ export function RulesClient({ siteId }: { siteId: string }) {
       setForm({ metric: 'LCP', device: 'MOBILE', threshold: 2500, recipients: '' })
     } catch (e) {
       console.error(e)
-      alert((e as Error).message)
+      toast('error', (e as Error).message)
     } finally {
       setSaving(false)
     }
@@ -53,7 +54,7 @@ export function RulesClient({ siteId }: { siteId: string }) {
       mutate({ items: items.map(it => it.id === id ? json.item : it) }, { revalidate: false })
     } catch (e) {
       console.error(e)
-      alert((e as Error).message)
+      toast('error', (e as Error).message)
       mutate({ items: prev }, { revalidate: false })
     }
   }
@@ -68,7 +69,7 @@ export function RulesClient({ siteId }: { siteId: string }) {
       if (!res.ok) throw new Error(json.error || 'Failed to delete rule')
     } catch (e) {
       console.error(e)
-      alert((e as Error).message)
+      toast('error', (e as Error).message)
       mutate({ items: prev }, { revalidate: false })
     }
   }

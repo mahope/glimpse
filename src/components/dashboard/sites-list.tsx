@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
+import { toast } from '@/components/ui/toast'
 
 interface Site {
   id: string
@@ -146,14 +147,14 @@ function ManualJobTrigger({ siteId, siteName }: { siteId: string; siteName: stri
 
       if (response.ok) {
         const result = await response.json()
-        alert(`GSC sync triggered for ${siteName}! Job ID: ${result.jobId}`)
+        toast('success', `GSC sync triggered for ${siteName}!`)
       } else {
         const error = await response.json()
-        alert(`Failed to trigger GSC sync: ${error.error}`)
+        toast('error', `Failed to trigger GSC sync: ${error.error}`)
       }
     } catch (error) {
       console.error('Failed to trigger GSC sync:', error)
-      alert('Failed to trigger GSC sync')
+      toast('error', 'Failed to trigger GSC sync')
     }
   }
 
@@ -171,14 +172,14 @@ function ManualJobTrigger({ siteId, siteName }: { siteId: string; siteName: stri
 
       if (response.ok) {
         const result = await response.json()
-        alert(`Performance test triggered for ${siteName}! Job ID: ${result.jobId}`)
+        toast('success', `Performance test triggered for ${siteName}!`)
       } else {
         const error = await response.json()
-        alert(`Failed to trigger performance test: ${error.error}`)
+        toast('error', `Failed to trigger performance test: ${error.error}`)
       }
     } catch (error) {
       console.error('Failed to trigger performance test:', error)
-      alert('Failed to trigger performance test')
+      toast('error', 'Failed to trigger performance test')
     }
   }
 

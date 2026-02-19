@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useState } from 'react'
+import { toast } from '@/components/ui/toast'
 
 interface SitePerformanceProps {
   site: {
@@ -84,14 +85,14 @@ export function SitePerformance({ site }: SitePerformanceProps) {
 
       if (response.ok) {
         const result = await response.json()
-        alert(`Performance test triggered for ${device}! Job ID: ${result.jobId}`)
+        toast('success', `Performance test triggered for ${device}!`)
       } else {
         const error = await response.json()
-        alert(`Failed to trigger performance test: ${error.error}`)
+        toast('error', `Failed to trigger performance test: ${error.error}`)
       }
     } catch (error) {
       console.error('Failed to trigger performance test:', error)
-      alert('Failed to trigger performance test')
+      toast('error', 'Failed to trigger performance test')
     }
   }
 

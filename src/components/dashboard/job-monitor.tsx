@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { toast } from '@/components/ui/toast'
 
 interface QueueStats {
   name: string
@@ -60,15 +61,15 @@ export function JobMonitor() {
 
       if (response.ok) {
         const result = await response.json()
-        alert(`Job triggered successfully! Job ID: ${result.jobId}`)
+        toast('success', `Job triggered successfully! Job ID: ${result.jobId}`)
         fetchJobStatus() // Refresh status
       } else {
         const error = await response.json()
-        alert(`Failed to trigger job: ${error.error}`)
+        toast('error', `Failed to trigger job: ${error.error}`)
       }
     } catch (error) {
       console.error('Failed to trigger job:', error)
-      alert('Failed to trigger job')
+      toast('error', 'Failed to trigger job')
     } finally {
       setTriggeringJob(false)
     }

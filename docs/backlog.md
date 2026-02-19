@@ -440,7 +440,7 @@ Ingen route-level loading states eller error boundaries eksisterer. Server Compo
 
 ---
 
-### 28. Erstat alle alert()/confirm() med toast/dialog
+### ~~28. Erstat alle alert()/confirm() med toast/dialog~~ DONE
 
 **Filer:** Mange komponenter
 
