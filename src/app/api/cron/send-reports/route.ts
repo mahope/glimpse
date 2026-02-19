@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { renderReportPDF } from '@/lib/reports/pdf-generator'
 import { buildReportData } from '@/lib/reports/build-report-data'
 import { sendEmail } from '@/lib/email/client'
+import { renderReportEmailHtml } from '@/lib/email/render-report-email'
 import { dispatchNotification } from '@/lib/notifications/dispatcher'
 import { format } from 'date-fns'
 import { verifyCronSecret } from '@/lib/cron/auth'
@@ -43,10 +44,12 @@ export async function POST(req: NextRequest) {
         const typeLabel = site.reportSchedule === 'WEEKLY' ? 'weekly' : 'monthly'
         const fileName = `${site.domain}-${format(now, 'yyyy-MM-dd')}.pdf`
 
-        const recipients = site.organization.members
+        const orgRecipients = site.organization.members
           .filter(m => m.role === 'OWNER' || m.role === 'ADMIN')
           .map(m => m.user.email)
           .filter(Boolean) as string[]
+        const siteRecipients = Array.isArray(site.reportRecipients) ? site.reportRecipients : []
+        const recipients = [...new Set([...orgRecipients, ...siteRecipients])]
 
         if (!recipients.length) continue
 
@@ -63,11 +66,25 @@ export async function POST(req: NextRequest) {
         })
 
         try {
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL || ''
+          const reportUrl = `${appUrl}/sites/${site.id}/reports`
+          const emailHtml = renderReportEmailHtml({
+            siteName: site.name,
+            periodLabel: data.period.label,
+            typeLabel,
+            kpis: data.kpis,
+            seoScore: data.seoScore,
+            reportUrl,
+            brandColor: data.branding?.brandColor,
+          })
+
+          const typeDa = typeLabel === 'weekly' ? 'Ugentlig' : 'Månedlig'
           await sendEmail({
             to: recipients,
             subject: `Glimpse Rapport: ${site.name} — ${data.period.label}`,
-            html: `<p>Din ${typeLabel === 'weekly' ? 'ugentlige' : 'månedlige'} rapport for <b>${site.name}</b> er vedhæftet.</p>`,
-            attachments: [{ filename: fileName, content: pdf, contentType: 'application/pdf' }],
+            html: emailHtml,
+            text: `${typeDa} rapport for ${site.name} (${data.period.label}). PDF er vedhæftet. Se fuld rapport: ${reportUrl}`,
+            attachments: [{ filename: fileName, content: Buffer.from(pdf), contentType: 'application/pdf' }],
           })
 
           await prisma.report.update({

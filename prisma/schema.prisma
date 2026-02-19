@@ -157,6 +157,7 @@ model Site {
   reports          Report[]
   reportSchedule   ReportSchedule @default(NONE) @map("report_schedule")
   reportSections   Json           @default("[\"kpis\",\"keywords\",\"performance\",\"crawl\"]") @map("report_sections")
+  reportRecipients String[]       @default([]) @map("report_recipients")
   uptimeChecks     UptimeCheck[]
   keywordTags      KeywordTag[]
   keywordTagAssignments KeywordTagAssignment[]

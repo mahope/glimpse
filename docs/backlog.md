@@ -1136,7 +1136,7 @@ Rapporter bør kunne brandes med kundens eget look-and-feel.
 
 ---
 
-### 20. Automatisk rapport-email med HTML-preview
+### ~~20. Automatisk rapport-email med HTML-preview~~ DONE
 
 **Filer:** Udvidelse af `src/app/api/cron/send-reports/route.ts`, ny email-template
 

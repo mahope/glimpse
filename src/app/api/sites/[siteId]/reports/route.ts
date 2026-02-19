@@ -24,7 +24,7 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
     take: 50,
   })
 
-  return NextResponse.json({ reports, schedule: site.reportSchedule, sections: site.reportSections })
+  return NextResponse.json({ reports, schedule: site.reportSchedule, sections: site.reportSections, recipients: site.reportRecipients })
 }
 
 // POST: Generate a report on-demand
@@ -74,6 +74,7 @@ export async function POST(req: NextRequest, { params }: { params: { siteId: str
 const PatchSchema = z.object({
   schedule: z.enum(['NONE', 'WEEKLY', 'MONTHLY']).optional(),
   sections: z.array(z.enum(REPORT_SECTION_KEYS)).optional(),
+  recipients: z.array(z.string().email()).max(20).transform(arr => [...new Set(arr)]).optional(),
 })
 
 export async function PATCH(req: NextRequest, { params }: { params: { siteId: string } }) {
@@ -93,16 +94,30 @@ export async function PATCH(req: NextRequest, { params }: { params: { siteId: st
   const parsed = PatchSchema.safeParse(raw)
   if (!parsed.success) return NextResponse.json({ error: 'Invalid input' }, { status: 400 })
 
+  // Restrict recipient changes to OWNER/ADMIN
+  if (parsed.data.recipients !== undefined) {
+    const member = await prisma.member.findFirst({
+      where: { organizationId, userId: session.user.id },
+    })
+    if (!member || (member.role !== 'OWNER' && member.role !== 'ADMIN')) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
+    }
+  }
+
   const updateData: Record<string, unknown> = {}
-  if (parsed.data.schedule) updateData.reportSchedule = parsed.data.schedule
-  if (parsed.data.sections) updateData.reportSections = parsed.data.sections
+  if (parsed.data.schedule !== undefined) updateData.reportSchedule = parsed.data.schedule
+  if (parsed.data.sections !== undefined) updateData.reportSections = parsed.data.sections
+  if (parsed.data.recipients !== undefined) updateData.reportRecipients = parsed.data.recipients
 
   if (Object.keys(updateData).length > 0) {
     await prisma.site.update({ where: { id: site.id }, data: updateData })
   }
 
+  const updated = await prisma.site.findUnique({ where: { id: site.id }, select: { reportSchedule: true, reportSections: true, reportRecipients: true } })
+
   return NextResponse.json({
-    schedule: parsed.data.schedule ?? site.reportSchedule,
-    sections: parsed.data.sections ?? site.reportSections,
+    schedule: updated?.reportSchedule ?? site.reportSchedule,
+    sections: updated?.reportSections ?? site.reportSections,
+    recipients: updated?.reportRecipients ?? site.reportRecipients,
   })
 }

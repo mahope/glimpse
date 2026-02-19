@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { FileText, Download, Trash2, Loader2, Calendar, Eye } from 'lucide-react'
+import { FileText, Download, Trash2, Loader2, Calendar, Eye, Mail, Plus, X } from 'lucide-react'
 import { ReportPreviewHTML } from '@/components/reports/report-preview-html'
 import { toast } from '@/components/ui/toast'
 import { REPORT_SECTION_KEYS, REPORT_SECTION_LABELS, type ReportSectionKey } from '@/lib/reports/types'
@@ -45,6 +45,9 @@ export function ReportsClient({
   const [showPreview, setShowPreview] = useState(false)
   const [sections, setSections] = useState<ReportSectionKey[]>([...REPORT_SECTION_KEYS])
   const [savingSections, setSavingSections] = useState(false)
+  const [recipients, setRecipients] = useState<string[]>([])
+  const [newRecipient, setNewRecipient] = useState('')
+  const [savingRecipients, setSavingRecipients] = useState(false)
 
   const fetchReports = useCallback(() => {
     setLoading(true)
@@ -57,6 +60,7 @@ export function ReportsClient({
         setReports(d.reports)
         if (d.schedule) setSchedule(d.schedule)
         if (Array.isArray(d.sections)) setSections(d.sections)
+        if (Array.isArray(d.recipients)) setRecipients(d.recipients)
       })
       .catch(() => setReports([]))
       .finally(() => setLoading(false))
@@ -103,6 +107,43 @@ export function ReportsClient({
     } finally {
       setSavingSchedule(false)
     }
+  }
+
+  const saveRecipients = async (updated: string[]) => {
+    const prev = recipients
+    setRecipients(updated)
+    setSavingRecipients(true)
+    try {
+      const res = await fetch(`/api/sites/${siteId}/reports`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recipients: updated }),
+      })
+      if (!res.ok) throw new Error()
+    } catch {
+      setRecipients(prev)
+      toast('error', 'Kunne ikke opdatere modtagere')
+    } finally {
+      setSavingRecipients(false)
+    }
+  }
+
+  const addRecipient = () => {
+    const email = newRecipient.trim().toLowerCase()
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast('error', 'Ugyldig email-adresse')
+      return
+    }
+    if (recipients.includes(email)) {
+      toast('error', 'Email er allerede tilføjet')
+      return
+    }
+    setNewRecipient('')
+    saveRecipients([...recipients, email])
+  }
+
+  const removeRecipient = (email: string) => {
+    saveRecipients(recipients.filter(r => r !== email))
   }
 
   const toggleSection = async (key: ReportSectionKey) => {
@@ -186,6 +227,47 @@ export function ReportsClient({
               </span>
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Recipients */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Mail className="h-4 w-4" />
+            Modtagere
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-xs text-muted-foreground mb-3">
+            Organisation-administratorer modtager altid rapporter. Tilføj ekstra modtagere herunder.
+          </p>
+          <div className="flex items-center gap-2 mb-3">
+            <input
+              type="email"
+              value={newRecipient}
+              onChange={e => setNewRecipient(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && addRecipient()}
+              placeholder="email@eksempel.dk"
+              className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+            />
+            <Button size="sm" variant="outline" onClick={addRecipient} disabled={savingRecipients}>
+              <Plus className="h-4 w-4 mr-1" />
+              Tilføj
+            </Button>
+          </div>
+          {recipients.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {recipients.map(email => (
+                <span key={email} className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-xs">
+                  {email}
+                  <button onClick={() => removeRecipient(email)} disabled={savingRecipients} className="text-muted-foreground hover:text-foreground">
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
