@@ -811,7 +811,7 @@ Ingen CI/CD pipeline eksisterer. Tests, lint og build køres kun lokalt.
 
 ---
 
-### 50. Implementer application metrics og dashboard
+### ~~50. Implementer application metrics og dashboard~~ DONE
 
 **Filer:** Ny metrics-modul, Prometheus endpoint eller custom dashboard
 

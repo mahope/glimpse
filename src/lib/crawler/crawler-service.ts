@@ -2,6 +2,7 @@ import { prisma } from '@/lib/db'
 import { WebCrawler, CrawlResult, SEOIssue, categorizeIssues } from './crawler'
 import { PageAnalyzer } from './analyzer'
 import { logger } from '@/lib/logger'
+import { incrementCounter } from '@/lib/metrics/collector'
 
 const log = logger.child({ module: 'crawler-service' })
 
@@ -75,6 +76,11 @@ export class CrawlerService {
 
       // Calculate and store overall site health metrics
       await this.calculateSiteHealthMetrics(siteId, crawlDate, crawlResults)
+
+      // Record metrics
+      const totalLoadTimeSec = Math.round(crawlResults.reduce((sum, r) => sum + r.loadTime, 0) / 1000)
+      incrementCounter('crawl:pages', crawlResults.length).catch(() => {})
+      incrementCounter('crawl:duration_s', totalLoadTimeSec).catch(() => {})
 
       return {
         success: true,

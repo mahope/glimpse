@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db'
 import Redis from 'ioredis'
 import { logger } from '@/lib/logger'
+import { incrementCounter } from '@/lib/metrics/collector'
 
 const log = logger.child({ module: 'psi-service' })
 
@@ -186,8 +187,10 @@ export async function runPsi(url: string, strategy: Strategy): Promise<PsiMetric
   })
   if (!res.ok) {
     const txt = await res.text().catch(() => '')
+    incrementCounter('psi:errors').catch(() => {})
     throw new Error(`PSI error ${res.status}: ${txt}`)
   }
+  incrementCounter('psi:calls').catch(() => {})
   await incrementDailyCount()
   const data = await res.json()
 
