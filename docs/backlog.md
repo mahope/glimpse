@@ -736,7 +736,7 @@ Ikke alle brugere checker email. Slack-integration er standard for monitoring-v�
 
 ## Kategori 8: Testing & Kvalitet
 
-### 46. Tilføj E2E tests med Playwright
+### ~~46. Tilføj E2E tests med Playwright~~ DONE
 
 **Filer:** Ny `playwright.config.ts`, ny `e2e/` mappe
 
