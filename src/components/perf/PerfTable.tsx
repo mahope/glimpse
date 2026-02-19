@@ -6,6 +6,8 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { PaginationControls } from '@/components/ui/pagination-controls'
 import { CwvBadge } from './PerfBadges'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
+import { Download } from 'lucide-react'
 
 export type LatestItem = {
   id: string
@@ -47,15 +49,22 @@ export function PerfTable({ siteId }: { siteId: string }) {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <div className="text-sm text-muted-foreground">Latest snapshot per URL</div>
-        <Select value={strategy} onValueChange={(v: 'MOBILE' | 'DESKTOP') => { setPage(1); setStrategy(v) }}>
-          <SelectTrigger className="w-36"><SelectValue placeholder="Strategy" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="MOBILE">Mobile</SelectItem>
-            <SelectItem value="DESKTOP">Desktop</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <a href={`/api/sites/${siteId}/perf/export?strategy=${strategy}`} download>
+              <Download className="w-4 h-4 mr-1" /> Eksporter CSV
+            </a>
+          </Button>
+          <Select value={strategy} onValueChange={(v: 'MOBILE' | 'DESKTOP') => { setPage(1); setStrategy(v) }}>
+            <SelectTrigger className="w-36"><SelectValue placeholder="Strategy" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="MOBILE">Mobile</SelectItem>
+              <SelectItem value="DESKTOP">Desktop</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {loading ? (

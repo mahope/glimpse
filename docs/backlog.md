@@ -539,7 +539,7 @@ Nye brugere ser en tom sites-liste med kun "Connect Your First Site". Der er ing
 
 ---
 
-### 34. Tilføj data-export (CSV) fra tabeller
+### 34. ~~Tilføj data-export (CSV) fra tabeller~~ DONE
 
 **Filer:** `KeywordsClient.tsx`, `PagesClient.tsx`, `PerfTable.tsx`
 

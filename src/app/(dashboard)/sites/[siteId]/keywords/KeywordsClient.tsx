@@ -4,6 +4,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { KeywordTable, type KeywordRow } from '@/components/gsc/KeywordTable'
 import { PaginationControls } from '@/components/ui/pagination-controls'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
+import { Download } from 'lucide-react'
 
 type ApiResp = { items: KeywordRow[]; page: number; pageSize: number; totalItems: number; totalPages: number; sortField: string; sortDir: 'asc'|'desc' }
 
@@ -67,6 +69,16 @@ export default function KeywordsClient({ siteId, initial }: { siteId: string; in
           <option value={50}>50</option>
           <option value={100}>100</option>
         </select>
+        <div className="flex-1" />
+        <Button
+          variant="outline"
+          size="sm"
+          asChild
+        >
+          <a href={`/api/sites/${siteId}/gsc/keywords/export?days=${days}&device=${device}&country=${country}&sort=${sortField}&dir=${sortDir}`} download>
+            <Download className="w-4 h-4 mr-1" /> Eksporter CSV
+          </a>
+        </Button>
       </div>
 
       {loading && (
