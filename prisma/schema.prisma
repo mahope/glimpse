@@ -43,7 +43,8 @@ model Session {
   activeOrganizationId String? @map("active_organization_id")
   
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
+  @@index([userId])
   @@map("session")
 }
 
@@ -106,6 +107,7 @@ model Member {
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@unique([organizationId, userId])
+  @@index([userId])
   @@map("member")
 }
 
@@ -357,6 +359,7 @@ model AlertEvent {
 
   @@unique([siteId, metric, device, date])
   @@index([siteId, status, date])
+  @@index([siteId, metric, device, status])
   @@map("alert_event")
 }
 

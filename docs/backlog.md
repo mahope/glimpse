@@ -346,7 +346,7 @@ Hele PSI JSON-responset (200-500KB) gemmes i `PerfSnapshot.raw`. For 25 sites ×
 
 ---
 
-### 22. Tilføj database-indexes for hyppige queries
+### ~~22. Tilføj database-indexes for hyppige queries~~ DONE
 
 **Fil:** `prisma/schema.prisma`
 
