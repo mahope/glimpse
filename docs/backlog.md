@@ -181,7 +181,7 @@ Google OAuth-knappen renderer med et Google G-ikon men har ingen `onClick`-handl
 
 ---
 
-### 12. Fix connect-side server/client mixing
+### ~~12. Fix connect-side server/client mixing~~ DONE
 
 **Fil:** `src/app/(dashboard)/sites/connect/page.tsx`
 
