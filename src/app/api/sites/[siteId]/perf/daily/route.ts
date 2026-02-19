@@ -40,7 +40,7 @@ export async function GET(request: NextRequest, { params }: { params: { siteId: 
       include: { organization: { include: { members: { where: { userId: session.user.id } } } } },
     })
     if (!site) return NextResponse.json({ error: 'Site not found' }, { status: 404 })
-    const isAdmin = (session.user as any).role === 'ADMIN'
+    const isAdmin = session.user.role === 'ADMIN'
     const hasOrgAccess = site.organization.members.length > 0
     if (!isAdmin && !hasOrgAccess) return NextResponse.json({ error: 'Access denied' }, { status: 403 })
 

@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useSession, signOut } from "@/lib/auth-client"
+import { isAdminUser, getUserRole } from "@/types/auth"
 import { Button } from "@/components/ui/button"
 import { SiteSelector } from "./site-selector"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -31,7 +32,7 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { data: session } = useSession()
-  const isAdmin = (session?.user as any)?.role === 'ADMIN'
+  const isAdmin = session?.user ? isAdminUser(session.user as Record<string, unknown>) : false
   const navigation = getNavigation(isAdmin)
 
   const handleSignOut = async () => {
@@ -121,7 +122,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                         {session.user.name || session.user.email}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {(session.user as any).role === 'ADMIN' ? 'Administrator' : 'Customer'}
+                        {getUserRole(session.user as Record<string, unknown>) === 'ADMIN' ? 'Administrator' : 'Customer'}
                       </div>
                     </div>
                   </div>

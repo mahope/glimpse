@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
       bySite.set(p.siteId, arr)
     }
 
-    const results: any[] = []
+    const results: Array<{ ruleId: string; created?: string; skipped?: string; resolved?: string }> = []
 
     for (const rule of rules) {
       const series = bySite.get(rule.siteId) ?? []
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
 
           // Send email with per-rule recipients or fallback to site owners
           const site = sites.find(s => s.id === rule.siteId)!
-          const owners = (site.organization?.members ?? []).filter(m => m.role === 'OWNER').map(m => (m as any).user?.email).filter(Boolean) as string[]
+          const owners = (site.organization?.members ?? []).filter(m => m.role === 'OWNER').map(m => m.user?.email).filter((e): e is string => Boolean(e))
           await sendAlertEmail(site, rule, event, owners)
 
           // Dispatch to Slack/webhook channels
@@ -126,8 +126,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ ok: true, results })
-  } catch (e: any) {
+  } catch (e: unknown) {
     log.error({ err: e }, 'Alerts cron failed')
-    return NextResponse.json({ ok: false, error: e.message }, { status: 500 })
+    return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : 'Unknown error' }, { status: 500 })
   }
 }

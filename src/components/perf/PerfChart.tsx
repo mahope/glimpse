@@ -27,7 +27,7 @@ export function PerfChart({ siteId, days = 30 }: { siteId: string; days?: number
         const res = await fetch(`/api/sites/${siteId}/perf/daily?${qs}`)
         if (!res.ok) throw new Error(await res.text())
         const data = await res.json()
-        const mapped = (data.items || []).map((r: any) => ({
+        const mapped = (data.items || []).map((r: { date: string; scoreAvg?: number; perfScoreAvg?: number; lcp?: number; lcpPctl?: number; inp?: number; inpPctl?: number; cls?: number; clsPctl?: number }) => ({
           date: typeof r.date === 'string' ? r.date.substring(0,10) : new Date(r.date).toISOString().substring(0,10),
           scoreAvg: r.scoreAvg ?? r.perfScoreAvg ?? null,
           lcp: r.lcp ?? r.lcpPctl ?? null,

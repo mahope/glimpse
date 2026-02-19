@@ -313,9 +313,9 @@ export class GSCDataSyncService {
     row: GSCRow,
     dimensions: GSCDimension[],
     date: string
-  ): any {
+  ): Record<string, unknown> {
     const keys = row.keys || []
-    const data: any = {
+    const data: Record<string, unknown> = {
       siteId,
       date: new Date(date),
       query: 'all',

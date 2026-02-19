@@ -26,7 +26,7 @@ export default async function gscSyncProcessor(job: Job<GSCSyncJob>) {
       mock: process.env.MOCK_GSC === 'true',
     })
     return { ok: true, processed: res.recordsProcessed }
-  } catch (err: any) {
+  } catch (err: unknown) {
     const log = jobLogger('gsc-sync', job.id, { siteId: site.id })
     log.warn({ siteId: site.id, err }, 'GSC sync failed')
     throw err

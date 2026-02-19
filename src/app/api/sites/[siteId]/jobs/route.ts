@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { ZodError } from 'zod'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { EnqueueJobBodySchema, GSCSyncSchema, PsiTestSchema, CrawlSchema, ScoreCalcSchema } from '@/lib/jobs/types'
@@ -15,7 +16,7 @@ export async function POST(request: NextRequest, { params }: { params: { siteId:
     const body = await request.json()
     const { kind, params: raw } = EnqueueJobBodySchema.parse(body)
 
-    const organizationId = (session.session as any).activeOrganizationId
+    const organizationId = session.session.activeOrganizationId
     if (!organizationId) return NextResponse.json({ error: 'No active organization' }, { status: 400 })
 
     const site = await prisma.site.findFirst({ where: { id: params.siteId, organizationId, isActive: true } })
@@ -45,8 +46,8 @@ export async function POST(request: NextRequest, { params }: { params: { siteId:
       default:
         return NextResponse.json({ error: 'Unsupported job kind' }, { status: 400 })
     }
-  } catch (err: any) {
-    if (err?.name === 'ZodError') return NextResponse.json({ error: 'Invalid payload', details: err.errors }, { status: 400 })
+  } catch (err: unknown) {
+    if (err instanceof ZodError) return NextResponse.json({ error: 'Invalid payload', details: err.errors }, { status: 400 })
     log.error({ err }, 'Enqueue site job error')
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }

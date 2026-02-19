@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     log.info({ siteCount: sites.length }, 'Found active sites to crawl')
 
-    const results = [] as any[]
+    const results: Array<{ siteId: string; domain: string; success: boolean; skipped?: boolean; reason?: string; pagesProcessed?: number; resultsStored?: number; error?: string }> = []
     let successCount = 0
     let errorCount = 0
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
+import { Queue } from 'bullmq'
 import { gscSyncQueue, performanceQueue, crawlQueue, scoreQueue, uptimeCheckQueue } from '@/lib/jobs/queue'
 import { getDLQStats } from '@/lib/jobs/dead-letter'
 import { apiLogger } from '@/lib/logger'
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-async function getQueueStats(queue: any, name: string) {
+async function getQueueStats(queue: Queue, name: string) {
   const [waiting, active, completed, failed, delayed] = await Promise.all([
     queue.getWaiting(),
     queue.getActive(),
@@ -63,14 +64,14 @@ async function getQueueStats(queue: any, name: string) {
     completed: completed.length,
     failed: failed.length,
     delayed: delayed.length,
-    recentCompleted: completed.map((job: any) => ({
+    recentCompleted: completed.map(job => ({
       id: job.id,
       data: job.data,
       processedOn: job.processedOn,
       finishedOn: job.finishedOn,
       returnvalue: job.returnvalue,
     })),
-    recentFailed: failed.map((job: any) => ({
+    recentFailed: failed.map(job => ({
       id: job.id,
       data: job.data,
       failedReason: job.failedReason,

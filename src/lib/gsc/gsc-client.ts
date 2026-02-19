@@ -29,18 +29,26 @@ export interface GSCPage {
   queries?: string[]
 }
 
+interface GSCRow {
+  keys?: string[]
+  clicks?: number
+  impressions?: number
+  ctr?: number
+  position?: number
+}
+
 export interface GSCFilters {
   startDate: string
   endDate: string
   dimensions?: ('query' | 'page' | 'country' | 'device' | 'searchAppearance')[]
-  dimensionFilterGroups?: any[]
+  dimensionFilterGroups?: Array<{ filters: Array<{ dimension: string; operator: string; expression: string }> }>
   rowLimit?: number
   startRow?: number
   aggregationType?: 'auto' | 'byProperty' | 'byPage'
 }
 
 export class GSCClient {
-  private webmasters: any
+  private webmasters: ReturnType<typeof google.webmasters>
   
   constructor(private refreshToken: string, private siteUrl: string) {
     const auth = new google.auth.OAuth2(
@@ -96,7 +104,7 @@ export class GSCClient {
 
       const data = response.data.rows || []
       
-      return data.map((row: any) => ({
+      return data.map((row: GSCRow) => ({
         date: row.keys[0],
         clicks: row.clicks || 0,
         impressions: row.impressions || 0,
@@ -129,7 +137,7 @@ export class GSCClient {
 
       const data = response.data.rows || []
       
-      return data.map((row: any) => ({
+      return data.map((row: GSCRow) => ({
         query: row.keys[0],
         clicks: row.clicks || 0,
         impressions: row.impressions || 0,
@@ -162,7 +170,7 @@ export class GSCClient {
 
       const data = response.data.rows || []
       
-      return data.map((row: any) => ({
+      return data.map((row: GSCRow) => ({
         page: row.keys[0],
         clicks: row.clicks || 0,
         impressions: row.impressions || 0,
@@ -205,7 +213,7 @@ export class GSCClient {
 
       const data = response.data.rows || []
       
-      return data.map((row: any) => ({
+      return data.map((row: GSCRow) => ({
         query: row.keys[0],
         clicks: row.clicks || 0,
         impressions: row.impressions || 0,
@@ -248,7 +256,7 @@ export class GSCClient {
 
       const data = response.data.rows || []
       
-      return data.map((row: any) => ({
+      return data.map((row: GSCRow) => ({
         page: row.keys[0],
         clicks: row.clicks || 0,
         impressions: row.impressions || 0,
@@ -281,7 +289,7 @@ export class GSCClient {
 
       const data = response.data.rows || []
       
-      return data.map((row: any) => ({
+      return data.map((row: GSCRow) => ({
         device: row.keys[0],
         date: '', // Not applicable for device breakdown
         clicks: row.clicks || 0,
@@ -315,7 +323,7 @@ export class GSCClient {
 
       const data = response.data.rows || []
       
-      return data.map((row: any) => ({
+      return data.map((row: GSCRow) => ({
         country: row.keys[0],
         date: '', // Not applicable for country breakdown
         clicks: row.clicks || 0,

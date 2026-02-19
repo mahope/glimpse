@@ -21,7 +21,7 @@ const SORT_FIELDS: SortField[] = ['clicks','impressions','ctr','position','posit
 const SORT_DIRS: SortDir[] = ['asc','desc']
 
 export function parseParams(input: URLSearchParams | Record<string,string | number | undefined>): ParsedParams {
-  const get = (k: string) => input instanceof URLSearchParams ? input.get(k) ?? undefined : (input as any)[k]
+  const get = (k: string) => input instanceof URLSearchParams ? input.get(k) ?? undefined : (input as Record<string, string | number | undefined>)[k]
 
   // Support custom date range (from/to) or days
   const fromRaw = get('from')
@@ -63,7 +63,7 @@ export function parseParams(input: URLSearchParams | Record<string,string | numb
   const VALID_POS_FILTERS: PositionFilter[] = ['', 'top3', 'top10', 'top20', '50plus']
   const positionFilter = (VALID_POS_FILTERS as string[]).includes(posFilterRaw) ? (posFilterRaw as PositionFilter) : ''
 
-  return { days, from, to, page, pageSize, device: device as any, country, sortField, sortDir, search, positionFilter }
+  return { days, from, to, page, pageSize, device: device as 'all' | 'desktop' | 'mobile', country, sortField, sortDir, search, positionFilter }
 }
 
 export function safePctDelta(curr: number, prev: number): number {

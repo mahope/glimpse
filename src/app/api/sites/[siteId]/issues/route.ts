@@ -159,8 +159,8 @@ export async function GET(
 
     let trend = null
     if (recentCrawl && previousCrawl && recentCrawl.issues && previousCrawl.issues) {
-      const recentIssues = (recentCrawl.issues as any).issueCounts || {}
-      const previousIssues = (previousCrawl.issues as any).issueCounts || {}
+      const recentIssues = (recentCrawl.issues as Record<string, unknown>)?.issueCounts as Record<string, { count?: number; severity?: string }> || {}
+      const previousIssues = (previousCrawl.issues as Record<string, unknown>)?.issueCounts as Record<string, { count?: number; severity?: string }> || {}
       
       trend = {
         current: (recentIssues.errors?.count || 0) + (recentIssues.warnings?.count || 0),

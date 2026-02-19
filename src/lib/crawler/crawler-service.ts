@@ -163,7 +163,7 @@ export class CrawlerService {
   /**
    * Generate recommendations based on site statistics
    */
-  static generateRecommendations(stats: any, overallScore: number): string[] {
+  static generateRecommendations(stats: { totalPages: number; pagesWithErrors: number; pagesWithSlowLoading: number; pagesWithoutTitle: number; pagesWithoutMetaDescription: number; pagesWithoutH1: number; pagesWithMultipleH1: number; totalImagesWithoutAlt: number; averageLoadTime: number; averageWordCount: number }, overallScore: number): string[] {
     const recommendations: string[] = []
 
     if (overallScore < 50) {

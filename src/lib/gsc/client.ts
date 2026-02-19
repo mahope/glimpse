@@ -25,7 +25,7 @@ export interface GSCClientConfig {
 
 export class GoogleApisClient {
   private auth: Auth.OAuth2Client
-  private webmasters: any
+  private webmasters: ReturnType<typeof google.webmasters>
   
   constructor(private config: GSCClientConfig) {
     this.auth = new google.auth.OAuth2(
@@ -61,23 +61,24 @@ export class GoogleApisClient {
   /**
    * Handle API errors and convert to typed errors
    */
-  private handleApiError(error: any): never {
-    if (error.code === 401 || error.code === 403) {
-      throw new GSCAuthError(error.message || 'Authentication failed', error)
+  private handleApiError(error: unknown): never {
+    const err = error as { code?: number; message?: string }
+    if (err.code === 401 || err.code === 403) {
+      throw new GSCAuthError(err.message || 'Authentication failed', error)
     }
-    
-    if (error.code === 429 || error.message?.includes('quota')) {
+
+    if (err.code === 429 || err.message?.includes('quota')) {
       throw new GSCQuotaError(
-        error.message || 'Quota exceeded',
+        err.message || 'Quota exceeded',
         this.config.quotaUser
       )
     }
-    
-    if (error.code === 400) {
-      throw new GSCValidationError(error.message || 'Invalid request parameters')
+
+    if (err.code === 400) {
+      throw new GSCValidationError(err.message || 'Invalid request parameters')
     }
-    
-    throw new GSCError(error.message || 'API request failed', error.code, error)
+
+    throw new GSCError(err.message || 'API request failed', err.code, error)
   }
 
   /**
@@ -91,7 +92,7 @@ export class GoogleApisClient {
         quotaUser: this.config.quotaUser
       })
       
-      return response.data.siteEntry?.map((site: any) => site.siteUrl) || []
+      return response.data.siteEntry?.map((site: { siteUrl?: string }) => site.siteUrl).filter((url): url is string => !!url) || []
     } catch (error) {
       this.handleApiError(error)
     }
@@ -243,7 +244,7 @@ export class GoogleApisClient {
   /**
    * Get detailed site information
    */
-  async getSiteInfo(siteUrl: string): Promise<any> {
+  async getSiteInfo(siteUrl: string): Promise<unknown> {
     try {
       await this.ensureValidToken()
       

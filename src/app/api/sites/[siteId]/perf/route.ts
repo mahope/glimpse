@@ -5,7 +5,7 @@ import { fetchPsi, type Strategy } from '@/lib/perf/psi'
 import { apiLogger } from '@/lib/logger'
 
 // Simple in-memory cache (process local)
-const cache = new Map<string, { at: number; ttl: number; data: any }>()
+const cache = new Map<string, { at: number; ttl: number; data: Record<string, unknown> }>()
 const DEFAULT_TTL_MS = 1000 * 60 * 30 // 30 minutes
 
 function key(siteId: string, strategy: Strategy) { return `${siteId}:${strategy}` }
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest, { params }: { params: { siteId: 
     // Verify access to site
     const site = await prisma.site.findUnique({ where: { id: params.siteId }, include: { organization: { include: { members: { where: { userId: session.user.id } } } } } })
     if (!site) return NextResponse.json({ error: 'Site not found' }, { status: 404 })
-    const isAdmin = (session.user as any).role === 'ADMIN'
+    const isAdmin = session.user.role === 'ADMIN'
     const hasOrgAccess = site.organization.members.length > 0
     if (!isAdmin && !hasOrgAccess) return NextResponse.json({ error: 'Access denied' }, { status: 403 })
 
@@ -55,8 +55,8 @@ export async function GET(request: NextRequest, { params }: { params: { siteId: 
         }
         cache.set(k, { at: now, ttl: DEFAULT_TTL_MS, data: normalized })
         results[s] = { ...normalized, cachedAt: new Date(now).toISOString() }
-      } catch (err: any) {
-        results[s] = { error: err?.message || 'Failed to fetch PSI' }
+      } catch (err) {
+        results[s] = { error: err instanceof Error ? err.message : 'Failed to fetch PSI' }
       }
     }
 

@@ -1,7 +1,7 @@
 import { Job } from 'bullmq'
 import { PsiTestJob } from '../types'
 import { prisma } from '@/lib/db'
-import { runPsi, saveSnapshot, upsertDaily } from '@/lib/perf/psi-service'
+import { runPsi, saveSnapshot, upsertDaily, type Strategy } from '@/lib/perf/psi-service'
 
 export default async function psiTestProcessor(job: Job<PsiTestJob>) {
   const { siteId, organizationId, url, device } = job.data
@@ -16,11 +16,11 @@ export default async function psiTestProcessor(job: Job<PsiTestJob>) {
   })
   if (existing) return { skipped: true, reason: 'recent_snapshot_exists' }
 
-  const psi = await runPsi(url, device as any)
+  const psi = await runPsi(url, device as Strategy)
 
   // Persist snapshot and daily aggregate (idempotent upsert)
   await saveSnapshot(siteId, psi)
-  await upsertDaily(siteId, psi.date, device as any)
+  await upsertDaily(siteId, psi.date, device as 'ALL' | 'MOBILE' | 'DESKTOP')
 
   return { ok: true, score: psi.perfScore ?? null }
 }

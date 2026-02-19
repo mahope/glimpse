@@ -1198,7 +1198,7 @@ Automatisk ugentlig opsummering der sendes til site-ejere med de vigtigste ændr
 
 ## Kategori 8: Teknisk Kvalitet
 
-### 24. Type safety cleanup
+### ~~24. Type safety cleanup~~ DONE
 
 **Filer:** Diverse klient-komponenter, API-routes
 

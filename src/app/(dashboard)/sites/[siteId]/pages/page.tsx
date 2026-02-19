@@ -9,11 +9,12 @@ async function fetchPages(siteId: string, params: URLSearchParams) {
   return res.json()
 }
 
-export default async function PagesPage({ params, searchParams }: any) {
+export default async function PagesPage({ params, searchParams }: { params: Promise<{ siteId: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session?.user) return null
-  const siteId = params.siteId
-  const data = await fetchPages(siteId, new URLSearchParams({ days: String(searchParams.days || 30), page: String(searchParams.page || 1), pageSize: String(searchParams.pageSize || 50) }))
+  const { siteId } = await params
+  const sp = await searchParams
+  const data = await fetchPages(siteId, new URLSearchParams({ days: String(sp.days || 30), page: String(sp.page || 1), pageSize: String(sp.pageSize || 50) }))
 
   return (
     <div className="p-6 space-y-4">
@@ -21,7 +22,6 @@ export default async function PagesPage({ params, searchParams }: any) {
         <h1 className="text-2xl font-semibold">Pages</h1>
       </div>
       <SiteNav siteId={siteId} active="pages" />
-      {/* @ts-expect-error Server Component boundary */}
       <PagesClient siteId={siteId} initial={data} />
     </div>
   )

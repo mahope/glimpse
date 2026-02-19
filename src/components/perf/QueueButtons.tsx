@@ -18,8 +18,8 @@ export function QueueButtons({ siteId }: { siteId: string }) {
       if (!res.ok) throw new Error(await res.text())
       const data = await res.json()
       toast('success', 'Queued ' + kind + (data.jobId ? ` (#${data.jobId})` : ''))
-    } catch (e: any) {
-      toast('error', e.message || 'Failed to queue')
+    } catch (e) {
+      toast('error', e instanceof Error ? e.message : 'Failed to queue')
     } finally {
       setLoadingKind(null)
     }

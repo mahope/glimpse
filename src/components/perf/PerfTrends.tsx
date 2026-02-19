@@ -25,8 +25,8 @@ export function PerfTrends({ siteId, days = 30 }: { siteId: string; days?: numbe
         if (!res.ok) throw new Error(await res.text())
         const data = await res.json()
         setItems(data.items)
-      } catch (e: any) {
-        setError(e.message || 'Failed to load')
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to load')
       } finally {
         setLoading(false)
       }

@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
       enqueued++
     }
     return NextResponse.json({ ok: true, enqueued })
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e.message }, { status: 500 })
+  } catch (e) {
+    return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : 'Unknown error' }, { status: 500 })
   }
 }

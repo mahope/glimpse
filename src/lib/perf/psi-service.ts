@@ -23,7 +23,7 @@ export type PsiMetrics = {
     inpPctl?: number // ms
     clsPctl?: number // score * 1000? (CLS is unitless percentile value)
   }
-  raw?: any
+  raw?: Record<string, unknown>
 }
 
 export type CwvStatus = 'pass' | 'needs-improvement' | 'fail'
@@ -129,7 +129,8 @@ export function summarizeCWV(metrics: { lcpMs?: number; inpMs?: number; cls?: nu
  * Keeps: scores, metrics, CrUX field data, and audit summaries.
  * Drops: full DOM snapshots, screenshot data, network requests, etc.
  */
-function stripPsiResponse(data: any): any {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- PSI API response has deep nested structure
+function stripPsiResponse(data: Record<string, any>): Record<string, unknown> | null {
   if (!data) return null
   const lh = data.lighthouseResult
   const audits = lh?.audits || {}
@@ -138,7 +139,7 @@ function stripPsiResponse(data: any): any {
     'cumulative-layout-shift', 'server-response-time',
     'first-contentful-paint', 'speed-index', 'total-blocking-time',
   ]
-  const slimAudits: Record<string, any> = {}
+  const slimAudits: Record<string, Record<string, unknown>> = {}
   for (const key of keepAuditKeys) {
     if (audits[key]) {
       slimAudits[key] = {
@@ -250,7 +251,7 @@ export async function upsertDaily(siteId: string, date: Date, device: 'ALL' | 'M
   const end = new Date(start)
   end.setUTCDate(end.getUTCDate() + 1)
 
-  const where: any = { siteId, date: { gte: start, lt: end } }
+  const where: { siteId: string; date: { gte: Date; lt: Date }; strategy?: Strategy } = { siteId, date: { gte: start, lt: end } }
   if (device !== 'ALL') where.strategy = device
 
   const snaps = await prisma.perfSnapshot.findMany({ where })
@@ -264,7 +265,7 @@ export async function upsertDaily(siteId: string, date: Date, device: 'ALL' | 'M
   const clsPctl = snaps.map(s => s.raw?.loadingExperience?.metrics?.CUMULATIVE_LAYOUT_SHIFT_SCORE?.percentile).find((v): v is number => !!v) || null
 
   await prisma.sitePerfDaily.upsert({
-    where: { siteId_date_device: { siteId, date: start, device } as any },
+    where: { siteId_date_device: { siteId, date: start, device } },
     update: {
       device,
       perfScoreAvg: avg,

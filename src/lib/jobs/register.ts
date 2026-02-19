@@ -1,9 +1,10 @@
+import { Queue } from 'bullmq'
 import { prisma } from '@/lib/db'
 import { gscSyncQueue, performanceQueue, crawlQueue, scoreQueue, uptimeCheckQueue, backlinkSyncQueue, competitorPsiQueue } from './queue'
 
-async function ensureRepeatable(queue: any, name: string, data: any, repeat: { cron: string }, jobId: string) {
+async function ensureRepeatable(queue: Queue, name: string, data: Record<string, unknown>, repeat: { cron: string }, jobId: string) {
   const existing = await queue.getRepeatableJobs()
-  const exists = existing.some((j: any) => j.name === name && j.id === jobId)
+  const exists = existing.some(j => j.name === name && j.id === jobId)
   if (!exists) {
     await queue.add(name, data, { repeat, jobId })
   }

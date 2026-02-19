@@ -58,7 +58,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { siteId
   const existing = await prisma.alertRule.findFirst({ where: { id: data.id, siteId: access.site.id } })
   if (!existing) return NextResponse.json({ error: 'Rule not found' }, { status: 404 })
 
-  const { id, ...patch } = data as any
+  const { id, ...patch } = data
   const updated = await prisma.alertRule.update({ where: { id }, data: patch })
   return NextResponse.json({ item: updated })
 }
