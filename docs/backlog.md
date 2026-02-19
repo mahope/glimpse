@@ -108,7 +108,7 @@ SiteSelector i topbaren bruger hardkodede `mockSites` og henter aldrig brugerens
 
 ---
 
-### 7. Fix SEOCalculator — migrer fra SearchConsoleData til SearchStatDaily
+### ~~7. Fix SEOCalculator — migrer fra SearchConsoleData til SearchStatDaily~~ DONE
 
 **Fil:** `src/lib/scoring/calculator.ts`
 

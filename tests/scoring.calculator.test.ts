@@ -3,8 +3,7 @@ import { SEOCalculator } from '@/lib/scoring/calculator'
 
 // Prisma is used inside calculator; mock its methods to avoid DB
 vi.mock('@/lib/db', () => ({ prisma: {
-  searchConsoleData: { aggregate: vi.fn().mockResolvedValue({ _sum: { clicks: 0, impressions: 0 }, _avg: { position: 50 } }) },
-  performanceTest: { findFirst: vi.fn().mockResolvedValue({ score: 80 }) },
+  searchStatDaily: { aggregate: vi.fn().mockResolvedValue({ _sum: { clicks: 0, impressions: 0 }, _avg: { position: 50 } }) },
   perfSnapshot: { findFirst: vi.fn().mockResolvedValue(null) },
   seoScore: { create: vi.fn(), upsert: vi.fn() }
 }}))

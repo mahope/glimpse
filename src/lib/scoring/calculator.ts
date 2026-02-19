@@ -118,28 +118,20 @@ export class SEOCalculator {
       const sixtyDaysAgo = new Date()
       sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60)
 
-      // Get current period data (last 30 days)
-      const currentData = await prisma.searchConsoleData.aggregate({
+      // Get current period data (last 30 days) from canonical SearchStatDaily
+      const currentData = await prisma.searchStatDaily.aggregate({
         where: {
           siteId,
           date: { gte: thirtyDaysAgo },
-          query: '',
-          page: '',
-          country: 'all',
-          device: 'all'
         },
         _sum: { clicks: true }
       })
 
       // Get previous period data (30-60 days ago)
-      const previousData = await prisma.searchConsoleData.aggregate({
+      const previousData = await prisma.searchStatDaily.aggregate({
         where: {
           siteId,
           date: { gte: sixtyDaysAgo, lt: thirtyDaysAgo },
-          query: '',
-          page: '',
-          country: 'all', 
-          device: 'all'
         },
         _sum: { clicks: true }
       })
@@ -233,8 +225,8 @@ export class SEOCalculator {
       const sixtyDaysAgo = new Date()
       sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60)
 
-      // Get weighted average position for current period
-      const currentData = await prisma.searchConsoleData.aggregate({
+      // Get weighted average position for current period from canonical SearchStatDaily
+      const currentData = await prisma.searchStatDaily.aggregate({
         where: {
           siteId,
           date: { gte: thirtyDaysAgo },
@@ -244,7 +236,7 @@ export class SEOCalculator {
       })
 
       // Get weighted average position for previous period
-      const previousData = await prisma.searchConsoleData.aggregate({
+      const previousData = await prisma.searchStatDaily.aggregate({
         where: {
           siteId,
           date: { gte: sixtyDaysAgo, lt: thirtyDaysAgo },
@@ -341,26 +333,19 @@ export class SEOCalculator {
       const sixtyDaysAgo = new Date()
       sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60)
 
-      const currentData = await prisma.searchConsoleData.aggregate({
+      // Aggregate from canonical SearchStatDaily
+      const currentData = await prisma.searchStatDaily.aggregate({
         where: {
           siteId,
           date: { gte: thirtyDaysAgo },
-          query: '',
-          page: '',
-          country: 'all',
-          device: 'all'
         },
         _sum: { impressions: true }
       })
 
-      const previousData = await prisma.searchConsoleData.aggregate({
+      const previousData = await prisma.searchStatDaily.aggregate({
         where: {
           siteId,
           date: { gte: sixtyDaysAgo, lt: thirtyDaysAgo },
-          query: '',
-          page: '',
-          country: 'all',
-          device: 'all'
         },
         _sum: { impressions: true }
       })
@@ -442,7 +427,8 @@ export class SEOCalculator {
       const thirtyDaysAgo = new Date()
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-      const data = await prisma.searchConsoleData.aggregate({
+      // Aggregate from canonical SearchStatDaily
+      const data = await prisma.searchStatDaily.aggregate({
         where: {
           siteId,
           date: { gte: thirtyDaysAgo },
