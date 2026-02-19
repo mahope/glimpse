@@ -216,7 +216,7 @@ Begge kører dagligt og henter overlappende data. Overview/keywords/pages API'er
 
 ---
 
-### 14. Konsolider PSI-workers til én pipeline
+### ~~14. Konsolider PSI-workers til én pipeline~~ DONE
 
 **Filer:** `lib/jobs/workers/performance-worker.ts`, `lib/jobs/workers/perf-worker.ts`, `lib/performance/pagespeed-client.ts`
 

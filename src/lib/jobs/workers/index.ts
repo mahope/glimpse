@@ -1,5 +1,4 @@
 import { gscSyncWorker } from './gsc-sync-worker'
-import { performanceWorker } from './performance-worker'
 import { scoreWorker } from './score-worker'
 import { crawlWorker } from './crawl-worker'
 import { perfWorker } from './perf-worker'
@@ -7,24 +6,22 @@ import { perfWorker } from './perf-worker'
 // Export all workers
 export const workers = {
   gscSyncWorker,
-  performanceWorker,
+  perfWorker,
   scoreWorker,
   crawlWorker,
-  perfWorker,
 }
 
 // Graceful shutdown handler
 const gracefulShutdown = async () => {
   console.log('Shutting down workers...')
-  
+
   await Promise.all([
     gscSyncWorker.close(),
-    performanceWorker.close(),
+    perfWorker.close(),
     scoreWorker.close(),
     crawlWorker.close(),
-    perfWorker.close(),
   ])
-  
+
   console.log('All workers shut down successfully')
   process.exit(0)
 }

@@ -64,11 +64,7 @@ Session carries `activeOrganizationId`. All site queries MUST filter by `organiz
 
 **GSC Data:** `gsc-sync` queue → `gsc-sync-worker` → `fetchAndStoreGSCDaily()` → `SearchStatDaily` table. Used by overview, keywords, pages API routes and `SEOCalculator` scoring. Note: some legacy UI components still read from `SearchConsoleData` (reports, site-details) — these should be migrated to `SearchStatDaily`.
 
-**PSI Performance:**
-| System | Table | Fed By | Used By |
-|--------|-------|--------|---------|
-| Legacy | `PerformanceTest` | `performance-worker.ts` → `pagespeed-client.ts` | Nothing critical |
-| Canonical | `PerfSnapshot` + `SitePerfDaily` | `perf-worker.ts` → `psi-service.ts` | Perf API routes, scoring, alerts |
+**PSI Performance:** `performance-test` queue → `perf-worker` → `psi-service.ts` → `PerfSnapshot` + `SitePerfDaily`. Used by perf API routes, scoring, and alerts. Note: the `PerformanceTest` model in the schema is legacy and unused by the canonical pipeline.
 
 **Scoring:** `lib/scoring/calculator.ts` — 5 weighted components: click trend 25%, position trend 25%, impression trend 20%, CTR benchmark 15%, performance 15%.
 
@@ -153,5 +149,4 @@ Colors: Green `#0cce6b`, Orange `#ffa400`, Red `#ff4e42`
 ## Known Architecture Issues
 
 - **Legacy `SearchConsoleData` readers**: Some UI (reports, site-details, sites-list) still reads from `SearchConsoleData`. The sync pipeline now only writes to `SearchStatDaily`. These readers should be migrated.
-- **Dual PSI workers**: `performance-worker.ts` (legacy, writes `PerformanceTest`) and `perf-worker.ts` (canonical, writes `PerfSnapshot`+`SitePerfDaily`) are both registered.
 - **Score double-write**: `score-worker.ts` calls `SEOCalculator` which writes via `storeSEOScore()`, then the worker also upserts at target date.

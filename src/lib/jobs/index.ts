@@ -1,7 +1,7 @@
 // Import worker files to initialize their Workers
 // Each worker file exports a Worker that starts on import
 import './workers/gsc-sync-worker'
-import './workers/performance-worker'
+import './workers/perf-worker'
 import './workers/score-worker'
 import './workers/crawl-worker'
 
