@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Download, Search, Plus, X, Tag } from 'lucide-react'
 import { toast } from '@/components/ui/toast'
+import { DateRangePicker, dateRangeFromSearchParams, dateRangeToSearchParams, dateRangeToParams, type DateRangeValue } from '@/components/ui/date-range-picker'
 
 type ApiResp = { items: KeywordRow[]; page: number; pageSize: number; totalItems: number; totalPages: number; sortField: string; sortDir: 'asc'|'desc' }
 type TagItem = { id: string; name: string; color: string; _count: { assignments: number } }
@@ -36,7 +37,7 @@ export default function KeywordsClient({ siteId, initial }: { siteId: string; in
   const [error, setError] = React.useState<string | null>(null)
   const [page, setPage] = React.useState(Number(searchParams.get('page') || initial.page || 1))
   const [pageSize, setPageSize] = React.useState(Number(searchParams.get('pageSize') || initial.pageSize || 50))
-  const [days, setDays] = React.useState(Number(searchParams.get('days') || 30))
+  const [dateRange, setDateRange] = React.useState<DateRangeValue>(() => dateRangeFromSearchParams(searchParams, 30))
   const [device, setDevice] = React.useState<string>(searchParams.get('device') || 'all')
   const [country, setCountry] = React.useState<string>(searchParams.get('country') || 'ALL')
   const [sortField, setSortField] = React.useState<string>(searchParams.get('sort') || initial.sortField || 'clicks')
@@ -71,7 +72,7 @@ export default function KeywordsClient({ siteId, initial }: { siteId: string; in
     setLoading(true)
     setError(null)
     try {
-      const qs = new URLSearchParams({ days: String(days), page: String(page), pageSize: String(pageSize), device, country, sort: sortField, dir: sortDir })
+      const qs = new URLSearchParams({ ...dateRangeToParams(dateRange), page: String(page), pageSize: String(pageSize), device, country, sort: sortField, dir: sortDir })
       if (search) qs.set('search', search)
       if (positionFilter) qs.set('positionFilter', positionFilter)
       if (activeTagId) qs.set('tagId', activeTagId)
@@ -85,7 +86,7 @@ export default function KeywordsClient({ siteId, initial }: { siteId: string; in
     } finally {
       setLoading(false)
     }
-  }, [siteId, days, page, pageSize, device, country, sortField, sortDir, search, positionFilter, activeTagId])
+  }, [siteId, dateRange, page, pageSize, device, country, sortField, sortDir, search, positionFilter, activeTagId])
 
   React.useEffect(() => { fetchData() }, [fetchData])
 
@@ -152,7 +153,7 @@ export default function KeywordsClient({ siteId, initial }: { siteId: string; in
   // keep URL in sync
   React.useEffect(() => {
     const sp = new URLSearchParams()
-    sp.set('days', String(days))
+    dateRangeToSearchParams(sp, dateRange)
     sp.set('page', String(page))
     sp.set('pageSize', String(pageSize))
     sp.set('device', device)
@@ -163,7 +164,7 @@ export default function KeywordsClient({ siteId, initial }: { siteId: string; in
     if (positionFilter) sp.set('positionFilter', positionFilter)
     if (activeTagId) sp.set('tagId', activeTagId)
     router.replace(`?${sp.toString()}`)
-  }, [days, page, pageSize, device, country, sortField, sortDir, search, positionFilter, activeTagId])
+  }, [dateRange, page, pageSize, device, country, sortField, sortDir, search, positionFilter, activeTagId])
 
   return (
     <div className="space-y-3">
@@ -179,18 +180,18 @@ export default function KeywordsClient({ siteId, initial }: { siteId: string; in
             className="w-full border rounded px-2 py-1 pl-8 text-sm bg-background"
           />
         </div>
-        <select className="border rounded px-2 py-1 text-sm bg-background" value={days} onChange={e => { setDays(Number(e.target.value)); setPage(1) }}>
-          <option value={7}>7d</option>
-          <option value={30}>30d</option>
-          <option value={90}>90d</option>
-        </select>
+        <DateRangePicker
+          value={dateRange}
+          onChange={v => { setDateRange(v); setPage(1) }}
+          maxDays={180}
+        />
         <select className="border rounded px-2 py-1 text-sm bg-background" value={pageSize} onChange={e => setPageSize(Number(e.target.value))}>
           <option value={25}>25</option>
           <option value={50}>50</option>
           <option value={100}>100</option>
         </select>
         <Button variant="outline" size="sm" asChild>
-          <a href={`/api/sites/${siteId}/gsc/keywords/export?days=${days}&device=${device}&country=${country}&sort=${sortField}&dir=${sortDir}${search ? `&search=${encodeURIComponent(search)}` : ''}${positionFilter ? `&positionFilter=${positionFilter}` : ''}${activeTagId ? `&tagId=${activeTagId}` : ''}`} download>
+          <a href={`/api/sites/${siteId}/gsc/keywords/export?${new URLSearchParams({ ...dateRangeToParams(dateRange), device, country, sort: sortField, dir: sortDir, ...(search ? { search } : {}), ...(positionFilter ? { positionFilter } : {}), ...(activeTagId ? { tagId: activeTagId } : {}) }).toString()}`} download>
             <Download className="w-4 h-4 mr-1" /> Eksporter CSV
           </a>
         </Button>

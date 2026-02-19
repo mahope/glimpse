@@ -11,12 +11,13 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
   if (!organizationId) return NextResponse.json({ error: 'No active organization' }, { status: 400 })
 
   const { searchParams } = new URL(req.url)
-  const { days, page, pageSize, device, country, sortField, sortDir } = parseParams(searchParams)
+  const { days, from, to, page, pageSize, device, country, sortField, sortDir } = parseParams(searchParams)
 
   const site = await prisma.site.findFirst({ where: { id: params.siteId, organizationId } })
   if (!site) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const end = new Date(); const start = new Date(); start.setDate(end.getDate() - days)
+  const end = from && to ? new Date(to + 'T23:59:59') : new Date()
+  const start = from && to ? new Date(from + 'T00:00:00') : (() => { const d = new Date(); d.setDate(d.getDate() - days); return d })()
   const prevEnd = new Date(start); prevEnd.setDate(prevEnd.getDate() - 1)
   const prevStart = new Date(prevEnd); prevStart.setDate(prevStart.getDate() - days + 1)
 

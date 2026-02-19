@@ -1046,7 +1046,7 @@ Tabeller overflower horisontalt på mobil uden scroll-indikator eller alternativ
 
 ---
 
-### 14. Dato-range picker komponent
+### ~~14. Dato-range picker komponent~~ DONE (2026-02-19)
 
 **Filer:** Ny komponent, opdater overview/keywords/pages/performance
 

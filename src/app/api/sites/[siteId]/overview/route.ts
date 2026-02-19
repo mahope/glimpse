@@ -54,22 +54,40 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
   if (!site) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const { searchParams } = new URL(req.url)
-  const days = Math.min(Math.max(Number(searchParams.get('days') ?? 30), 1), 365)
+  const fromRaw = searchParams.get('from')
+  const toRaw = searchParams.get('to')
+  const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+  const hasCustomRange = fromRaw && toRaw && DATE_RE.test(fromRaw) && DATE_RE.test(toRaw)
+
+  let days: number
+  let start: Date
+  let end: Date
+
+  if (hasCustomRange) {
+    start = new Date(fromRaw + 'T00:00:00')
+    end = new Date(toRaw + 'T23:59:59')
+    days = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+    days = Math.min(Math.max(days, 1), 365)
+  } else {
+    days = Math.min(Math.max(Number(searchParams.get('days') ?? 30), 1), 365)
+    end = new Date()
+    start = new Date()
+    start.setDate(end.getDate() - days)
+  }
+
   const device = String(searchParams.get('device') ?? 'all').toLowerCase()
   const country = String(searchParams.get('country') ?? 'ALL').toUpperCase()
   const compareRaw = String(searchParams.get('compare') ?? 'prev').toLowerCase()
   const compare: CompareMode = compareRaw === 'year' ? 'year' : compareRaw === 'none' ? 'none' : 'prev'
 
   // Try cache first
-  const cacheKey = `overview:${site.id}:${days}:${device}:${country}:${compare}`
+  const cacheKey = `overview:${site.id}:${days}:${fromRaw || ''}:${toRaw || ''}:${device}:${country}:${compare}`
   const cached = await getCache<Record<string, unknown>>(cacheKey)
   if (cached) {
     return NextResponse.json(cached, {
       headers: { 'Cache-Control': 'private, max-age=3600', 'X-Cache': 'HIT' },
     })
   }
-
-  const end = new Date(); const start = new Date(); start.setDate(end.getDate() - days)
   const hasCompare = compare !== 'none'
   const { cStart, cEnd } = hasCompare
     ? computeComparisonRange(start, end, days, compare)

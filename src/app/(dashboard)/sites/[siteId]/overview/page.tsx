@@ -8,6 +8,7 @@ import { SiteNav } from '@/components/site/site-nav'
 import { RecommendationsPanel } from '@/components/dashboard/recommendations-panel'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TrendingUp, TrendingDown } from 'lucide-react'
+import { DateRangePicker, dateRangeFromSearchParams, dateRangeToSearchParams, dateRangeToParams, type DateRangeValue } from '@/components/ui/date-range-picker'
 
 interface KpiMetric {
   value: number
@@ -63,11 +64,11 @@ function Kpi({ type, title, metric, suffix = '', showCompare }: {
   )
 }
 
-const PERIOD_OPTIONS = [
-  { label: '7d', value: '7' },
-  { label: '30d', value: '30' },
-  { label: '90d', value: '90' },
-  { label: '365d', value: '365' },
+const OVERVIEW_PRESETS = [
+  { label: '7d', days: 7 },
+  { label: '30d', days: 30 },
+  { label: '90d', days: 90 },
+  { label: '365d', days: 365 },
 ]
 
 const DEVICE_OPTIONS = [
@@ -87,7 +88,7 @@ export default function OverviewPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
 
-  const days = searchParams.get('days') || '30'
+  const dateRange = dateRangeFromSearchParams(searchParams, 30)
   const device = searchParams.get('device') || 'all'
   const country = searchParams.get('country') || 'ALL'
   const compare = searchParams.get('compare') || 'prev'
@@ -101,9 +102,18 @@ export default function OverviewPage() {
     router.push(`?${sp.toString()}`, { scroll: false })
   }, [searchParams, router])
 
+  const handleDateRangeChange = useCallback((value: DateRangeValue) => {
+    const sp = new URLSearchParams(searchParams.toString())
+    dateRangeToSearchParams(sp, value)
+    router.push(`?${sp.toString()}`, { scroll: false })
+  }, [searchParams, router])
+
+  // Serialize dateRange for useEffect dependency
+  const dateRangeKey = dateRange.mode === 'preset' ? `p:${dateRange.days}` : `c:${dateRange.from}:${dateRange.to}`
+
   useEffect(() => {
     setLoading(true)
-    const qs = new URLSearchParams({ days, device, country, compare }).toString()
+    const qs = new URLSearchParams({ ...dateRangeToParams(dateRange), device, country, compare }).toString()
     fetch(`/api/sites/${params.siteId}/overview?${qs}`)
       .then(res => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -111,7 +121,7 @@ export default function OverviewPage() {
       })
       .then(setData)
       .finally(() => setLoading(false))
-  }, [params.siteId, days, device, country, compare])
+  }, [params.siteId, dateRangeKey, device, country, compare])
 
   // Merge current + comparison timeline for chart overlay
   const mergedTimeline = useMemo(() => {
@@ -149,17 +159,12 @@ export default function OverviewPage() {
         <h1 className="text-2xl font-semibold">Overblik</h1>
         <div className="flex flex-wrap items-center gap-2">
           {/* Period filter */}
-          <div className="flex rounded-md border overflow-hidden">
-            {PERIOD_OPTIONS.map(opt => (
-              <button
-                key={opt.value}
-                onClick={() => updateFilter('days', opt.value)}
-                className={`px-3 py-1.5 text-sm ${days === opt.value ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-accent'}`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
+          <DateRangePicker
+            value={dateRange}
+            onChange={handleDateRangeChange}
+            presets={OVERVIEW_PRESETS}
+            maxDays={365}
+          />
 
           {/* Device filter */}
           <div className="flex rounded-md border overflow-hidden">

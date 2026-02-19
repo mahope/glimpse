@@ -5,6 +5,8 @@ export type PositionFilter = '' | 'top3' | 'top10' | 'top20' | '50plus'
 
 export type ParsedParams = {
   days: number
+  from?: string // YYYY-MM-DD (set when custom range)
+  to?: string   // YYYY-MM-DD (set when custom range)
   page: number
   pageSize: number
   device: 'all' | 'desktop' | 'mobile'
@@ -21,8 +23,24 @@ const SORT_DIRS: SortDir[] = ['asc','desc']
 export function parseParams(input: URLSearchParams | Record<string,string | number | undefined>): ParsedParams {
   const get = (k: string) => input instanceof URLSearchParams ? input.get(k) ?? undefined : (input as any)[k]
 
-  const daysRaw = Number(get('days') ?? 30)
-  const days = Number.isFinite(daysRaw) && daysRaw > 0 && daysRaw <= 180 ? Math.floor(daysRaw) : 30
+  // Support custom date range (from/to) or days
+  const fromRaw = get('from')
+  const toRaw = get('to')
+  const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+  let from: string | undefined
+  let to: string | undefined
+  let days: number
+
+  if (typeof fromRaw === 'string' && typeof toRaw === 'string' && DATE_RE.test(fromRaw) && DATE_RE.test(toRaw)) {
+    // Ensure from <= to
+    from = fromRaw <= toRaw ? fromRaw : toRaw
+    to = fromRaw <= toRaw ? toRaw : fromRaw
+    const diff = Math.round((new Date(to).getTime() - new Date(from).getTime()) / (1000 * 60 * 60 * 24))
+    days = Math.min(Math.max(diff, 1), 365)
+  } else {
+    const daysRaw = Number(get('days') ?? 30)
+    days = Number.isFinite(daysRaw) && daysRaw > 0 && daysRaw <= 180 ? Math.floor(daysRaw) : 30
+  }
   const pageRaw = Number(get('page') ?? 1)
   const page = Number.isFinite(pageRaw) && pageRaw >= 1 ? Math.floor(pageRaw) : 1
   const pageSizeRaw = Number(get('pageSize') ?? 50)
@@ -45,7 +63,7 @@ export function parseParams(input: URLSearchParams | Record<string,string | numb
   const VALID_POS_FILTERS: PositionFilter[] = ['', 'top3', 'top10', 'top20', '50plus']
   const positionFilter = (VALID_POS_FILTERS as string[]).includes(posFilterRaw) ? (posFilterRaw as PositionFilter) : ''
 
-  return { days, page, pageSize, device: device as any, country, sortField, sortDir, search, positionFilter }
+  return { days, from, to, page, pageSize, device: device as any, country, sortField, sortDir, search, positionFilter }
 }
 
 export function safePctDelta(curr: number, prev: number): number {

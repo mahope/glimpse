@@ -6,6 +6,7 @@ import { PaginationControls } from '@/components/ui/pagination-controls'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Download } from 'lucide-react'
+import { DateRangePicker, dateRangeFromSearchParams, dateRangeToSearchParams, dateRangeToParams, type DateRangeValue } from '@/components/ui/date-range-picker'
 
 type ApiResp = { items: PageRow[]; page: number; pageSize: number; totalItems: number; totalPages: number; sortField: string; sortDir: 'asc'|'desc' }
 
@@ -17,7 +18,7 @@ export default function PagesClient({ siteId, initial }: { siteId: string; initi
   const [error, setError] = React.useState<string | null>(null)
   const [page, setPage] = React.useState(Number(searchParams.get('page') || initial.page || 1))
   const [pageSize, setPageSize] = React.useState(Number(searchParams.get('pageSize') || initial.pageSize || 50))
-  const [days, setDays] = React.useState(Number(searchParams.get('days') || 30))
+  const [dateRange, setDateRange] = React.useState<DateRangeValue>(() => dateRangeFromSearchParams(searchParams, 30))
   const [sortField, setSortField] = React.useState<string>(searchParams.get('sort') || initial.sortField || 'clicks')
   const [sortDir, setSortDir] = React.useState<'asc'|'desc'>((searchParams.get('dir') as any) || initial.sortDir || 'desc')
   const [totalPages, setTotalPages] = React.useState<number>(initial.totalPages || 1)
@@ -26,7 +27,7 @@ export default function PagesClient({ siteId, initial }: { siteId: string; initi
     setLoading(true)
     setError(null)
     try {
-      const qs = new URLSearchParams({ days: String(days), page: String(page), pageSize: String(pageSize), sort: sortField, dir: sortDir })
+      const qs = new URLSearchParams({ ...dateRangeToParams(dateRange), page: String(page), pageSize: String(pageSize), sort: sortField, dir: sortDir })
       const res = await fetch(`/api/sites/${siteId}/gsc/pages?${qs.toString()}`, { cache: 'no-store' })
       if (!res.ok) throw new Error(await res.text())
       const json: ApiResp = await res.json()
@@ -37,28 +38,28 @@ export default function PagesClient({ siteId, initial }: { siteId: string; initi
     } finally {
       setLoading(false)
     }
-  }, [siteId, days, page, pageSize, sortField, sortDir])
+  }, [siteId, dateRange, page, pageSize, sortField, sortDir])
 
   React.useEffect(() => { fetchData() }, [fetchData])
 
   React.useEffect(() => {
     const sp = new URLSearchParams()
-    sp.set('days', String(days))
+    dateRangeToSearchParams(sp, dateRange)
     sp.set('page', String(page))
     sp.set('pageSize', String(pageSize))
     sp.set('sort', sortField)
     sp.set('dir', sortDir)
     router.replace(`?${sp.toString()}`)
-  }, [days, page, pageSize, sortField, sortDir])
+  }, [dateRange, page, pageSize, sortField, sortDir])
 
   return (
     <div className="space-y-3">
       <div className="flex gap-2 items-center">
-        <select className="border rounded px-2 py-1 text-sm bg-background" value={days} onChange={e=>setDays(Number(e.target.value))}>
-          <option value={7}>7d</option>
-          <option value={30}>30d</option>
-          <option value={90}>90d</option>
-        </select>
+        <DateRangePicker
+          value={dateRange}
+          onChange={v => { setDateRange(v); setPage(1) }}
+          maxDays={180}
+        />
         <select className="border rounded px-2 py-1 text-sm bg-background" value={pageSize} onChange={e=>setPageSize(Number(e.target.value))}>
           <option value={25}>25</option>
           <option value={50}>50</option>
@@ -70,7 +71,7 @@ export default function PagesClient({ siteId, initial }: { siteId: string; initi
           size="sm"
           asChild
         >
-          <a href={`/api/sites/${siteId}/gsc/pages/export?days=${days}&sort=${sortField}&dir=${sortDir}`} download>
+          <a href={`/api/sites/${siteId}/gsc/pages/export?${new URLSearchParams({ ...dateRangeToParams(dateRange), sort: sortField, dir: sortDir }).toString()}`} download>
             <Download className="w-4 h-4 mr-1" /> Eksporter CSV
           </a>
         </Button>
