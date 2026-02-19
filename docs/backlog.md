@@ -1152,7 +1152,7 @@ Planlagte rapporter genereres men sendes kun som PDF-vedhæftning. Tilføj et HT
 
 ## Kategori 7: Smarte Anbefalinger & Insights
 
-### 21. Prioriteret anbefalings-dashboard
+### ~~21. Prioriteret anbefalings-dashboard~~ DONE
 
 **Filer:** Ny side, udvidelse af `src/lib/recommendations/engine.ts`
 

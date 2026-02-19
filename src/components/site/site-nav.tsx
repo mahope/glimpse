@@ -6,7 +6,7 @@ function cls(active: boolean) {
   return `px-3 py-1.5 rounded text-sm ${active ? 'bg-blue-600 text-white' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`
 }
 
-type ActiveTab = 'overview' | 'keywords' | 'pages' | 'performance' | 'backlinks' | 'competitors' | 'uptime' | 'issues' | 'reports' | 'alerts' | 'settings'
+type ActiveTab = 'overview' | 'keywords' | 'pages' | 'performance' | 'backlinks' | 'competitors' | 'uptime' | 'issues' | 'recommendations' | 'reports' | 'alerts' | 'settings'
 
 export function SiteNav({ siteId, active }: { siteId: string; active: ActiveTab }) {
   return (
@@ -20,6 +20,7 @@ export function SiteNav({ siteId, active }: { siteId: string; active: ActiveTab 
         <Link href={`/sites/${siteId}/competitors`} className={cls(active==='competitors')}>Competitors</Link>
         <Link href={`/sites/${siteId}/uptime`} className={cls(active==='uptime')}>Uptime</Link>
         <Link href={`/sites/${siteId}/issues`} className={cls(active==='issues')}>Issues</Link>
+        <Link href={`/sites/${siteId}/recommendations`} className={cls(active==='recommendations')}>Anbefalinger</Link>
         <Link href={`/sites/${siteId}/reports`} className={cls(active==='reports')}>Reports</Link>
         <Link href={`/sites/${siteId}/alerts`} className={cls(active==='alerts')}>Alerts</Link>
         <Link href={`/sites/${siteId}/settings/alerts`} className={cls(active==='settings')}>Settings</Link>
