@@ -502,7 +502,7 @@ Periode-vælgeren bruger plain `<a>`-tags der forårsager fuld side-reload i ste
 
 ---
 
-### 32. Forbedre tabeller med konsistent styling
+### ~~32. Forbedre tabeller med konsistent styling~~ DONE
 
 **Filer:** `KeywordsClient.tsx`, `PagesClient.tsx`, `PerfTable.tsx`, `RulesClient.tsx`
 

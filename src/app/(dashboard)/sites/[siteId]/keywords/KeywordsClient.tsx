@@ -2,6 +2,8 @@
 import React from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { KeywordTable, type KeywordRow } from '@/components/gsc/KeywordTable'
+import { PaginationControls } from '@/components/ui/pagination-controls'
+import { Skeleton } from '@/components/ui/skeleton'
 
 type ApiResp = { items: KeywordRow[]; page: number; pageSize: number; totalItems: number; totalPages: number; sortField: string; sortDir: 'asc'|'desc' }
 
@@ -55,35 +57,36 @@ export default function KeywordsClient({ siteId, initial }: { siteId: string; in
   return (
     <div className="space-y-3">
       <div className="flex gap-2 items-center">
-        <select className="border rounded px-2 py-1" value={days} onChange={e=>setDays(Number(e.target.value))}>
+        <select className="border rounded px-2 py-1 text-sm bg-background" value={days} onChange={e=>setDays(Number(e.target.value))}>
           <option value={7}>7d</option>
           <option value={30}>30d</option>
           <option value={90}>90d</option>
         </select>
-        <select className="border rounded px-2 py-1" value={pageSize} onChange={e=>setPageSize(Number(e.target.value))}>
+        <select className="border rounded px-2 py-1 text-sm bg-background" value={pageSize} onChange={e=>setPageSize(Number(e.target.value))}>
           <option value={25}>25</option>
           <option value={50}>50</option>
           <option value={100}>100</option>
         </select>
       </div>
 
-      {loading && <div className="text-sm text-gray-500">Loading…</div>}
-      {error && <div className="text-sm text-red-600">{error}</div>}
-      {!loading && !error && items.length === 0 && <div className="text-sm text-gray-500">No data</div>}
+      {loading && (
+        <div className="space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 rounded" />)}
+        </div>
+      )}
+      {error && <div className="py-4 text-center text-destructive">{error}</div>}
 
-      <KeywordTable
-        items={items}
-        sortField={sortField}
-        sortDir={sortDir}
-        onSort={(f, dir)=>{ setSortField(f); setSortDir(dir) }}
-        onFilter={({ device, country }) => { setDevice(device); setCountry(country.toUpperCase()) }}
-      />
+      {!loading && !error && (
+        <KeywordTable
+          items={items}
+          sortField={sortField}
+          sortDir={sortDir}
+          onSort={(f, dir)=>{ setSortField(f); setSortDir(dir) }}
+          onFilter={({ device, country }) => { setDevice(device); setCountry(country.toUpperCase()) }}
+        />
+      )}
 
-      <div className="flex items-center gap-2">
-        <button className="border rounded px-2 py-1" disabled={page<=1} onClick={()=>setPage(p=>p-1)}>Prev</button>
-        <span className="text-sm">Page {page} / {totalPages}</span>
-        <button className="border rounded px-2 py-1" disabled={page>=totalPages} onClick={()=>setPage(p=>p+1)}>Next</button>
-      </div>
+      <PaginationControls page={page} totalPages={totalPages} onPageChange={setPage} />
     </div>
   )
 }
