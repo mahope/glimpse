@@ -149,6 +149,7 @@ model Site {
   competitors      Competitor[]
   reports          Report[]
   reportSchedule   ReportSchedule @default(NONE) @map("report_schedule")
+  uptimeChecks     UptimeCheck[]
 
   @@unique([organizationId, domain])
   @@map("site")
@@ -549,4 +550,19 @@ model Report {
 
   @@index([siteId, generatedAt])
   @@map("report")
+}
+
+model UptimeCheck {
+  id             String   @id @default(cuid())
+  siteId         String   @map("site_id")
+  checkedAt      DateTime @default(now()) @map("checked_at")
+  statusCode     Int?     @map("status_code")
+  responseTimeMs Int?     @map("response_time_ms")
+  isUp           Boolean  @map("is_up")
+  error          String?
+
+  site           Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId, checkedAt])
+  @@map("uptime_check")
 }

@@ -686,7 +686,7 @@ Reports-siden siger "Report history will appear here" — der er ingen historik.
 
 ---
 
-### 43. Implementer uptime monitoring
+### ~~43. Implementer uptime monitoring~~ DONE
 
 **Filer:** Ny kø, ny worker, ny API-route, ny UI-side
 

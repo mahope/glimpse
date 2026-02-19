@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/db'
-import { gscSyncQueue, performanceQueue, crawlQueue, scoreQueue } from './queue'
+import { gscSyncQueue, performanceQueue, crawlQueue, scoreQueue, uptimeCheckQueue } from './queue'
 
 async function ensureRepeatable(queue: any, name: string, data: any, repeat: { cron: string }, jobId: string) {
   const existing = await queue.getRepeatableJobs()
@@ -17,6 +17,7 @@ export async function registerRepeatableJobsForSite(site: { id: string; organiza
     ensureRepeatable(performanceQueue, 'test-performance:desktop', { siteId, organizationId, url, device: 'DESKTOP' }, { cron: '5 4 * * *' }, `perf:desktop:${siteId}`),
     ensureRepeatable(crawlQueue, 'crawl-site', { siteId, organizationId, url, maxPages: 50 }, { cron: '0 5 * * 0' }, `crawl:${siteId}`),
     ensureRepeatable(scoreQueue, 'calculate-scores', { siteId, organizationId }, { cron: '0 6 * * *' }, `score:${siteId}`),
+    ensureRepeatable(uptimeCheckQueue, 'check-uptime', { siteId, organizationId, url }, { cron: '*/5 * * * *' }, `uptime:${siteId}`),
   ])
 }
 

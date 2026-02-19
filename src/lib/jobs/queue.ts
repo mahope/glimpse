@@ -1,7 +1,7 @@
 import { Queue } from 'bullmq'
 import Redis from 'ioredis'
 import { z } from 'zod'
-import { GSCSyncSchema, PsiTestSchema, CrawlSchema, ScoreCalcSchema } from './types'
+import { GSCSyncSchema, PsiTestSchema, CrawlSchema, ScoreCalcSchema, UptimeCheckSchema } from './types'
 
 export const redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
   maxRetriesPerRequest: 3,
@@ -11,6 +11,7 @@ export type GSCSyncJobData = z.infer<typeof GSCSyncSchema>
 export type PerformanceTestJobData = z.infer<typeof PsiTestSchema>
 export type SiteCrawlJobData = z.infer<typeof CrawlSchema>
 export type ScoreCalculationJobData = z.infer<typeof ScoreCalcSchema>
+export type UptimeCheckJobData = z.infer<typeof UptimeCheckSchema>
 
 export const gscSyncQueue = new Queue<GSCSyncJobData>('gsc-sync', {
   connection: redisConnection,
@@ -52,11 +53,22 @@ export const scoreQueue = new Queue<ScoreCalculationJobData>('score-calculation'
   },
 })
 
+export const uptimeCheckQueue = new Queue<UptimeCheckJobData>('uptime-check', {
+  connection: redisConnection,
+  defaultJobOptions: {
+    removeOnComplete: 500,
+    removeOnFail: 100,
+    attempts: 2,
+    backoff: { type: 'exponential', delay: 5000 },
+  },
+})
+
 export const scheduleJob = {
   gscSync: async (payload: GSCSyncJobData) => gscSyncQueue.add('sync-gsc-data', GSCSyncSchema.parse(payload), { repeat: { cron: '0 2 * * *' }, jobId: `gsc:${payload.siteId}` }),
   performanceTest: async (payload: PerformanceTestJobData) => performanceQueue.add('test-performance', PsiTestSchema.parse(payload), { repeat: { cron: '0 4 * * *' }, jobId: `perf:${payload.siteId}:${payload.device.toLowerCase()}` }),
   siteCrawl: async (payload: SiteCrawlJobData) => crawlQueue.add('crawl-site', CrawlSchema.parse(payload), { repeat: { cron: '0 5 * * 0' }, jobId: `crawl:${payload.siteId}` }),
   scoreCalculation: async (payload: ScoreCalculationJobData) => scoreQueue.add('calculate-scores', ScoreCalcSchema.parse(payload), { repeat: { cron: '0 6 * * *' }, jobId: `score:${payload.siteId}` }),
+  uptimeCheck: async (payload: UptimeCheckJobData) => uptimeCheckQueue.add('check-uptime', UptimeCheckSchema.parse(payload), { repeat: { cron: '*/5 * * * *' }, jobId: `uptime:${payload.siteId}` }),
 }
 
 export const triggerJob = {
@@ -64,4 +76,5 @@ export const triggerJob = {
   performanceTest: async (siteId: string, organizationId: string, url: string, device: 'MOBILE' | 'DESKTOP') => performanceQueue.add('test-performance-manual', PsiTestSchema.parse({ siteId, organizationId, url, device }), { jobId: `perf:${siteId}:${device}:${Date.now()}` }),
   siteCrawl: async (siteId: string, organizationId: string, url: string, maxPages = 50) => crawlQueue.add('crawl-site-manual', CrawlSchema.parse({ siteId, organizationId, url, maxPages }), { jobId: `crawl:${siteId}:${Date.now()}` }),
   scoreCalculation: async (siteId: string, organizationId: string, date?: string) => scoreQueue.add('calculate-scores-manual', ScoreCalcSchema.parse({ siteId, organizationId, date }), { jobId: `score:${siteId}:${Date.now()}` }),
+  uptimeCheck: async (siteId: string, organizationId: string, url: string) => uptimeCheckQueue.add('check-uptime-manual', UptimeCheckSchema.parse({ siteId, organizationId, url }), { jobId: `uptime:${siteId}:${Date.now()}` }),
 }
