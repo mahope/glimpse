@@ -10,7 +10,7 @@ import { SiteNav } from '@/components/site/site-nav'
 import { toast } from '@/components/ui/toast'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell } from 'recharts'
-import { Plus, Trash2, Loader2, Zap, Search, ArrowUp, ArrowDown, X } from 'lucide-react'
+import { Plus, Trash2, Loader2, Zap, Search, ArrowUp, ArrowDown, X, TrendingUp } from 'lucide-react'
 
 interface PerfData {
   perfScore: number | null
@@ -87,6 +87,20 @@ interface RankCompareData {
   timeline: RankTimelinePoint[]
 }
 
+interface CompetitorHistorySnapshot {
+  date: string
+  perfScore: number | null
+  lcpMs: number | null
+  inpMs: number | null
+  cls: number | null
+  ttfbMs: number | null
+}
+
+interface CompetitorHistoryData {
+  competitorName: string
+  snapshots: CompetitorHistorySnapshot[]
+}
+
 type OverlapTab = 'shared' | 'onlySource' | 'onlyCompetitor'
 
 function cwvColor(metric: string, value: number | null): string {
@@ -147,6 +161,9 @@ export function CompetitorsClient({ siteId }: { siteId: string }) {
   const [rankData, setRankData] = useState<RankCompareData | null>(null)
   const [rankLoading, setRankLoading] = useState(false)
   const [rankQuery, setRankQuery] = useState<string | null>(null)
+  const [trendCompetitorId, setTrendCompetitorId] = useState<string | null>(null)
+  const [trendData, setTrendData] = useState<CompetitorHistoryData | null>(null)
+  const [trendLoading, setTrendLoading] = useState(false)
 
   const fetchData = useCallback(() => {
     setLoading(true)
@@ -238,6 +255,26 @@ export function CompetitorsClient({ siteId }: { siteId: string }) {
       setOverlapCompetitorId(null)
     } finally {
       setOverlapLoading(false)
+    }
+  }
+
+  const handleTrend = async (competitorId: string) => {
+    if (trendCompetitorId === competitorId) {
+      setTrendCompetitorId(null)
+      setTrendData(null)
+      return
+    }
+    setTrendCompetitorId(competitorId)
+    setTrendLoading(true)
+    try {
+      const res = await fetch(`/api/sites/${siteId}/competitors/${competitorId}/history?days=90`)
+      if (!res.ok) throw new Error()
+      setTrendData(await res.json())
+    } catch {
+      toast('error', 'Kunne ikke hente trend-data')
+      setTrendCompetitorId(null)
+    } finally {
+      setTrendLoading(false)
     }
   }
 
@@ -427,6 +464,14 @@ export function CompetitorsClient({ siteId }: { siteId: string }) {
                               <Search className="h-4 w-4" />
                             </Button>
                             <Button
+                              variant={trendCompetitorId === c.id ? 'secondary' : 'ghost'}
+                              size="sm"
+                              onClick={() => handleTrend(c.id)}
+                              title="Performance trend"
+                            >
+                              <TrendingUp className="h-4 w-4" />
+                            </Button>
+                            <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleTest(c.id)}
@@ -454,6 +499,50 @@ export function CompetitorsClient({ siteId }: { siteId: string }) {
               </div>
             </CardContent>
           </Card>
+
+          {/* Performance Trend Section */}
+          {trendCompetitorId && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">
+                    Performance trend: {trendData?.competitorName ?? '...'}
+                  </CardTitle>
+                  <Button variant="ghost" size="sm" onClick={() => { setTrendCompetitorId(null); setTrendData(null) }}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {trendLoading ? (
+                  <Skeleton className="h-56 rounded" />
+                ) : trendData && trendData.snapshots.length > 1 ? (
+                  <div className="h-56">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={trendData.snapshots} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                        <XAxis
+                          dataKey="date"
+                          tickFormatter={d => new Date(d).toLocaleDateString('da-DK', { day: 'numeric', month: 'short' })}
+                          tick={{ fontSize: 11 }}
+                        />
+                        <YAxis tick={{ fontSize: 11 }} domain={[0, 100]} />
+                        <Tooltip
+                          labelFormatter={d => new Date(d).toLocaleDateString('da-DK', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        />
+                        <Legend />
+                        <Line type="monotone" dataKey="perfScore" name="Score" stroke="#3b82f6" dot={false} strokeWidth={2} connectNulls />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <p className="py-4 text-center text-muted-foreground text-sm">
+                    Ikke nok data til at vise trend. Data synkroniseres dagligt kl. 04:30.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Keyword Overlap Section */}
           {overlapCompetitorId && (

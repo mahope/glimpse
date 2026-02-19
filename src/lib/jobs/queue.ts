@@ -1,7 +1,7 @@
 import { Queue } from 'bullmq'
 import Redis from 'ioredis'
 import { z } from 'zod'
-import { GSCSyncSchema, PsiTestSchema, CrawlSchema, ScoreCalcSchema, UptimeCheckSchema, BacklinkSyncSchema } from './types'
+import { GSCSyncSchema, PsiTestSchema, CrawlSchema, ScoreCalcSchema, UptimeCheckSchema, BacklinkSyncSchema, CompetitorPsiSchema } from './types'
 
 export const redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
   maxRetriesPerRequest: 3,
@@ -13,6 +13,7 @@ export type SiteCrawlJobData = z.infer<typeof CrawlSchema>
 export type ScoreCalculationJobData = z.infer<typeof ScoreCalcSchema>
 export type UptimeCheckJobData = z.infer<typeof UptimeCheckSchema>
 export type BacklinkSyncJobData = z.infer<typeof BacklinkSyncSchema>
+export type CompetitorPsiJobData = z.infer<typeof CompetitorPsiSchema>
 
 export const gscSyncQueue = new Queue<GSCSyncJobData>('gsc-sync', {
   connection: redisConnection,
@@ -74,6 +75,16 @@ export const backlinkSyncQueue = new Queue<BacklinkSyncJobData>('backlink-sync',
   },
 })
 
+export const competitorPsiQueue = new Queue<CompetitorPsiJobData>('competitor-psi', {
+  connection: redisConnection,
+  defaultJobOptions: {
+    removeOnComplete: 200,
+    removeOnFail: 50,
+    attempts: 2,
+    backoff: { type: 'exponential', delay: 10000 },
+  },
+})
+
 export const scheduleJob = {
   gscSync: async (payload: GSCSyncJobData) => gscSyncQueue.add('sync-gsc-data', GSCSyncSchema.parse(payload), { repeat: { cron: '0 2 * * *' }, jobId: `gsc:${payload.siteId}` }),
   performanceTest: async (payload: PerformanceTestJobData) => performanceQueue.add('test-performance', PsiTestSchema.parse(payload), { repeat: { cron: '0 4 * * *' }, jobId: `perf:${payload.siteId}:${payload.device.toLowerCase()}` }),
@@ -81,6 +92,7 @@ export const scheduleJob = {
   scoreCalculation: async (payload: ScoreCalculationJobData) => scoreQueue.add('calculate-scores', ScoreCalcSchema.parse(payload), { repeat: { cron: '0 6 * * *' }, jobId: `score:${payload.siteId}` }),
   uptimeCheck: async (payload: UptimeCheckJobData) => uptimeCheckQueue.add('check-uptime', UptimeCheckSchema.parse(payload), { repeat: { cron: '*/5 * * * *' }, jobId: `uptime:${payload.siteId}` }),
   backlinkSync: async (payload: BacklinkSyncJobData) => backlinkSyncQueue.add('sync-backlinks', BacklinkSyncSchema.parse(payload), { repeat: { cron: '0 3 * * *' }, jobId: `backlink:${payload.siteId}` }),
+  competitorPsi: async (payload: CompetitorPsiJobData) => competitorPsiQueue.add('test-competitor-psi', CompetitorPsiSchema.parse(payload), { repeat: { cron: '30 4 * * *' }, jobId: `comp-psi:${payload.siteId}` }),
 }
 
 export const triggerJob = {
@@ -90,4 +102,5 @@ export const triggerJob = {
   scoreCalculation: async (siteId: string, organizationId: string, date?: string) => scoreQueue.add('calculate-scores-manual', ScoreCalcSchema.parse({ siteId, organizationId, date }), { jobId: `score:${siteId}:${Date.now()}` }),
   uptimeCheck: async (siteId: string, organizationId: string, url: string) => uptimeCheckQueue.add('check-uptime-manual', UptimeCheckSchema.parse({ siteId, organizationId, url }), { jobId: `uptime:${siteId}:${Date.now()}` }),
   backlinkSync: async (siteId: string, organizationId: string) => backlinkSyncQueue.add('sync-backlinks-manual', BacklinkSyncSchema.parse({ siteId, organizationId }), { jobId: `backlink:${siteId}:${Date.now()}` }),
+  competitorPsi: async (siteId: string, organizationId: string) => competitorPsiQueue.add('test-competitor-psi-manual', CompetitorPsiSchema.parse({ siteId, organizationId }), { jobId: `comp-psi:${siteId}:${Date.now()}` }),
 }

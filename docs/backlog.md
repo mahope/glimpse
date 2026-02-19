@@ -1014,7 +1014,7 @@ Side-by-side positionsvisning for fælles keywords.
 
 ---
 
-### 12. Automatisk daglig konkurrent PSI-tracking
+### ~~12. Automatisk daglig konkurrent PSI-tracking~~ DONE
 
 **Filer:** Udvidelse af `src/lib/jobs/`, eksisterende konkurrent-model
 

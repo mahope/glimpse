@@ -24,26 +24,20 @@ export async function POST(req: NextRequest, { params }: { params: { siteId: str
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
+    const snapshotData = {
+      perfScore: metrics.perfScore ?? null,
+      lcpMs: metrics.lcpMs != null ? Math.round(metrics.lcpMs) : null,
+      inpMs: metrics.inpMs != null ? Math.round(metrics.inpMs) : null,
+      cls: metrics.cls ?? null,
+      ttfbMs: metrics.ttfbMs != null ? Math.round(metrics.ttfbMs) : null,
+    }
+
     const snapshot = await prisma.competitorSnapshot.upsert({
       where: {
         competitorId_date: { competitorId: competitor.id, date: today },
       },
-      update: {
-        perfScore: metrics.perfScore ?? null,
-        lcpMs: metrics.lcpMs ?? null,
-        inpMs: metrics.inpMs ?? null,
-        cls: metrics.cls ?? null,
-        ttfbMs: metrics.ttfbMs ?? null,
-      },
-      create: {
-        competitorId: competitor.id,
-        date: today,
-        perfScore: metrics.perfScore ?? null,
-        lcpMs: metrics.lcpMs ?? null,
-        inpMs: metrics.inpMs ?? null,
-        cls: metrics.cls ?? null,
-        ttfbMs: metrics.ttfbMs ?? null,
-      },
+      update: snapshotData,
+      create: { competitorId: competitor.id, date: today, ...snapshotData },
     })
 
     return NextResponse.json({
