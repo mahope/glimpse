@@ -136,7 +136,7 @@ SiteSelector i topbaren bruger hardkodede `mockSites` og henter aldrig brugerens
 
 ---
 
-### 9. Fix gscQueue.ts — deprecated API og forkerte feltnavn
+### ~~9. Fix gscQueue.ts — deprecated API og forkerte feltnavn~~ DONE
 
 **Fil:** `src/lib/jobs/gscQueue.ts`
 

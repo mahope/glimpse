@@ -1,4 +1,4 @@
-import { Queue, Worker, JobsOptions, QueueScheduler } from 'bullmq'
+import { Queue, Worker, JobsOptions } from 'bullmq'
 import IORedis from 'ioredis'
 import { fetchAndStoreGSCDaily } from '@/lib/gsc/fetch-daily'
 import { prisma } from '@/lib/db'
@@ -8,8 +8,8 @@ const connectionString = process.env.REDIS_URL
 export const hasRedis = !!connectionString
 
 let connection: IORedis | undefined
+let workerConnection: IORedis | undefined
 let queue: Queue | undefined
-let scheduler: QueueScheduler | undefined
 
 export function getGSCQueue() {
   if (!hasRedis) return undefined
@@ -28,9 +28,6 @@ export function getGSCQueue() {
       } as JobsOptions,
     })
   }
-  if (!scheduler) {
-    scheduler = new QueueScheduler('gsc:fetch', { connection })
-  }
   return queue
 }
 
@@ -38,6 +35,10 @@ export function startGSCWorker() {
   if (!hasRedis) {
     console.warn('[gsc:fetch] REDIS_URL not set. Worker disabled.')
     return undefined
+  }
+  if (!workerConnection) {
+    workerConnection = new IORedis(connectionString as string, { maxRetriesPerRequest: null, lazyConnect: true })
+    workerConnection.on('error', (err) => console.warn('[gsc:fetch] Worker Redis error', err?.message))
   }
   const worker = new Worker('gsc:fetch', async (job) => {
     const { siteId, days = 30 } = job.data as { siteId: string; days?: number }
@@ -53,7 +54,7 @@ export function startGSCWorker() {
       mock: process.env.MOCK_GSC === 'true'
     })
   }, {
-    connection,
+    connection: workerConnection,
     concurrency: 2,
     limiter: { max: 5, duration: 1000 }
   })
@@ -72,7 +73,7 @@ export async function enqueueDailyForActiveSites(days = 30) {
     console.warn('[gsc:fetch] No Redis; enqueue skipped')
     return { enqueued: 0 }
   }
-  const sites = await prisma.site.findMany({ where: { active: true } })
+  const sites = await prisma.site.findMany({ where: { isActive: true } })
   let count = 0
   for (const s of sites) {
     await q.add('fetch', { siteId: s.id, days }, { jobId: `site:${s.id}:d${days}` })
