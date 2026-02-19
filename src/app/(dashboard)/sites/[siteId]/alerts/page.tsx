@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db'
 import { notFound } from 'next/navigation'
 import { AlertStatus } from '@prisma/client'
+import { SiteNav } from '@/components/site/site-nav'
 
 function statusBadge(s: AlertStatus) {
   const base = 'px-2 py-1 rounded text-xs'
@@ -15,32 +16,37 @@ export default async function AlertsPage({ params }: { params: { siteId: string 
   const events = await prisma.alertEvent.findMany({ where: { siteId: site.id }, orderBy: { date: 'desc' } })
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="space-y-6">
+      <SiteNav siteId={params.siteId} active="alerts" />
       <h1 className="text-2xl font-semibold">Alerts</h1>
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr className="text-left border-b">
-              <th className="py-2 pr-4">Date</th>
-              <th className="py-2 pr-4">Metric</th>
-              <th className="py-2 pr-4">Device</th>
-              <th className="py-2 pr-4">Value</th>
-              <th className="py-2 pr-4">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {events.map(ev => (
-              <tr key={ev.id} className="border-b">
-                <td className="py-2 pr-4">{new Date(ev.date).toLocaleDateString()}</td>
-                <td className="py-2 pr-4">{ev.metric}</td>
-                <td className="py-2 pr-4">{ev.device}</td>
-                <td className="py-2 pr-4">{ev.value}</td>
-                <td className="py-2 pr-4"><span className={statusBadge(ev.status)}>{ev.status}</span></td>
+      {events.length > 0 ? (
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="text-left border-b">
+                <th className="py-2 pr-4">Date</th>
+                <th className="py-2 pr-4">Metric</th>
+                <th className="py-2 pr-4">Device</th>
+                <th className="py-2 pr-4">Value</th>
+                <th className="py-2 pr-4">Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {events.map(ev => (
+                <tr key={ev.id} className="border-b">
+                  <td className="py-2 pr-4">{new Date(ev.date).toLocaleDateString()}</td>
+                  <td className="py-2 pr-4">{ev.metric}</td>
+                  <td className="py-2 pr-4">{ev.device}</td>
+                  <td className="py-2 pr-4">{ev.value}</td>
+                  <td className="py-2 pr-4"><span className={statusBadge(ev.status)}>{ev.status}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="text-muted-foreground">No alert events yet.</p>
+      )}
     </div>
   )
 }

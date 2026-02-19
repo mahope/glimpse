@@ -471,7 +471,7 @@ Hele dashboard-landingssiden viser hardkodede mock-data. Alle 6 komponenter (Kpi
 
 ---
 
-### 30. Tilføj global SiteNav og settings-links
+### ~~30. Tilføj global SiteNav og settings-links~~ DONE
 
 **Filer:** `src/components/layout/site-nav.tsx`, `src/components/layout/dashboard-layout.tsx`
 

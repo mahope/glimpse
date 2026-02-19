@@ -10,7 +10,6 @@ import {
   BarChart3,
   Globe,
   Settings,
-  TrendingUp,
   User,
   LogOut,
   Menu,
@@ -20,9 +19,7 @@ import {
 const getNavigation = (isAdmin: boolean) => [
   { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
   { name: 'Sites', href: '/sites', icon: Globe },
-  { name: 'Performance', href: '/performance', icon: TrendingUp },
   ...(isAdmin ? [{ name: 'Jobs Monitor', href: '/dashboard/jobs', icon: Settings }] : []),
-  { name: 'Settings', href: '/settings', icon: Settings },
 ]
 
 interface DashboardLayoutProps {
