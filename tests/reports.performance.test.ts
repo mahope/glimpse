@@ -14,7 +14,6 @@ describe('reports/performance mapper', () => {
     const s = mapPsiToReport(psi)
     expect(s?.score).toBe(88)
     expect(s?.lcp).toBeCloseTo(2.3)
-    expect(s?.fcp).toBeCloseTo(1.2)
   })
 
   it('returns null on empty input', () => {

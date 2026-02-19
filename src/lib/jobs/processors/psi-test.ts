@@ -9,34 +9,18 @@ export default async function psiTestProcessor(job: Job<PsiTestJob>) {
   const site = await prisma.site.findFirst({ where: { id: siteId, organizationId, isActive: true } })
   if (!site) return { skipped: true, reason: 'site_not_found_or_denied' }
 
-  // Idempotency: avoid duplicate running tests for same site+device within 1h
+  // Idempotency: avoid duplicate snapshots for same site+strategy within 1h
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
-  const existing = await prisma.performanceTest.findFirst({ where: { siteId, device, createdAt: { gte: oneHourAgo }, status: 'RUNNING' } })
-  if (existing) return { skipped: true, reason: 'recent_running' }
+  const existing = await prisma.perfSnapshot.findFirst({
+    where: { siteId, strategy: device, date: { gte: oneHourAgo } },
+  })
+  if (existing) return { skipped: true, reason: 'recent_snapshot_exists' }
 
-  // Create RUNNING record
-  const test = await prisma.performanceTest.create({ data: { siteId, testUrl: url, device, status: 'RUNNING' } })
+  const psi = await runPsi(url, device as any)
 
-  try {
-    const psi = await runPsi(url, device as any)
+  // Persist snapshot and daily aggregate (idempotent upsert)
+  await saveSnapshot(siteId, psi)
+  await upsertDaily(siteId, psi.date, device as any)
 
-    // Persist snapshot and daily aggregate (idempotent upsert)
-    await saveSnapshot(siteId, psi)
-    await upsertDaily(siteId, psi.date, device as any)
-
-    await prisma.performanceTest.update({ where: { id: test.id }, data: {
-      status: 'COMPLETED',
-      score: psi.perfScore ?? null,
-      lcp: psi.lcpMs != null ? Math.round(psi.lcpMs) / 1000 : null, // store seconds as schema suggests
-      inp: psi.inpMs ?? null,
-      cls: psi.cls ?? null,
-      ttfb: psi.ttfbMs ?? null,
-      lighthouseVersion: psi.raw?.lighthouseResult?.lighthouseVersion ?? null,
-      testDuration: null,
-    } })
-    return { ok: true, score: psi.perfScore ?? null }
-  } catch (err: any) {
-    await prisma.performanceTest.update({ where: { id: test.id }, data: { status: 'FAILED', errorMessage: err?.message || 'Unknown error' } })
-    throw err
-  }
+  return { ok: true, score: psi.perfScore ?? null }
 }

@@ -53,8 +53,8 @@ export default async function SitesPage() {
       },
       _count: {
         select: {
-          searchConsoleData: true,
-          performanceTests: true,
+          searchStatsDaily: true,
+          perfSnapshots: true,
           seoScores: true,
         },
       },

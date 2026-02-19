@@ -1,7 +1,10 @@
 import { describe, it, expect, vi } from 'vitest'
 import psiProcessor from '@/lib/jobs/processors/psi-test'
 
-vi.mock('@/lib/db', () => ({ prisma: { site: { findFirst: vi.fn().mockResolvedValue({ id: 's1', organizationId: 'o1', isActive: true }) }, performanceTest: { findFirst: vi.fn().mockResolvedValue(null), create: vi.fn().mockResolvedValue({ id: 't1' }), update: vi.fn().mockResolvedValue({}) } } }))
+vi.mock('@/lib/db', () => ({ prisma: {
+  site: { findFirst: vi.fn().mockResolvedValue({ id: 's1', organizationId: 'o1', isActive: true }) },
+  perfSnapshot: { findFirst: vi.fn().mockResolvedValue(null) },
+} }))
 
 vi.mock('@/lib/perf/psi-service', () => ({
   runPsi: vi.fn().mockResolvedValue({ perfScore: 90, url: 'https://e.com', date: new Date(), lcpMs: 2000, inpMs: 120, cls: 0.05, ttfbMs: 150, raw: {} }),

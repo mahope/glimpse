@@ -15,16 +15,16 @@ export async function buildReportData(site: SiteWithOrg): Promise<ReportData> {
   const from = startOfDay(subDays(to, 30))
   const periodLabel = `${format(from, 'MMM d, yyyy')} - ${format(to, 'MMM d, yyyy')}`
 
-  const [seoScore, perfTest, gscData, crawlResult] = await Promise.all([
+  const [seoScore, perfSnap, gscData, crawlResult] = await Promise.all([
     prisma.seoScore.findFirst({
       where: { siteId: site.id, date: { gte: from, lte: to } },
       orderBy: { date: 'desc' },
     }),
-    prisma.performanceTest.findFirst({
+    prisma.perfSnapshot.findFirst({
       where: { siteId: site.id },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { date: 'desc' },
     }),
-    prisma.searchConsoleData.findMany({
+    prisma.searchStatDaily.findMany({
       where: { siteId: site.id, date: { gte: from, lte: to } },
       orderBy: { date: 'desc' },
       take: 300,
@@ -90,13 +90,11 @@ export async function buildReportData(site: SiteWithOrg): Promise<ReportData> {
     generatedAt: new Date().toISOString(),
     seoScore: seoScore?.score ?? undefined,
     kpis,
-    performance: perfTest ? {
-      lcp: perfTest.lcp ?? undefined,
-      inp: perfTest.inp ?? undefined,
-      cls: perfTest.cls ?? undefined,
-      ttfb: perfTest.ttfb ?? undefined,
-      fcp: perfTest.fcp ?? undefined,
-      speedIndex: perfTest.speedIndex ?? undefined,
+    performance: perfSnap ? {
+      lcp: perfSnap.lcpMs != null ? perfSnap.lcpMs / 1000 : undefined,
+      inp: perfSnap.inpMs != null ? perfSnap.inpMs : undefined,
+      cls: perfSnap.cls ?? undefined,
+      ttfb: perfSnap.ttfbMs != null ? perfSnap.ttfbMs : undefined,
     } : undefined,
     topKeywords,
     issues: Array.isArray(crawlResult?.issues) ? crawlResult.issues as any[] : undefined,

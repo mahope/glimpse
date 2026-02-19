@@ -1,4 +1,4 @@
-import type { ReportData, CoreWebVitals } from '../types'
+import type { CoreWebVitals } from '../types'
 import type { PsiNormalized } from '@/lib/perf/psi'
 
 export type PerformanceSection = CoreWebVitals & {
@@ -13,17 +13,14 @@ export function mapPsiToReport(psi: PsiNormalized | null | undefined): Performan
   const lcpMs = psi.lab.lcp ?? psi.field.lcp
   const inpMs = psi.lab.inp ?? psi.field.inp
   const cls = psi.lab.cls ?? psi.field.cls
-  const fcpMs = psi.lab.fcp ?? psi.field.fcp
   return {
     source: 'psi',
     strategy: psi.strategy,
     score: psi.lab.score,
-    lcp: typeof lcpMs === 'number' ? Math.round(lcpMs) / 1000 : undefined, // seconds in report
-    inp: typeof inpMs === 'number' ? Math.round(inpMs) : undefined, // ms
+    lcp: typeof lcpMs === 'number' ? Math.round(lcpMs) / 1000 : undefined,
+    inp: typeof inpMs === 'number' ? Math.round(inpMs) : undefined,
     cls: typeof cls === 'number' ? cls : undefined,
-    fcp: typeof fcpMs === 'number' ? Math.round(fcpMs) / 1000 : undefined, // seconds
-    ttfb: typeof psi.lab.tbt === 'number' ? undefined : undefined, // keep ttfb out (not reliable in LH)
-    speedIndex: undefined,
+    ttfb: undefined,
     fetchedAt: psi.timestamp,
   }
 }

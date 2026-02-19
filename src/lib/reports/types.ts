@@ -11,8 +11,6 @@ export type CoreWebVitals = {
   inp?: number // ms
   cls?: number
   ttfb?: number // ms
-  fcp?: number // seconds
-  speedIndex?: number // seconds
 }
 
 export type KeywordRow = {

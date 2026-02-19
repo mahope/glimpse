@@ -4,12 +4,10 @@ import psiProcessor from '@/lib/jobs/processors/psi-test'
 // Mock DB and PSI service
 vi.mock('@/lib/db', () => ({ prisma: {
   site: { findFirst: vi.fn().mockResolvedValue({ id: 's1', organizationId: 'o1', isActive: true }) },
-  performanceTest: {
+  perfSnapshot: {
     findFirst: vi.fn().mockResolvedValue(null),
-    create: vi.fn().mockResolvedValue({ id: 't1' }),
-    update: vi.fn().mockResolvedValue({})
+    create: vi.fn().mockResolvedValue({ id: 'ps1' }),
   },
-  perfSnapshot: { create: vi.fn().mockResolvedValue({ id: 'ps1' }) },
   sitePerfDaily: { upsert: vi.fn().mockResolvedValue({ id: 'd1' }) },
 }}))
 

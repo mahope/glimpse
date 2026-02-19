@@ -92,8 +92,6 @@ function Perf({ data }: { data?: CoreWebVitals }) {
     { label: 'INP', value: data.inp, suffix: 'ms' },
     { label: 'CLS', value: data.cls },
     { label: 'TTFB', value: data.ttfb, suffix: 'ms' },
-    { label: 'FCP', value: data.fcp, suffix: 's' },
-    { label: 'Speed Index', value: data.speedIndex, suffix: 's' },
   ]
   return (
     <View style={styles.perfGrid}>

@@ -13,7 +13,7 @@ vi.mock('@/lib/db', () => ({ prisma: {
         return {
           id: 'site1', name: 'Test Site', domain: 'test.com', url: 'https://test.com',
           organization: { name: 'Test Org', logo: null },
-          seoScores: [], performanceTests: [], searchConsoleData: [], crawlResults: [],
+          seoScores: [], perfSnapshots: [], searchStatsDaily: [], crawlResults: [],
         }
       }
       return null

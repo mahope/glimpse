@@ -859,18 +859,18 @@ Ingen metrics indsamles. Umuligt at vide om systemet er sundt uden at grave i lo
 
 ---
 
-### 2. Migrer sidste legacy-læsere til kanoniske modeller
+### 2. ~~Migrer sidste legacy-læsere til kanoniske modeller~~ DONE 2026-02-19
 
 **Filer:** `src/lib/scoring/seo-scoring.ts`, `src/lib/reports/`, diverse UI-komponenter
 
 Nogle steder læser stadig fra de legacy-tabeller (`SearchConsoleData`, `PerformanceTest`) i stedet for de kanoniske (`SearchStatDaily`, `PerfSnapshot`/`SitePerfDaily`). Legacy-tabeller modtager ikke længere nye data fra sync-pipelinen.
 
 **Krav:**
-- Find og erstat alle imports/queries mod `SearchConsoleData` → `SearchStatDaily`
-- Find og erstat alle imports/queries mod `PerformanceTest` → `PerfSnapshot`/`SitePerfDaily`
-- Verificer at `SEOCalculator` bruger kanoniske data
-- Verificer at PDF-rapportgeneratoren bruger kanoniske data
-- Overvej at markere legacy-modeller som `@deprecated` i schema
+- ~~Find og erstat alle imports/queries mod `SearchConsoleData` → `SearchStatDaily`~~
+- ~~Find og erstat alle imports/queries mod `PerformanceTest` → `PerfSnapshot`/`SitePerfDaily`~~
+- ~~Verificer at `SEOCalculator` bruger kanoniske data~~ (brugte allerede kanoniske)
+- ~~Verificer at PDF-rapportgeneratoren bruger kanoniske data~~
+- ~~Overvej at markere legacy-modeller som `@deprecated` i schema~~ (forældede komponenter og dead code identificeret)
 
 ---
 

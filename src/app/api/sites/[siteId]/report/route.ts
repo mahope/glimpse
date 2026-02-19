@@ -26,18 +26,18 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
     include: {
       organization: true,
       seoScores: { where: { date: { gte: from, lte: to } }, orderBy: { date: 'desc' }, take: 1 },
-      performanceTests: { orderBy: { createdAt: 'desc' }, take: 1 },
-      searchConsoleData: { where: { date: { gte: from, lte: to } }, orderBy: { date: 'desc' }, take: 300 },
+      perfSnapshots: { orderBy: { date: 'desc' }, take: 1 },
+      searchStatsDaily: { where: { date: { gte: from, lte: to } }, orderBy: { date: 'desc' }, take: 300 },
       crawlResults: { orderBy: { crawlDate: 'desc' }, take: 1 },
     }
   })
   if (!site) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const score = site.seoScores[0]?.score ?? undefined
-  const perf = site.performanceTests[0]
+  const perf = site.perfSnapshots[0]
 
   // Simple aggregates from GSC (last 30 days)
-  const queries = site.searchConsoleData.filter(r => !!r.query)
+  const queries = site.searchStatsDaily.filter(r => !!r.query)
   const topKeywords = Object.values(
     queries.reduce((acc, r) => {
       const key = r.query || ''
@@ -54,7 +54,7 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
     .sort((a, b) => b.clicks - a.clicks)
     .slice(0, 10)
 
-  const totals = site.searchConsoleData.reduce((acc, r) => {
+  const totals = site.searchStatsDaily.reduce((acc, r) => {
     acc.clicks += r.clicks
     acc.impressions += r.impressions
     acc.ctr += r.ctr
@@ -71,7 +71,7 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
   ]
 
   const trendsMap = new Map<string, { date: string; clicks: number; impressions: number; position: number; ctr: number; n: number }>()
-  site.searchConsoleData.forEach(r => {
+  site.searchStatsDaily.forEach(r => {
     const d = new Date(r.date)
     const key = format(d, 'yyyy-MM-dd')
     const it = trendsMap.get(key) || { date: key, clicks: 0, impressions: 0, position: 0, ctr: 0, n: 0 }
@@ -93,12 +93,10 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
     seoScore: score,
     kpis,
     performance: perf ? {
-      lcp: perf.lcp ?? undefined,
-      inp: perf.inp ?? undefined,
+      lcp: perf.lcpMs != null ? perf.lcpMs / 1000 : undefined,
+      inp: perf.inpMs != null ? perf.inpMs : undefined,
       cls: perf.cls ?? undefined,
-      ttfb: perf.ttfb ?? undefined,
-      fcp: perf.fcp ?? undefined,
-      speedIndex: perf.speedIndex ?? undefined,
+      ttfb: perf.ttfbMs != null ? perf.ttfbMs : undefined,
     } : undefined,
     topKeywords,
     issues: Array.isArray(site.crawlResults[0]?.issues) ? site.crawlResults[0].issues as any[] : undefined,

@@ -21,8 +21,8 @@ interface Site {
     slug: string
   }
   _count: {
-    searchConsoleData: number
-    performanceTests: number
+    searchStatsDaily: number
+    perfSnapshots: number
     seoScores: number
   }
 }
@@ -80,13 +80,13 @@ export function SitesList({ sites }: SitesListProps) {
             <div className="grid grid-cols-3 gap-3 text-sm">
               <div className="text-center">
                 <div className="font-semibold text-lg text-blue-600">
-                  {site._count.searchConsoleData}
+                  {site._count.searchStatsDaily}
                 </div>
                 <div className="text-gray-600">GSC Records</div>
               </div>
               <div className="text-center">
                 <div className="font-semibold text-lg text-green-600">
-                  {site._count.performanceTests}
+                  {site._count.perfSnapshots}
                 </div>
                 <div className="text-gray-600">Speed Tests</div>
               </div>
