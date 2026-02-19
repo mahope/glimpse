@@ -425,7 +425,7 @@ CSS-variabler for `.dark` theme eksisterer allerede i `globals.css`, men der er 
 
 ---
 
-### 27. Tilføj Next.js loading.tsx og error.tsx på alle routes
+### ~~27. Tilføj Next.js loading.tsx og error.tsx på alle routes~~ DONE
 
 **Filer:** Nye filer under `src/app/(dashboard)/`
 
