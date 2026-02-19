@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { verifyCronSecret } from '@/lib/cron/auth'
 import { fetchAndStoreGSCDaily } from '@/lib/gsc/fetch-daily'
+import { decrypt } from '@/lib/crypto'
 
 export async function POST(req: NextRequest) {
   const unauthorized = verifyCronSecret(req)
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
   const result = await fetchAndStoreGSCDaily({
     siteId,
     propertyUrl: site.gscPropertyUrl,
-    refreshToken: site.gscRefreshToken || undefined,
+    refreshToken: site.gscRefreshToken ? decrypt(site.gscRefreshToken) : undefined,
     startDate: start.toISOString().split('T')[0],
     endDate: end.toISOString().split('T')[0],
     mock: process.env.MOCK_GSC === 'true'

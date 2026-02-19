@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyCronSecret } from '@/lib/cron/auth'
-import { enqueueDailyForActiveSites } from '@/lib/jobs/gscQueue'
+import { prisma } from '@/lib/db'
+import { triggerJob } from '@/lib/jobs/queue'
 
 export async function POST(req: NextRequest) {
   const unauthorized = verifyCronSecret(req)
   if (unauthorized) return unauthorized
-  const { searchParams } = new URL(req.url)
-  const days = Number(searchParams.get('days') || '30')
-  const result = await enqueueDailyForActiveSites(days)
-  return NextResponse.json(result)
+  const sites = await prisma.site.findMany({
+    where: { isActive: true, gscRefreshToken: { not: null } },
+    select: { id: true, organizationId: true },
+  })
+  let enqueued = 0
+  for (const s of sites) {
+    await triggerJob.gscSync(s.id, s.organizationId)
+    enqueued++
+  }
+  return NextResponse.json({ enqueued })
 }

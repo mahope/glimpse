@@ -1,6 +1,7 @@
 import { Worker, Job } from 'bullmq'
 import { redisConnection, GSCSyncJobData } from '../queue'
-import { syncSiteGSCData } from '@/lib/gsc/sync'
+import { fetchAndStoreGSCDaily } from '@/lib/gsc/fetch-daily'
+import { decrypt } from '@/lib/crypto'
 import { prisma } from '@/lib/db'
 
 export const gscSyncWorker = new Worker<GSCSyncJobData>(
@@ -9,45 +10,36 @@ export const gscSyncWorker = new Worker<GSCSyncJobData>(
     const { siteId, organizationId } = job.data
 
     try {
-      // Update job progress
       await job.updateProgress(10)
 
-      // Fetch site with GSC credentials
       const site = await prisma.site.findFirst({
         where: {
           id: siteId,
-          organizationId: organizationId, // Multi-tenant safety
+          organizationId,
           isActive: true,
           gscRefreshToken: { not: null },
         },
       })
 
-      if (!site) {
+      if (!site || !site.gscPropertyUrl) {
         throw new Error(`Site ${siteId} not found or GSC not connected`)
       }
 
       await job.updateProgress(25)
 
-      // Sync last 30 days of data
       const endDate = new Date()
       const startDate = new Date()
       startDate.setDate(endDate.getDate() - 30)
 
       await job.updateProgress(50)
 
-      // Perform the actual sync
-      const result = await syncSiteGSCData(site, {
+      const result = await fetchAndStoreGSCDaily({
+        siteId,
+        propertyUrl: site.gscPropertyUrl,
+        refreshToken: site.gscRefreshToken ? decrypt(site.gscRefreshToken) : undefined,
         startDate: startDate.toISOString().split('T')[0],
         endDate: endDate.toISOString().split('T')[0],
-        dimensions: ['query', 'page', 'country', 'device'],
-      })
-
-      await job.updateProgress(90)
-
-      // Update site's last sync timestamp
-      await prisma.site.update({
-        where: { id: siteId },
-        data: { updatedAt: new Date() },
+        mock: process.env.MOCK_GSC === 'true',
       })
 
       await job.updateProgress(100)
@@ -55,7 +47,8 @@ export const gscSyncWorker = new Worker<GSCSyncJobData>(
       return {
         success: true,
         siteId,
-        recordsProcessed: result.recordsProcessed,
+        records: result.records,
+        mocked: result.mocked,
         timeRange: `${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`,
       }
     } catch (error) {
@@ -65,15 +58,14 @@ export const gscSyncWorker = new Worker<GSCSyncJobData>(
   },
   {
     connection: redisConnection,
-    concurrency: 3, // Process up to 3 sites concurrently
+    concurrency: 3,
     limiter: {
-      max: 10, // Max 10 jobs per duration
-      duration: 60000, // 1 minute (respects GSC API limits)
+      max: 10,
+      duration: 60000,
     },
   }
 )
 
-// Error handling
 gscSyncWorker.on('failed', (job, error) => {
   console.error(`GSC sync job ${job?.id} failed:`, error)
 })

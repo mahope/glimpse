@@ -197,7 +197,7 @@ Filen har `'use client'` midt i filen efter en server component export. Dette er
 
 ## Kategori 3: Data Pipeline Konsolidering
 
-### 13. Konsolider GSC-sync til én pipeline
+### ~~13. Konsolider GSC-sync til én pipeline~~ DONE
 
 **Filer:** `lib/gsc/sync.ts`, `lib/gsc/gsc-service.ts`, `lib/gsc/fetch-daily.ts`, `lib/jobs/gscQueue.ts`, `lib/jobs/workers/gsc-sync-worker.ts`
 

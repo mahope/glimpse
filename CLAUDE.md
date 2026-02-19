@@ -60,15 +60,9 @@ Session carries `activeOrganizationId`. All site queries MUST filter by `organiz
 - **Server-side session**: `auth.api.getSession({ headers: await headers() })`
 - **Client-side session**: `useSession()` hook
 
-### Data Pipeline (Dual Systems - Legacy + Canonical)
+### Data Pipeline
 
-The codebase has parallel systems in several areas. The **canonical** path is what new code should use:
-
-**GSC Data:**
-| System | Table | Fed By | Used By |
-|--------|-------|--------|---------|
-| Legacy | `SearchConsoleData` | `gsc-sync` queue → `syncSiteGSCData()` | `SEOCalculator` scoring |
-| Canonical | `SearchStatDaily` | `gsc:fetch` queue → `fetchAndStoreGSCDaily()` | Overview, keywords, pages API routes |
+**GSC Data:** `gsc-sync` queue → `gsc-sync-worker` → `fetchAndStoreGSCDaily()` → `SearchStatDaily` table. Used by overview, keywords, pages API routes and `SEOCalculator` scoring. Note: some legacy UI components still read from `SearchConsoleData` (reports, site-details) — these should be migrated to `SearchStatDaily`.
 
 **PSI Performance:**
 | System | Table | Fed By | Used By |
@@ -76,11 +70,7 @@ The codebase has parallel systems in several areas. The **canonical** path is wh
 | Legacy | `PerformanceTest` | `performance-worker.ts` → `pagespeed-client.ts` | Nothing critical |
 | Canonical | `PerfSnapshot` + `SitePerfDaily` | `perf-worker.ts` → `psi-service.ts` | Perf API routes, scoring, alerts |
 
-**Scoring:**
-| System | File | Model |
-|--------|------|-------|
-| Legacy | `lib/scoring/seo-scoring.ts` | 4 components (perf/content/technical/search, 0-25 each) |
-| Canonical | `lib/scoring/calculator.ts` | 5 weighted components: click trend 25%, position trend 25%, impression trend 20%, CTR benchmark 15%, performance 15% |
+**Scoring:** `lib/scoring/calculator.ts` — 5 weighted components: click trend 25%, position trend 25%, impression trend 20%, CTR benchmark 15%, performance 15%.
 
 ### Background Jobs (BullMQ)
 
@@ -92,7 +82,6 @@ Workers run as a separate process (`npm run workers`). They no-op gracefully wit
 | `performance-test` | 04:00 daily | 2 | 5/min |
 | `site-crawl` | 05:00 Sundays | 1 | 2/5min |
 | `score-calculation` | 06:00 daily | 5 | 20/min |
-| `gsc:fetch` (legacy) | Via register-on-boot | 1 | - |
 
 Key files: `src/lib/jobs/queue.ts` (queue definitions), `src/lib/jobs/workers/` (worker instances), `src/lib/jobs/processors/` (slim processor functions), `src/lib/jobs/register.ts` (repeatable job registration).
 
@@ -163,7 +152,6 @@ Colors: Green `#0cce6b`, Orange `#ffa400`, Red `#ff4e42`
 
 ## Known Architecture Issues
 
-- **Dual GSC writes**: `SearchConsoleData` (legacy) and `SearchStatDaily` (canonical) are both populated. The overview/keywords/pages APIs only read `SearchStatDaily`. The `SEOCalculator` still reads `SearchConsoleData`.
+- **Legacy `SearchConsoleData` readers**: Some UI (reports, site-details, sites-list) still reads from `SearchConsoleData`. The sync pipeline now only writes to `SearchStatDaily`. These readers should be migrated.
 - **Dual PSI workers**: `performance-worker.ts` (legacy, writes `PerformanceTest`) and `perf-worker.ts` (canonical, writes `PerfSnapshot`+`SitePerfDaily`) are both registered.
 - **Score double-write**: `score-worker.ts` calls `SEOCalculator` which writes via `storeSEOScore()`, then the worker also upserts at target date.
-- **`/api/sites` incomplete multi-tenancy**: Falls back to "Default Organization" instead of requiring `activeOrganizationId`.

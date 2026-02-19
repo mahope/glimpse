@@ -1,6 +1,8 @@
 /**
- * GSC Data Sync Service
- * Handles synchronization between Google Search Console API and database
+ * @deprecated Use `@/lib/gsc/fetch-daily` (`fetchAndStoreGSCDaily`) instead.
+ * This legacy service writes to the SearchConsoleData table which is no longer
+ * the canonical data source. The canonical pipeline writes to SearchStatDaily.
+ * Kept only for reference; no active code imports this module.
  */
 
 import { PrismaClient } from '@prisma/client'

@@ -4,7 +4,7 @@ import { headers } from 'next/headers'
 import { prisma } from '@/lib/db'
 import { z } from 'zod'
 import { registerRepeatableJobsForSite } from '@/lib/jobs/register'
-import { createDefaultGSCDataSyncService } from '@/lib/gsc/sync'
+import { fetchAndStoreGSCDaily } from '@/lib/gsc/fetch-daily'
 import { decrypt } from '@/lib/crypto'
 
 const Body = z.object({ propertyUrl: z.string().min(1) })
@@ -33,10 +33,16 @@ export async function POST(req: NextRequest, { params }: { params: { siteId: str
   // Persist selection
   await prisma.site.update({ where: { id: site.id }, data: { gscPropertyUrl: body.data.propertyUrl, gscRefreshToken: encrypted, gscConnectedAt: new Date() } })
 
-  // Backfill last 90 days
+  // Backfill last 90 days via canonical pipeline
   try {
-    const sync = createDefaultGSCDataSyncService(prisma as any)
-    await sync.syncSiteData(site.id, { startDate: getNDaysAgo(90), endDate: getNDaysAgo(1) })
+    await fetchAndStoreGSCDaily({
+      siteId: site.id,
+      propertyUrl: body.data.propertyUrl,
+      refreshToken: parsed.refresh_token,
+      startDate: getNDaysAgo(90),
+      endDate: getNDaysAgo(1),
+      mock: process.env.MOCK_GSC === 'true',
+    })
   } catch (e) {
     console.warn('Backfill failed', e)
   }

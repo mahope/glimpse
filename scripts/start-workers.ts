@@ -24,9 +24,12 @@ import { startAllWorkers } from '../src/lib/jobs'
 
 startAllWorkers()
 
-console.log('🚀 Background workers started successfully!')
-console.log('🎯 Monitoring queues:')
-console.log('  - gsc:fetch (GSC data synchronization)')
+console.log('Background workers started successfully!')
+console.log('Monitoring queues:')
+console.log('  - gsc-sync (GSC data synchronization)')
+console.log('  - performance-test (PSI snapshots)')
+console.log('  - site-crawl (Site crawling)')
+console.log('  - score-calculation (SEO score calculation)')
 console.log('')
 console.log('📊 Redis connection:', process.env.REDIS_URL || 'not configured')
 console.log('🗄️  Database connection:', process.env.DATABASE_URL ? 'Configured' : 'Not configured')
