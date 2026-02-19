@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { AlertTriangle, AlertCircle, Lightbulb, Check, RefreshCw, Eye, EyeOff } from 'lucide-react'
+import { AlertTriangle, AlertCircle, Lightbulb, Check, RefreshCw, Eye, EyeOff, TrendingUp, Target } from 'lucide-react'
 import { toast } from '@/components/ui/toast'
 
 type Severity = 'critical' | 'important' | 'suggestion'
@@ -33,10 +33,24 @@ const categoryLabels: Record<Category, string> = {
   technical: 'Teknisk',
 }
 
+interface KeywordOpportunity {
+  keyword: string
+  position: number
+  impressions: number
+  clicks: number
+  currentCtr: number
+  expectedCtr: number
+  improvedPosition: number
+  improvedCtr: number
+  potentialExtraClicks: number
+}
+
 export function RecommendationsClient({ siteId, siteName }: { siteId: string; siteName: string }) {
   const [recs, setRecs] = useState<Recommendation[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [opportunities, setOpportunities] = useState<KeywordOpportunity[]>([])
+  const [oppsLoading, setOppsLoading] = useState(true)
   const [dismissed, setDismissed] = useState<Set<string>>(() => {
     try {
       const stored = localStorage.getItem(`recs-dismissed-${siteId}`)
@@ -64,7 +78,21 @@ export function RecommendationsClient({ siteId, siteName }: { siteId: string; si
     }
   }, [siteId])
 
-  useEffect(() => { fetchRecs() }, [fetchRecs])
+  const fetchOpportunities = useCallback(async () => {
+    setOppsLoading(true)
+    try {
+      const res = await fetch(`/api/sites/${siteId}/recommendations/opportunities`)
+      if (!res.ok) throw new Error()
+      const d = await res.json()
+      setOpportunities(d.opportunities)
+    } catch {
+      setOpportunities([])
+    } finally {
+      setOppsLoading(false)
+    }
+  }, [siteId])
+
+  useEffect(() => { fetchRecs(); fetchOpportunities() }, [fetchRecs, fetchOpportunities])
 
   const dismiss = useCallback((id: string) => {
     setDismissed(prev => {
@@ -245,6 +273,67 @@ export function RecommendationsClient({ siteId, siteName }: { siteId: string; si
                   </div>
                 )
               })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Keyword Opportunities ("Low-hanging fruit") */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Target className="h-4 w-4 text-emerald-600" />
+            <CardTitle className="text-base">Lavthængende frugt</CardTitle>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Keywords med høje visninger men lav CTR i position 4-20. Forbedring af positionen kan give betydelige ekstra klik.
+          </p>
+        </CardHeader>
+        <CardContent>
+          {oppsLoading ? (
+            <div className="space-y-2">
+              {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12 rounded" />)}
+            </div>
+          ) : opportunities.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Ingen keyword-muligheder fundet i de seneste 30 dage.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-muted-foreground">
+                    <th className="pb-2 font-medium">Keyword</th>
+                    <th className="pb-2 font-medium text-right">Position</th>
+                    <th className="pb-2 font-medium text-right">Visninger</th>
+                    <th className="pb-2 font-medium text-right">CTR</th>
+                    <th className="pb-2 font-medium text-right">Forventet CTR</th>
+                    <th className="pb-2 font-medium text-right">Mål-position</th>
+                    <th className="pb-2 font-medium text-right">Mål-CTR</th>
+                    <th className="pb-2 font-medium text-right">
+                      <span className="flex items-center justify-end gap-1">
+                        <TrendingUp className="h-3 w-3" />
+                        Potentielle klik
+                      </span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {opportunities.map(opp => (
+                    <tr key={opp.keyword} className="border-b last:border-0">
+                      <td className="py-2 font-medium max-w-[200px] truncate" title={opp.keyword}>{opp.keyword}</td>
+                      <td className="py-2 text-right font-mono">{opp.position}</td>
+                      <td className="py-2 text-right">{opp.impressions.toLocaleString('da-DK')}</td>
+                      <td className="py-2 text-right text-red-600 dark:text-red-400">{opp.currentCtr}%</td>
+                      <td className="py-2 text-right text-muted-foreground">{opp.expectedCtr}%</td>
+                      <td className="py-2 text-right font-mono text-emerald-600 dark:text-emerald-400">{opp.improvedPosition}</td>
+                      <td className="py-2 text-right text-emerald-600 dark:text-emerald-400">{opp.improvedCtr}%</td>
+                      <td className="py-2 text-right font-semibold text-emerald-600 dark:text-emerald-400">+{opp.potentialExtraClicks.toLocaleString('da-DK')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="text-[10px] text-muted-foreground mt-3">
+                Estimat baseret på branchens gennemsnitlige CTR per position. Faktiske resultater kan variere.
+              </p>
             </div>
           )}
         </CardContent>

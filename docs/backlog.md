@@ -1167,7 +1167,7 @@ Recommendation-engineen eksisterer men har ingen dedikeret side. Anbefalinger b√
 
 ---
 
-### 22. Keyword opportunity finder ("Low-hanging fruit")
+### ~~22. Keyword opportunity finder ("Low-hanging fruit")~~ DONE
 
 **Filer:** Ny analyse i `src/lib/recommendations/`, ny UI-sektion
 

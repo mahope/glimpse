@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { SiteNav } from '@/components/site/site-nav'
 import { RecommendationsPanel } from '@/components/dashboard/recommendations-panel'
+import { OpportunitiesWidget } from '@/components/dashboard/opportunities-widget'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TrendingUp, TrendingDown } from 'lucide-react'
 import { DateRangePicker, dateRangeFromSearchParams, dateRangeToSearchParams, dateRangeToParams, type DateRangeValue } from '@/components/ui/date-range-picker'
@@ -278,7 +279,10 @@ export default function OverviewPage() {
             </CardContent>
           </Card>
 
-          <RecommendationsPanel siteId={params.siteId} />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <RecommendationsPanel siteId={params.siteId} />
+            <OpportunitiesWidget siteId={params.siteId} />
+          </div>
         </>
       )}
     </div>
