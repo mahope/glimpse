@@ -21,7 +21,7 @@
 
 ---
 
-### 2. Aktiver multi-tenancy på /api/sites
+### ~~2. Aktiver multi-tenancy på /api/sites~~ DONE
 
 **Fil:** `src/app/api/sites/route.ts` (linje 22 og 70)
 

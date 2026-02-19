@@ -15,23 +15,19 @@ export async function GET(request: NextRequest) {
       headers: Object.fromEntries(request.headers.entries()),
     })
 
-    if (!session) {
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // TODO: Implement organization support
-    // const organizationId = (session.session as any).activeOrganizationId
-    // if (!organizationId) {
-    //   return NextResponse.json({ error: "No active organization" }, { status: 400 })
-    // }
-
-    // For now, use user ID until organizations are properly implemented
-    const userId = session.user.id
+    const organizationId = session.session.activeOrganizationId
+    if (!organizationId) {
+      return NextResponse.json({ error: "No active organization" }, { status: 400 })
+    }
 
     const sites = await prisma.site.findMany({
       where: {
-        // organizationId,
-        // isActive: true,
+        organizationId,
+        isActive: true,
       },
       select: {
         id: true,
@@ -63,49 +59,38 @@ export async function POST(request: NextRequest) {
       headers: Object.fromEntries(request.headers.entries()),
     })
 
-    if (!session) {
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // TODO: Implement organization support  
-    // const organizationId = (session.session as any).activeOrganizationId
-    // if (!organizationId) {
-    //   return NextResponse.json({ error: "No active organization" }, { status: 400 })
-    // }
+    const organizationId = session.session.activeOrganizationId
+    if (!organizationId) {
+      return NextResponse.json({ error: "No active organization" }, { status: 400 })
+    }
 
     const body = await request.json()
     const validatedData = createSiteSchema.parse(body)
 
-    // For now, check if site exists globally until organizations are implemented
     const existingSite = await prisma.site.findFirst({
       where: {
         domain: validatedData.domain,
+        organizationId,
       },
     })
 
     if (existingSite) {
       return NextResponse.json(
-        { error: "Site already exists" },
+        { error: "Site already exists in this organization" },
         { status: 409 }
       )
     }
-
-    // Create a default organization for now
-    const defaultOrg = await prisma.organization.findFirst({
-      where: { name: "Default Organization" }
-    }) || await prisma.organization.create({
-      data: { 
-        name: "Default Organization",
-        slug: "default-org"
-      }
-    })
 
     const site = await prisma.site.create({
       data: {
         name: validatedData.name,
         domain: validatedData.domain,
         url: validatedData.url,
-        organizationId: defaultOrg.id,
+        organizationId,
       },
       select: {
         id: true,
