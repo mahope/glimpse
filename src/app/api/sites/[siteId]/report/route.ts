@@ -1,16 +1,25 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { auth } from '@/lib/auth'
+import { headers } from 'next/headers'
 import { renderReportPDF } from '@/lib/reports/pdf-generator'
 import { endOfDay, startOfDay, subDays, format } from 'date-fns'
 
 export async function GET(req: NextRequest, { params }: { params: { siteId: string } }) {
+  const session = await auth.api.getSession({ headers: await headers() })
+  if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const organizationId = session.session.activeOrganizationId
+  if (!organizationId) return NextResponse.json({ error: 'No active organization' }, { status: 400 })
+
+  try {
   const siteId = params.siteId
   const to = endOfDay(new Date())
   const from = startOfDay(subDays(to, 30))
   const periodLabel = `${format(from, 'MMM d, yyyy')} - ${format(to, 'MMM d, yyyy')}`
 
-  const site = await prisma.site.findUnique({
-    where: { id: siteId },
+  const site = await prisma.site.findFirst({
+    where: { id: siteId, organizationId },
     include: {
       organization: true,
       seoScores: { where: { date: { gte: from, lte: to } }, orderBy: { date: 'desc' }, take: 1 },
@@ -19,7 +28,7 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
       crawlResults: { orderBy: { crawlDate: 'desc' }, take: 1 },
     }
   })
-  if (!site) return new Response('Not found', { status: 404 })
+  if (!site) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const score = site.seoScores[0]?.score ?? undefined
   const perf = site.performanceTests[0]
@@ -89,7 +98,7 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
       speedIndex: perf.speedIndex ?? undefined,
     } : undefined,
     topKeywords,
-    issues: site.crawlResults[0]?.issues as any[] | undefined,
+    issues: Array.isArray(site.crawlResults[0]?.issues) ? site.crawlResults[0].issues as any[] : undefined,
     trends,
   }
 
@@ -100,4 +109,8 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
       'Content-Disposition': `inline; filename="${site.domain}-latest.pdf"`
     }
   })
+  } catch (err) {
+    console.error('report route error', err)
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
+  }
 }
