@@ -12,58 +12,50 @@ const RuleSchema = z.object({
   recipients: z.array(z.string().email()).default([]),
 })
 
-export async function GET(request: NextRequest, { params }: { params: { siteId: string } }) {
+async function verifySiteAccess(request: NextRequest, siteId: string) {
   const session = await auth.api.getSession({ headers: Object.fromEntries(request.headers.entries()) })
-  if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const site = await prisma.site.findUnique({
-    where: { id: params.siteId },
-    include: { organization: { include: { members: { where: { userId: session.user.id } } } } },
-  })
-  if (!site) return NextResponse.json({ error: 'Site not found' }, { status: 404 })
-  const isAdmin = (session.user as any).role === 'ADMIN'
-  const hasOrgAccess = site.organization.members.length > 0
-  if (!isAdmin && !hasOrgAccess) return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+  if (!session?.user) return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
 
-  const rules = await prisma.alertRule.findMany({ where: { siteId: site.id }, orderBy: { createdAt: 'desc' } })
+  const organizationId = session.session.activeOrganizationId
+  if (!organizationId) return { error: NextResponse.json({ error: 'No active organization' }, { status: 403 }) }
+
+  const site = await prisma.site.findFirst({
+    where: { id: siteId, organizationId, isActive: true },
+    select: { id: true },
+  })
+  if (!site) return { error: NextResponse.json({ error: 'Site not found' }, { status: 404 }) }
+
+  return { site, session }
+}
+
+export async function GET(request: NextRequest, { params }: { params: { siteId: string } }) {
+  const access = await verifySiteAccess(request, params.siteId)
+  if ('error' in access) return access.error
+
+  const rules = await prisma.alertRule.findMany({ where: { siteId: access.site.id }, orderBy: { createdAt: 'desc' } })
   return NextResponse.json({ items: rules })
 }
 
 export async function POST(request: NextRequest, { params }: { params: { siteId: string } }) {
-  const session = await auth.api.getSession({ headers: Object.fromEntries(request.headers.entries()) })
-  if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const site = await prisma.site.findUnique({
-    where: { id: params.siteId },
-    include: { organization: { include: { members: { where: { userId: session.user.id } } } } },
-  })
-  if (!site) return NextResponse.json({ error: 'Site not found' }, { status: 404 })
-  const isAdmin = (session.user as any).role === 'ADMIN'
-  const hasOrgAccess = site.organization.members.length > 0
-  if (!isAdmin && !hasOrgAccess) return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+  const access = await verifySiteAccess(request, params.siteId)
+  if ('error' in access) return access.error
 
   const raw = await request.json().catch(() => ({}))
   const data = RuleSchema.parse(raw)
 
-  const created = await prisma.alertRule.create({ data: { ...data, siteId: site.id } })
+  const created = await prisma.alertRule.create({ data: { ...data, siteId: access.site.id } })
   return NextResponse.json({ item: created }, { status: 201 })
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: { siteId: string } }) {
-  const session = await auth.api.getSession({ headers: Object.fromEntries(request.headers.entries()) })
-  if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const site = await prisma.site.findUnique({
-    where: { id: params.siteId },
-    include: { organization: { include: { members: { where: { userId: session.user.id } } } } },
-  })
-  if (!site) return NextResponse.json({ error: 'Site not found' }, { status: 404 })
-  const isAdmin = (session.user as any).role === 'ADMIN'
-  const hasOrgAccess = site.organization.members.length > 0
-  if (!isAdmin && !hasOrgAccess) return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+  const access = await verifySiteAccess(request, params.siteId)
+  if ('error' in access) return access.error
 
   const raw = await request.json().catch(() => ({}))
   const updateSchema = RuleSchema.partial().extend({ id: z.string().min(1) })
   const data = updateSchema.parse(raw)
 
-  const existing = await prisma.alertRule.findFirst({ where: { id: data.id, siteId: site.id } })
+  const existing = await prisma.alertRule.findFirst({ where: { id: data.id, siteId: access.site.id } })
   if (!existing) return NextResponse.json({ error: 'Rule not found' }, { status: 404 })
 
   const { id, ...patch } = data as any
@@ -72,22 +64,14 @@ export async function PATCH(request: NextRequest, { params }: { params: { siteId
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: { siteId: string } }) {
-  const session = await auth.api.getSession({ headers: Object.fromEntries(request.headers.entries()) })
-  if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const site = await prisma.site.findUnique({
-    where: { id: params.siteId },
-    include: { organization: { include: { members: { where: { userId: session.user.id } } } } },
-  })
-  if (!site) return NextResponse.json({ error: 'Site not found' }, { status: 404 })
-  const isAdmin = (session.user as any).role === 'ADMIN'
-  const hasOrgAccess = site.organization.members.length > 0
-  if (!isAdmin && !hasOrgAccess) return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+  const access = await verifySiteAccess(request, params.siteId)
+  if ('error' in access) return access.error
 
   const { searchParams } = new URL(request.url)
   const id = searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
 
-  const existing = await prisma.alertRule.findFirst({ where: { id, siteId: site.id } })
+  const existing = await prisma.alertRule.findFirst({ where: { id, siteId: access.site.id } })
   if (!existing) return NextResponse.json({ error: 'Rule not found' }, { status: 404 })
 
   await prisma.alertRule.delete({ where: { id } })

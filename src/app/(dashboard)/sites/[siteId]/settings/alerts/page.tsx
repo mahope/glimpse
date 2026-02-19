@@ -1,10 +1,28 @@
+import { auth } from '@/lib/auth'
+import { headers } from 'next/headers'
 import { prisma } from '@/lib/db'
-import { notFound } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { RulesClient } from './RulesClient'
 import { SiteNav } from '@/components/site/site-nav'
 
 export default async function SiteAlertSettings({ params }: { params: { siteId: string } }) {
-  const site = await prisma.site.findUnique({ where: { id: params.siteId } })
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  })
+
+  if (!session?.user) {
+    redirect('/auth/sign-in')
+  }
+
+  const organizationId = session.session.activeOrganizationId
+  if (!organizationId) {
+    redirect('/dashboard')
+  }
+
+  const site = await prisma.site.findFirst({
+    where: { id: params.siteId, organizationId, isActive: true },
+    select: { id: true },
+  })
   if (!site) return notFound()
 
   return (

@@ -6,7 +6,7 @@ vi.mock('@/lib/db', () => {
   const site = { id: 'site1', organizationId: 'org1', organization: { members: [{ userId: 'user1' }] } }
   return {
     prisma: {
-      site: { findUnique: vi.fn(async ({ where }: any) => where.id === 'site1' ? site : null) },
+      site: { findFirst: vi.fn(async ({ where }: any) => where.id === 'site1' && where.organizationId === 'org1' ? site : null) },
       alertRule: {
         findMany: vi.fn(async ({ where }: any) => rules.filter(r => r.siteId === where.siteId)),
         create: vi.fn(async ({ data }: any) => { const r = { id: 'r'+(rules.length+1), createdAt: new Date(), updatedAt: new Date(), ...data }; rules.unshift(r); return r }),

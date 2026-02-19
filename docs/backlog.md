@@ -845,17 +845,17 @@ Ingen metrics indsamles. Umuligt at vide om systemet er sundt uden at grave i lo
 
 ## Kategori 1: Sikkerhed & Stabilitet
 
-### 1. Fix multi-tenancy-brud i alerts-sider
+### 1. ~~Fix multi-tenancy-brud i alerts-sider~~ DONE 2026-02-19
 
 **Fil:** `src/app/(dashboard)/sites/[siteId]/alerts/page.tsx`
 
 `alerts/page.tsx` bruger `prisma.site.findUnique({ where: { id: params.siteId } })` uden at checke `organizationId`. Enhver autentificeret bruger der kender et `siteId` kan se andre kunders alert-events.
 
 **Krav:**
-- Erstat `findUnique` med `findFirst` der inkluderer `organizationId` fra session
-- Returner 404 hvis sitet ikke tilhører brugerens aktive organisation
-- Audit alle andre sider under `sites/[siteId]/` for samme mønster
-- Tilføj test der verificerer at cross-org access afvises
+- ~~Erstat `findUnique` med `findFirst` der inkluderer `organizationId` fra session~~
+- ~~Returner 404 hvis sitet ikke tilhører brugerens aktive organisation~~
+- ~~Audit alle andre sider under `sites/[siteId]/` for samme mønster~~
+- ~~Tilføj test der verificerer at cross-org access afvises~~
 
 ---
 
