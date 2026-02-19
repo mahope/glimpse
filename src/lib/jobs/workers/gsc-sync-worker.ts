@@ -4,6 +4,7 @@ import { fetchAndStoreGSCDaily } from '@/lib/gsc/fetch-daily'
 import { decrypt } from '@/lib/crypto'
 import { prisma } from '@/lib/db'
 import { jobLogger } from '@/lib/logger'
+import { moveToDeadLetter } from '../dead-letter'
 
 export const gscSyncWorker = new Worker<GSCSyncJobData>(
   'gsc-sync',
@@ -68,9 +69,10 @@ export const gscSyncWorker = new Worker<GSCSyncJobData>(
   }
 )
 
-gscSyncWorker.on('failed', (job, error) => {
+gscSyncWorker.on('failed', async (job, error) => {
   const log = jobLogger('gsc-sync', job?.id)
   log.error({ err: error }, 'GSC sync job failed')
+  await moveToDeadLetter(job, error)
 })
 
 gscSyncWorker.on('completed', (job, result) => {

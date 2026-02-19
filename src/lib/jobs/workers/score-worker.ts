@@ -3,6 +3,7 @@ import { redisConnection, ScoreCalculationJobData } from '../queue'
 import { SEOCalculator } from '@/lib/scoring/calculator'
 import { prisma } from '@/lib/db'
 import { jobLogger } from '@/lib/logger'
+import { moveToDeadLetter } from '../dead-letter'
 
 export const scoreWorker = new Worker<ScoreCalculationJobData>(
   'score-calculation',
@@ -74,9 +75,10 @@ export const scoreWorker = new Worker<ScoreCalculationJobData>(
   }
 )
 
-scoreWorker.on('failed', (job, error) => {
+scoreWorker.on('failed', async (job, error) => {
   const log = jobLogger('score-calculation', job?.id)
   log.error({ err: error }, 'Score calculation job failed')
+  await moveToDeadLetter(job, error)
 })
 
 scoreWorker.on('completed', (job, result) => {

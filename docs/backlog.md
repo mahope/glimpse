@@ -266,7 +266,7 @@ Al logging bruger `console.log/error/warn`. Ingen request IDs, ingen korrelation
 
 ---
 
-### 17. Tilføj BullMQ dead letter queue og job-fejl-alerting
+### ~~17. Tilføj BullMQ dead letter queue og job-fejl-alerting~~ DONE
 
 **Filer:** `lib/jobs/queue.ts`, ny alert-integration
 

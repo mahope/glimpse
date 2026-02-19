@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
 import { gscSyncQueue, performanceQueue, crawlQueue, scoreQueue } from '@/lib/jobs/queue'
+import { getDLQStats } from '@/lib/jobs/dead-letter'
 import { apiLogger } from '@/lib/logger'
 
 const log = apiLogger('/api/jobs/status')
@@ -29,8 +30,11 @@ export async function GET(request: NextRequest) {
       getQueueStats(scoreQueue, 'Score Calculations'),
     ])
 
+    const dlq = await getDLQStats()
+
     return NextResponse.json({
       queues: [gscStats, performanceStats, crawlStats, scoreStats],
+      deadLetter: dlq,
       timestamp: new Date().toISOString(),
     })
   } catch (error) {

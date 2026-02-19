@@ -3,6 +3,7 @@ import { redisConnection, SiteCrawlJobData } from '../queue'
 import { prisma } from '@/lib/db'
 import { WebCrawler, categorizeIssues } from '@/lib/crawler/crawler'
 import { jobLogger } from '@/lib/logger'
+import { moveToDeadLetter } from '../dead-letter'
 
 export const crawlWorker = new Worker<SiteCrawlJobData>(
   'site-crawl',
@@ -127,9 +128,10 @@ export const crawlWorker = new Worker<SiteCrawlJobData>(
 )
 
 // Error handling
-crawlWorker.on('failed', (job, error) => {
+crawlWorker.on('failed', async (job, error) => {
   const log = jobLogger('site-crawl', job?.id)
   log.error({ err: error }, 'Site crawl job failed')
+  await moveToDeadLetter(job, error)
 })
 
 crawlWorker.on('completed', (job, result) => {

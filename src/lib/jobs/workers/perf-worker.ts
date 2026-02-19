@@ -3,6 +3,7 @@ import { redisConnection, PerformanceTestJobData } from '../queue'
 import { prisma } from '@/lib/db'
 import { runPsi, saveSnapshot, upsertDaily } from '@/lib/perf/psi-service'
 import { jobLogger } from '@/lib/logger'
+import { moveToDeadLetter } from '../dead-letter'
 
 export const perfWorker = new Worker<PerformanceTestJobData>(
   'performance-test',
@@ -37,9 +38,10 @@ export const perfWorker = new Worker<PerformanceTestJobData>(
   }
 )
 
-perfWorker.on('failed', (job, err) => {
+perfWorker.on('failed', async (job, err) => {
   const log = jobLogger('performance-test', job?.id)
   log.error({ err }, 'Performance test job failed')
+  await moveToDeadLetter(job, err)
 })
 
 perfWorker.on('completed', (job, result) => {
