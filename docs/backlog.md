@@ -332,7 +332,7 @@ PSI API-kvoten er 200 kald/dag. Tælleren er in-process (`dailyCount`, `dayStamp
 
 ## Kategori 5: Performance Optimering
 
-### 21. Reducer PerfSnapshot.raw bloat
+### ~~21. Reducer PerfSnapshot.raw bloat~~ DONE
 
 **Fil:** `lib/perf/psi-service.ts`, Prisma schema
 

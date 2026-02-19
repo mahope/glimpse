@@ -120,6 +120,55 @@ export function summarizeCWV(metrics: { lcpMs?: number; inpMs?: number; cls?: nu
   }
 }
 
+/**
+ * Strip PSI response to ~5-10KB instead of 200-500KB.
+ * Keeps: scores, metrics, CrUX field data, and audit summaries.
+ * Drops: full DOM snapshots, screenshot data, network requests, etc.
+ */
+function stripPsiResponse(data: any): any {
+  if (!data) return null
+  const lh = data.lighthouseResult
+  const audits = lh?.audits || {}
+  const keepAuditKeys = [
+    'largest-contentful-paint', 'interaction-to-next-paint',
+    'cumulative-layout-shift', 'server-response-time',
+    'first-contentful-paint', 'speed-index', 'total-blocking-time',
+  ]
+  const slimAudits: Record<string, any> = {}
+  for (const key of keepAuditKeys) {
+    if (audits[key]) {
+      slimAudits[key] = {
+        id: audits[key].id,
+        title: audits[key].title,
+        score: audits[key].score,
+        numericValue: audits[key].numericValue,
+        displayValue: audits[key].displayValue,
+      }
+    }
+  }
+  return {
+    id: data.id,
+    analysisUTCTimestamp: data.analysisUTCTimestamp,
+    lighthouseResult: {
+      lighthouseVersion: lh?.lighthouseVersion,
+      fetchTime: lh?.fetchTime,
+      requestedUrl: lh?.requestedUrl,
+      finalUrl: lh?.finalUrl,
+      categories: lh?.categories ? {
+        performance: {
+          score: lh.categories.performance?.score,
+          title: lh.categories.performance?.title,
+        },
+      } : undefined,
+      audits: slimAudits,
+    },
+    loadingExperience: data.loadingExperience ? {
+      metrics: data.loadingExperience.metrics,
+      overall_category: data.loadingExperience.overall_category,
+    } : undefined,
+  }
+}
+
 export async function runPsi(url: string, strategy: Strategy): Promise<PsiMetrics> {
   await checkDailyLimit()
   const params = new URLSearchParams({
@@ -166,7 +215,7 @@ export async function runPsi(url: string, strategy: Strategy): Promise<PsiMetric
     cls,
     ttfbMs,
     field,
-    raw: data,
+    raw: stripPsiResponse(data),
   }
 }
 
