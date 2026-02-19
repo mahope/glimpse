@@ -11,7 +11,8 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
   if (!organizationId) return NextResponse.json({ error: 'No active organization' }, { status: 400 })
 
   const { searchParams } = new URL(req.url)
-  const { days, from, to, page, pageSize, device, country, sortField, sortDir } = parseParams(searchParams)
+  const { days, from, to, page, pageSize, device, country, sortField, sortDir, search } = parseParams(searchParams)
+  const pathPrefix = searchParams.get('pathPrefix') || ''
 
   const site = await prisma.site.findFirst({ where: { id: params.siteId, organizationId } })
   if (!site) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -25,17 +26,61 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
   const countryFilter = country === 'ALL' ? '' : country
 
   // Build WHERE clause fragments (use actual DB column names from @map)
-  const baseWhere = [
-    `"site_id" = $1`,
-    `"date" >= $2`,
-    `"date" <= $3`,
-    ...(deviceFilter ? [`"device" = $4`] : []),
-    ...(countryFilter ? [`"country" = ${deviceFilter ? '$5' : '$4'}`] : []),
-  ].join(' AND ')
-
+  const whereParts: string[] = [`"site_id" = $1`, `"date" >= $2`, `"date" <= $3`]
   const baseParams: (string | Date)[] = [site.id, start, end]
-  if (deviceFilter) baseParams.push(deviceFilter)
-  if (countryFilter) baseParams.push(countryFilter)
+
+  if (deviceFilter) {
+    baseParams.push(deviceFilter)
+    whereParts.push(`"device" = $${baseParams.length}`)
+  }
+  if (countryFilter) {
+    baseParams.push(countryFilter)
+    whereParts.push(`"country" = $${baseParams.length}`)
+  }
+  if (search) {
+    baseParams.push(`%${search}%`)
+    whereParts.push(`"page_url" ILIKE $${baseParams.length}`)
+  }
+  if (pathPrefix) {
+    // Match URLs whose path starts with the prefix (e.g. /blog/ matches https://example.com/blog/*)
+    const escaped = pathPrefix.replace(/[%_\\]/g, '\\$&')
+    baseParams.push(escaped + '%')
+    whereParts.push(`substring("page_url" from '^https?://[^/]+(/.*)$') LIKE $${baseParams.length} ESCAPE '\\'`)
+  }
+
+  const baseWhere = whereParts.join(' AND ')
+  const groupByPath = searchParams.get('groupBy') === 'path'
+
+  // Server-side path grouping: aggregate by first URL path segment
+  if (groupByPath) {
+    const groupRows = await prisma.$queryRawUnsafe<Array<{
+      path: string
+      page_count: bigint
+      total_clicks: bigint
+      total_impressions: bigint
+      avg_position: number
+    }>>(
+      `SELECT
+         COALESCE('/' || split_part(substring("page_url" from '^https?://[^/]+/([^/?#]+)'), '/', 1) || '/', '/') as path,
+         COUNT(DISTINCT "page_url") as page_count,
+         SUM("clicks") as total_clicks,
+         SUM("impressions") as total_impressions,
+         AVG("position")::float8 as avg_position
+       FROM "search_stat_daily"
+       WHERE ${baseWhere}
+       GROUP BY 1
+       ORDER BY total_clicks DESC`,
+      ...baseParams,
+    )
+    const groups = groupRows.map(r => ({
+      path: r.path,
+      pageCount: Number(r.page_count),
+      totalClicks: Number(r.total_clicks),
+      totalImpressions: Number(r.total_impressions),
+      avgPosition: Number(r.avg_position) || 0,
+    }))
+    return NextResponse.json({ groups })
+  }
 
   // Total count via COUNT(DISTINCT page_url)
   const countResult = await prisma.$queryRawUnsafe<[{ count: bigint }]>(

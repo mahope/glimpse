@@ -1061,7 +1061,7 @@ Alle sider bruger faste "7d / 30d / 90d"-knapper. Brugere kan ikke vælge en cus
 
 ---
 
-### 15. Pages-side filtrering og URL-gruppering
+### ~~15. Pages-side filtrering og URL-gruppering~~ DONE
 
 **Fil:** `src/app/(dashboard)/sites/[siteId]/pages/pages-client.tsx`
 

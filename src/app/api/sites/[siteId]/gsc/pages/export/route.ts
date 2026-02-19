@@ -12,29 +12,42 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
   if (!organizationId) return NextResponse.json({ error: 'No active organization' }, { status: 400 })
 
   const { searchParams } = new URL(req.url)
-  const { days, device, country, sortField, sortDir } = parseParams(searchParams)
+  const { days, from, to, device, country, sortField, sortDir, search } = parseParams(searchParams)
+  const pathPrefix = searchParams.get('pathPrefix') || ''
 
   const site = await prisma.site.findFirst({ where: { id: params.siteId, organizationId } })
   if (!site) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const end = new Date(); const start = new Date(); start.setDate(end.getDate() - days)
+  const end = from && to ? new Date(to + 'T23:59:59') : new Date()
+  const start = from && to ? new Date(from + 'T00:00:00') : (() => { const d = new Date(); d.setDate(d.getDate() - days); return d })()
   const prevEnd = new Date(start); prevEnd.setDate(prevEnd.getDate() - 1)
   const prevStart = new Date(prevEnd); prevStart.setDate(prevStart.getDate() - days + 1)
 
   const deviceFilter = device === 'all' ? '' : device
   const countryFilter = country === 'ALL' ? '' : country
 
-  const baseWhere = [
-    `"site_id" = $1`,
-    `"date" >= $2`,
-    `"date" <= $3`,
-    ...(deviceFilter ? [`"device" = $4`] : []),
-    ...(countryFilter ? [`"country" = ${deviceFilter ? '$5' : '$4'}`] : []),
-  ].join(' AND ')
-
+  const whereParts: string[] = [`"site_id" = $1`, `"date" >= $2`, `"date" <= $3`]
   const baseParams: (string | Date)[] = [site.id, start, end]
-  if (deviceFilter) baseParams.push(deviceFilter)
-  if (countryFilter) baseParams.push(countryFilter)
+
+  if (deviceFilter) {
+    baseParams.push(deviceFilter)
+    whereParts.push(`"device" = $${baseParams.length}`)
+  }
+  if (countryFilter) {
+    baseParams.push(countryFilter)
+    whereParts.push(`"country" = $${baseParams.length}`)
+  }
+  if (search) {
+    baseParams.push(`%${search}%`)
+    whereParts.push(`"page_url" ILIKE $${baseParams.length}`)
+  }
+  if (pathPrefix) {
+    const escaped = pathPrefix.replace(/[%_\\]/g, '\\$&')
+    baseParams.push(escaped + '%')
+    whereParts.push(`substring("page_url" from '^https?://[^/]+(/.*)$') LIKE $${baseParams.length} ESCAPE '\\'`)
+  }
+
+  const baseWhere = whereParts.join(' AND ')
 
   const orderByMap: Record<string, string> = {
     clicks: 'SUM("clicks")',
