@@ -874,16 +874,16 @@ Nogle steder læser stadig fra de legacy-tabeller (`SearchConsoleData`, `Perform
 
 ---
 
-### 3. Erstat browser `alert()` med toast-notifikationer
+### 3. ~~Erstat browser `alert()` med toast-notifikationer~~ DONE 2026-02-19
 
 **Filer:** `src/app/(dashboard)/settings/team/team-client.tsx`, `src/app/(dashboard)/sites/[siteId]/reports/reports-client.tsx` m.fl.
 
 Mindst 6 steder i UI-klienter bruger browser `alert()` til fejlhåndtering i stedet for `@/components/ui/toast` som bruges korrekt andre steder. Giver en inkonsistent og uprofessionel brugeroplevelse.
 
 **Krav:**
-- Søg efter alle `alert(` calls i `src/app/` og `src/components/`
-- Erstat med `toast('error', besked)` eller `toast('success', besked)`
-- Sikr at toast-provider er mounted i layout
+- ~~Søg efter alle `alert(` calls i `src/app/` og `src/components/`~~
+- ~~Erstat med `toast('error', besked)` eller `toast('success', besked)`~~
+- ~~Sikr at toast-provider er mounted i layout~~ (allerede i layout.tsx)
 
 ---
 

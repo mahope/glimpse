@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { FileText, Download, Trash2, Loader2, Calendar } from 'lucide-react'
+import { toast } from '@/components/ui/toast'
 
 interface ReportItem {
   id: string
@@ -64,7 +65,7 @@ export function ReportsClient({
       if (!res.ok) throw new Error()
       fetchReports()
     } catch {
-      alert('Kunne ikke generere rapport')
+      toast('error', 'Kunne ikke generere rapport')
     } finally {
       setGenerating(false)
     }
@@ -77,7 +78,7 @@ export function ReportsClient({
       if (!res.ok) throw new Error()
       setReports(prev => prev.filter(r => r.id !== reportId))
     } catch {
-      alert('Kunne ikke slette rapport')
+      toast('error', 'Kunne ikke slette rapport')
     }
   }
 
@@ -92,7 +93,7 @@ export function ReportsClient({
       if (!res.ok) throw new Error()
       setSchedule(newSchedule)
     } catch {
-      alert('Kunne ikke opdatere schedule')
+      toast('error', 'Kunne ikke opdatere schedule')
     } finally {
       setSavingSchedule(false)
     }

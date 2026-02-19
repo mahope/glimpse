@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { UserPlus, Trash2, Mail, Shield, User, Crown } from 'lucide-react'
+import { toast } from '@/components/ui/toast'
 
 interface MemberItem {
   id: string
@@ -83,13 +84,13 @@ export function TeamClient({
       })
       if (!res.ok) {
         const data = await res.json()
-        alert(data.error || 'Kunne ikke sende invitation')
+        toast('error', data.error || 'Kunne ikke sende invitation')
         return
       }
       setInviteEmail('')
       fetchData()
     } catch {
-      alert('Noget gik galt')
+      toast('error', 'Noget gik galt')
     } finally {
       setInviting(false)
     }
@@ -104,12 +105,12 @@ export function TeamClient({
       })
       if (!res.ok) {
         const data = await res.json()
-        alert(data.error || 'Kunne ikke ændre rolle')
+        toast('error', data.error || 'Kunne ikke ændre rolle')
         return
       }
       fetchData()
     } catch {
-      alert('Noget gik galt')
+      toast('error', 'Noget gik galt')
     }
   }
 
@@ -119,12 +120,12 @@ export function TeamClient({
       const res = await fetch(`/api/organizations/members?memberId=${memberId}`, { method: 'DELETE' })
       if (!res.ok) {
         const data = await res.json()
-        alert(data.error || 'Kunne ikke fjerne medlem')
+        toast('error', data.error || 'Kunne ikke fjerne medlem')
         return
       }
       fetchData()
     } catch {
-      alert('Noget gik galt')
+      toast('error', 'Noget gik galt')
     }
   }
 
@@ -133,12 +134,12 @@ export function TeamClient({
       const res = await fetch(`/api/organizations/invitations?invitationId=${invitationId}`, { method: 'DELETE' })
       if (!res.ok) {
         const data = await res.json()
-        alert(data.error || 'Kunne ikke annullere invitation')
+        toast('error', data.error || 'Kunne ikke annullere invitation')
         return
       }
       fetchData()
     } catch {
-      alert('Noget gik galt')
+      toast('error', 'Noget gik galt')
     }
   }
 
