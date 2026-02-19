@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
-import { CrawlerService } from "@/lib/crawler/crawler-service"
+import { triggerJob } from "@/lib/jobs/queue"
 import { rateLimitOrNull } from "@/lib/rate-limit"
 
 export async function POST(
@@ -49,34 +49,14 @@ export async function POST(
       return NextResponse.json({ error: "Access denied" }, { status: 403 })
     }
 
-    // Check if a crawl is already running
-    const recentCrawl = await prisma.crawlResult.findFirst({
-      where: {
-        siteId,
-        crawlDate: {
-          gte: new Date(Date.now() - 10 * 60 * 1000) // Last 10 minutes
-        }
-      },
-      orderBy: { crawlDate: 'desc' }
-    })
-
-    if (recentCrawl) {
-      return NextResponse.json(
-        { error: "Crawl already running or completed recently" },
-        { status: 429 }
-      )
-    }
-
-    // Start the crawl (this could be moved to a background job for better UX)
-    console.log(`Starting crawl for site ${site.domain}...`)
-    
-    const crawlResult = await CrawlerService.crawlAndStoreSite(siteId)
+    // Enqueue crawl as background job (avoids HTTP timeout on large sites)
+    const job = await triggerJob.siteCrawl(siteId, site.organizationId, site.url)
 
     return NextResponse.json({
       success: true,
-      message: `Successfully crawled ${site.domain}`,
-      data: crawlResult
-    })
+      message: `Crawl queued for ${site.domain}`,
+      jobId: job.id,
+    }, { status: 202 })
 
   } catch (error) {
     console.error("Error starting crawl:", error)

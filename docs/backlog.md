@@ -394,7 +394,7 @@ Overview-routen laver 4 separate Prisma aggregate-queries per request (totalClic
 
 ---
 
-### 25. Flyt crawl fra synkron HTTP til baggrundsjob
+### ~~25. Flyt crawl fra synkron HTTP til baggrundsjob~~ DONE
 
 **Fil:** `src/app/api/sites/[siteId]/crawl/route.ts`
 
