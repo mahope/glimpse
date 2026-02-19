@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { google } from 'googleapis'
 import { cookies } from 'next/headers'
+import { encrypt } from '@/lib/crypto'
 
 export async function GET(req: NextRequest) {
   const clientId = process.env.GOOGLE_CLIENT_ID!
@@ -14,12 +15,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/sites/connect?error=no_refresh_token`)
   }
   // Store encrypted refresh token in cookie temporarily to use on connect per-site
-  const enc = await encryptToken(JSON.stringify({ refresh_token: tokens.refresh_token }))
+  const enc = encrypt(JSON.stringify({ refresh_token: tokens.refresh_token }))
   ;(await cookies()).set('gsc_tokens', enc, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/', maxAge: 60 * 60 })
   return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/sites/connect?connected=1`)
-}
-
-async function encryptToken(raw: string) {
-  // Simple passthrough in dev; replace with AES-GCM using ENCRYPTION_KEY in prod
-  return raw
 }

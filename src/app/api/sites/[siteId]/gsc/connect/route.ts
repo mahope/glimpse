@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db'
 import { z } from 'zod'
 import { registerRepeatableJobsForSite } from '@/lib/jobs/register'
 import { createDefaultGSCDataSyncService } from '@/lib/gsc/sync'
+import { decrypt } from '@/lib/crypto'
 
 const Body = z.object({ propertyUrl: z.string().min(1) })
 
@@ -20,12 +21,13 @@ export async function POST(req: NextRequest, { params }: { params: { siteId: str
   const site = await prisma.site.findFirst({ where: { id: params.siteId, organizationId } })
   if (!site) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  // Get tokens from cookie
+  // Get tokens from cookie (encrypted with AES-256-GCM via lib/crypto)
   const cookieHeader = req.headers.get('cookie') || ''
   const match = cookieHeader.match(/gsc_tokens=([^;]+)/)
   if (!match) return NextResponse.json({ error: 'Missing OAuth tokens' }, { status: 400 })
   const raw = decodeURIComponent(match[1])
-  const parsed = JSON.parse(raw)
+  const decrypted = decrypt(raw)
+  const parsed = JSON.parse(decrypted)
   const encrypted = await (await import('@/lib/gsc/gsc-service')).GSCService.encryptToken(parsed.refresh_token)
 
   // Persist selection

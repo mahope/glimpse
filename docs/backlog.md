@@ -36,7 +36,7 @@ Både GET og POST handlers har org-filter kommenteret ud med `// TODO`. GET retu
 
 ---
 
-### 3. Fix GSC token-kryptering i OAuth callback
+### ~~3. Fix GSC token-kryptering i OAuth callback~~ DONE
 
 **Fil:** `src/app/api/gsc/callback/route.ts`
 
