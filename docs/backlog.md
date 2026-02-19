@@ -303,7 +303,7 @@ Flere produktionsproblemer:
 
 ---
 
-### 19. Fix PSI daily cap — flyt til Redis
+### ~~19. Fix PSI daily cap — flyt til Redis~~ DONE
 
 **Fil:** `src/lib/perf/psi-service.ts`
 

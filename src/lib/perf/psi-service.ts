@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db'
+import Redis from 'ioredis'
 
 export type Strategy = 'MOBILE' | 'DESKTOP'
 
@@ -31,18 +32,65 @@ export type CwvSummary = {
 
 const API = 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed'
 const KEY = process.env.PAGESPEED_API_KEY || process.env.GOOGLE_PAGESPEED_API_KEY || ''
+const PSI_DAILY_CAP = parseInt(process.env.PSI_DAILY_CAP || '200', 10)
 
-// Simple in-process daily limiter (reset when process restarts)
-let dailyCount = 0
-let dayStamp = new Date().toDateString()
+let psiRedis: Redis | null = null
 
-function checkDailyLimit() {
-  const nowDay = new Date().toDateString()
-  if (nowDay !== dayStamp) {
-    dayStamp = nowDay
-    dailyCount = 0
+function getPsiRedis(): Redis | null {
+  if (!process.env.REDIS_URL) return null
+  if (!psiRedis) {
+    psiRedis = new Redis(process.env.REDIS_URL, { maxRetriesPerRequest: 1, lazyConnect: true })
+    psiRedis.on('error', () => {})
   }
-  if (dailyCount >= 200) throw new Error('PSI daily cap reached (200)')
+  return psiRedis
+}
+
+// In-process fallback when Redis is unavailable
+let fallbackCount = 0
+let fallbackDay = new Date().toDateString()
+
+async function checkDailyLimit() {
+  const today = new Date().toISOString().split('T')[0]
+  const redis = getPsiRedis()
+
+  if (redis) {
+    try {
+      const key = `psi:daily:${today}`
+      const count = await redis.get(key)
+      const current = count ? parseInt(count, 10) : 0
+      if (current >= PSI_DAILY_CAP) {
+        throw new Error(`PSI daily cap reached (${PSI_DAILY_CAP})`)
+      }
+      if (current >= PSI_DAILY_CAP * 0.8) {
+        console.warn(`[psi] Approaching daily cap: ${current}/${PSI_DAILY_CAP}`)
+      }
+      return
+    } catch (e) {
+      if (e instanceof Error && e.message.includes('daily cap')) throw e
+      // Redis error — fall through to in-process
+    }
+  }
+
+  // Fallback: in-process counter
+  const nowDay = new Date().toDateString()
+  if (nowDay !== fallbackDay) { fallbackDay = nowDay; fallbackCount = 0 }
+  if (fallbackCount >= PSI_DAILY_CAP) throw new Error(`PSI daily cap reached (${PSI_DAILY_CAP})`)
+}
+
+async function incrementDailyCount() {
+  const today = new Date().toISOString().split('T')[0]
+  const redis = getPsiRedis()
+  if (redis) {
+    try {
+      const key = `psi:daily:${today}`
+      await redis.incr(key)
+      await redis.expire(key, 90000) // 25 hours TTL
+      return
+    } catch {
+      // Redis error — fall through
+    }
+  }
+  fallbackCount++
 }
 
 async function fetchWithBackoff(url: string, init?: RequestInit, attempt = 0): Promise<Response> {
@@ -73,7 +121,7 @@ export function summarizeCWV(metrics: { lcpMs?: number; inpMs?: number; cls?: nu
 }
 
 export async function runPsi(url: string, strategy: Strategy): Promise<PsiMetrics> {
-  checkDailyLimit()
+  await checkDailyLimit()
   const params = new URLSearchParams({
     url,
     strategy: strategy.toLowerCase(),
@@ -88,7 +136,7 @@ export async function runPsi(url: string, strategy: Strategy): Promise<PsiMetric
     const txt = await res.text().catch(() => '')
     throw new Error(`PSI error ${res.status}: ${txt}`)
   }
-  dailyCount++
+  await incrementDailyCount()
   const data = await res.json()
 
   const lh = data?.lighthouseResult
