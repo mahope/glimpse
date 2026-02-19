@@ -985,7 +985,7 @@ Dashboard-side der viser backlink-data fra det valgte provider-lag.
 
 ## Kategori 4: Konkurrent-intelligence
 
-### 10. Konkurrent keyword-overlap analyse
+### ~~10. Konkurrent keyword-overlap analyse~~ DONE
 
 **Filer:** Ny `src/lib/competitors/keyword-analysis.ts`, ny API-route, ny UI-sektion
 
