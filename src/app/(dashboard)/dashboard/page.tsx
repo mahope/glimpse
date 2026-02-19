@@ -7,6 +7,7 @@ import { PositionChart } from "@/components/charts/position-chart"
 import { TopKeywords } from "@/components/dashboard/top-keywords"
 import { TopPages } from "@/components/dashboard/top-pages"
 import { PerformanceOverview } from "@/components/dashboard/performance-overview"
+import { HealthScoreWidget } from "@/components/dashboard/health-score-widget"
 import { Skeleton } from "@/components/ui/skeleton"
 
 interface DashboardData {
@@ -92,7 +93,10 @@ export default function DashboardPage() {
         <PositionChart data={data.timeline} />
       </div>
 
-      <PerformanceOverview data={data.performance} />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <PerformanceOverview data={data.performance} />
+        <HealthScoreWidget />
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <TopKeywords data={data.topKeywords} />

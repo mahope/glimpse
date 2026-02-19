@@ -620,7 +620,7 @@ Brugere kan se data for én periode men ikke sammenligne to perioder (f.eks. den
 
 ---
 
-### 39. Implementer site health-score dashboard
+### ~~39. Implementer site health-score dashboard~~ DONE
 
 **Filer:** Ny komponent, ny API-route
 
