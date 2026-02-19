@@ -281,7 +281,7 @@ Fejlede jobs akkumuleres op til `removeOnFail: 50` og forsvinder derefter. Ingen
 
 ---
 
-### 18. Hærdn docker-compose til produktion
+### ~~18. Hærdn docker-compose til produktion~~ DONE
 
 **Fil:** `docker-compose.yml`
 

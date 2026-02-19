@@ -1,12 +1,10 @@
-version: '3.8'
-
 services:
   app:
     build: .
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=postgresql://postgres:seo_dashboard_2026@db:5432/seo_dashboard
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-seo_dashboard}
       - REDIS_URL=redis://redis:6379
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
       - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
@@ -16,14 +14,24 @@ services:
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - RESEND_API_KEY=${RESEND_API_KEY}
       - CRON_SECRET=${CRON_SECRET}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
     depends_on:
       db:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
-    volumes:
-      - app_logs:/app/logs
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+          cpus: "1.0"
     networks:
       - seo_network
 
@@ -31,35 +39,40 @@ services:
     build: .
     command: npm run workers
     environment:
-      - DATABASE_URL=postgresql://postgres:seo_dashboard_2026@db:5432/seo_dashboard
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-seo_dashboard}
       - REDIS_URL=redis://redis:6379
       - CRON_SECRET=${CRON_SECRET}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - GOOGLE_PAGESPEED_API_KEY=${GOOGLE_PAGESPEED_API_KEY}
+      - MOCK_GSC=${MOCK_GSC:-false}
+      - MOCK_PSI=${MOCK_PSI:-false}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - RESEND_API_KEY=${RESEND_API_KEY}
     depends_on:
-      app:
-        condition: service_started
       db:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
     networks:
       - seo_network
 
   db:
     image: postgres:17-alpine
     environment:
-      - POSTGRES_PASSWORD=seo_dashboard_2026
-      - POSTGRES_DB=seo_dashboard
-      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-seo_dashboard}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./prisma/migrations:/docker-entrypoint-initdb.d
-    ports:
-      - "5432:5432"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d seo_dashboard"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-seo_dashboard}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -71,8 +84,6 @@ services:
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
-    ports:
-      - "6379:6379"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -82,34 +93,10 @@ services:
     networks:
       - seo_network
 
-  minio:
-    image: minio/minio:latest
-    command: server /data --console-address ":9001"
-    environment:
-      - MINIO_ROOT_USER=glimpse_admin
-      - MINIO_ROOT_PASSWORD=glimpse_minio_2026
-    volumes:
-      - minio_data:/data
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
-    networks:
-      - seo_network
-
 volumes:
   postgres_data:
     driver: local
   redis_data:
-    driver: local
-  minio_data:
-    driver: local
-  app_logs:
     driver: local
 
 networks:
