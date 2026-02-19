@@ -605,7 +605,7 @@ Ingen profil-side eller globale indstillinger eksisterer. Brugere kan ikke ændr
 
 ---
 
-### 38. Implementer sammenligning mellem perioder
+### ~~38. Implementer sammenligning mellem perioder~~ DONE
 
 **Filer:** Overview-side, keywords-side, nye API-parametre
 
