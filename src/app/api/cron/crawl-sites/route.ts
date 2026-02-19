@@ -3,13 +3,16 @@ import { prisma } from "@/lib/db"
 import { CrawlerService } from "@/lib/crawler/crawler-service"
 import { SEOCalculator } from "@/lib/scoring/calculator"
 import { verifyCronSecret } from '@/lib/cron/auth'
+import { cronLogger } from '@/lib/logger'
+
+const log = cronLogger('crawl-sites')
 
 export async function POST(request: NextRequest) {
   try {
     const unauthorized = verifyCronSecret(request)
     if (unauthorized) return unauthorized
 
-    console.log('Starting weekly site crawl job...')
+    log.info('Starting weekly site crawl job')
 
     // Get all active sites
     const sites = await prisma.site.findMany({
@@ -30,7 +33,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    console.log(`Found ${sites.length} active sites to crawl`)
+    log.info({ siteCount: sites.length }, 'Found active sites to crawl')
 
     const results = [] as any[]
     let successCount = 0
@@ -43,7 +46,7 @@ export async function POST(request: NextRequest) {
       
       const batchPromises = batch.map(async (site) => {
         try {
-          console.log(`Crawling ${site.domain}...`)
+          log.info({ domain: site.domain }, 'Crawling site')
           
           // Check if site was crawled recently (within last 6 days)
           const recentCrawl = await prisma.crawlResult.findFirst({
@@ -57,7 +60,7 @@ export async function POST(request: NextRequest) {
           })
 
           if (recentCrawl) {
-            console.log(`Skipping ${site.domain} - crawled recently`)
+            log.info({ domain: site.domain }, 'Skipping site - crawled recently')
             return {
               siteId: site.id,
               domain: site.domain,
@@ -70,14 +73,14 @@ export async function POST(request: NextRequest) {
           // Perform the crawl
           const crawlResult = await CrawlerService.crawlAndStoreSite(site.id)
           
-          console.log(`Successfully crawled ${site.domain}: ${crawlResult.pagesProcessed} pages`)
+          log.info({ domain: site.domain, pages: crawlResult.pagesProcessed }, 'Successfully crawled site')
 
           // Calculate SEO score after crawl
           try {
             const seoScore = await SEOCalculator.calculateSEOScore(site.id)
-            console.log(`SEO score for ${site.domain}: ${seoScore.overall}/100 (${seoScore.grade})`)
+            log.info({ domain: site.domain, score: seoScore.overall, grade: seoScore.grade }, 'SEO score calculated')
           } catch (scoreError) {
-            console.error(`Error calculating SEO score for ${site.domain}:`, scoreError)
+            log.error({ domain: site.domain, err: scoreError }, 'Error calculating SEO score')
           }
 
           successCount++
@@ -90,7 +93,7 @@ export async function POST(request: NextRequest) {
           }
 
         } catch (error) {
-          console.error(`Error crawling ${site.domain}:`, error)
+          log.error({ domain: site.domain, err: error }, 'Error crawling site')
           errorCount++
           return {
             siteId: site.id,
@@ -109,7 +112,7 @@ export async function POST(request: NextRequest) {
           results.push(result.value)
         } else {
           const site = batch[index]
-          console.error(`Batch error for ${site.domain}:`, result.reason)
+          log.error({ domain: site.domain, err: result.reason }, 'Batch error')
           results.push({
             siteId: site.id,
             domain: site.domain,
@@ -122,12 +125,12 @@ export async function POST(request: NextRequest) {
 
       // Add delay between batches to be respectful
       if (i + batchSize < sites.length) {
-        console.log(`Waiting 30 seconds before next batch...`)
+        log.info('Waiting 30 seconds before next batch')
         await new Promise(resolve => setTimeout(resolve, 30000))
       }
     }
 
-    console.log(`Crawl job completed: ${successCount} successful, ${errorCount} errors`)
+    log.info({ successCount, errorCount }, 'Crawl job completed')
 
     // Store job summary
     const jobSummary = {
@@ -147,7 +150,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error in crawl cron job:', error)
+    log.error({ err: error }, 'Error in crawl cron job')
     return NextResponse.json(
       {
         success: false,
@@ -169,7 +172,7 @@ export async function GET(request: NextRequest) {
     return POST(request)
 
   } catch (error) {
-    console.error('Error in manual crawl trigger:', error)
+    log.error({ err: error }, 'Error in manual crawl trigger')
     return NextResponse.json(
       { error: "Failed to trigger crawl job" },
       { status: 500 }

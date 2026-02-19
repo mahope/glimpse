@@ -4,12 +4,15 @@ import './workers/gsc-sync-worker'
 import './workers/perf-worker'
 import './workers/score-worker'
 import './workers/crawl-worker'
+import { logger } from '@/lib/logger'
+
+const log = logger.child({ ctx: 'workers' })
 
 // Safe startup: only attempt if REDIS_URL present
 export function startAllWorkers() {
   if (!process.env.REDIS_URL) {
-    console.warn('REDIS_URL not set; skipping worker startup')
+    log.warn('REDIS_URL not set; skipping worker startup')
     return
   }
-  console.log('Workers initialized: gsc-sync, performance-test, score-calc, crawl-site')
+  log.info({ queues: ['gsc-sync', 'performance-test', 'score-calc', 'crawl-site'] }, 'Workers initialized')
 }

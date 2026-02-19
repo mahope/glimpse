@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { apiLogger } from '@/lib/logger'
+
+const log = apiLogger('/api/sites/[siteId]/perf/daily')
 
 export async function GET(request: NextRequest, { params }: { params: { siteId: string } }) {
   try {
@@ -41,7 +44,7 @@ export async function GET(request: NextRequest, { params }: { params: { siteId: 
       })),
     })
   } catch (err) {
-    console.error('perf/daily error', err)
+    log.error({ err }, 'Perf daily error')
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }

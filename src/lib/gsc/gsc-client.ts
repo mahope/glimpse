@@ -1,4 +1,7 @@
 import { google } from 'googleapis'
+import { logger } from '@/lib/logger'
+
+const log = logger.child({ module: 'gsc-client' })
 
 export interface GSCMetric {
   date: string
@@ -68,7 +71,7 @@ export class GSCClient {
         verified: response.data.verified || false
       }
     } catch (error) {
-      console.error('Error fetching GSC site info:', error)
+      log.error({ err: error }, 'Error fetching GSC site info')
       throw new Error('Failed to fetch site information from Google Search Console')
     }
   }
@@ -101,7 +104,7 @@ export class GSCClient {
         position: row.position || 0
       }))
     } catch (error) {
-      console.error('Error fetching GSC performance metrics:', error)
+      log.error({ err: error }, 'Error fetching GSC performance metrics')
       throw new Error('Failed to fetch performance metrics from Google Search Console')
     }
   }
@@ -134,7 +137,7 @@ export class GSCClient {
         position: row.position || 0
       }))
     } catch (error) {
-      console.error('Error fetching GSC top queries:', error)
+      log.error({ err: error }, 'Error fetching GSC top queries')
       throw new Error('Failed to fetch top queries from Google Search Console')
     }
   }
@@ -167,7 +170,7 @@ export class GSCClient {
         position: row.position || 0
       }))
     } catch (error) {
-      console.error('Error fetching GSC top pages:', error)
+      log.error({ err: error }, 'Error fetching GSC top pages')
       throw new Error('Failed to fetch top pages from Google Search Console')
     }
   }
@@ -210,7 +213,7 @@ export class GSCClient {
         position: row.position || 0
       }))
     } catch (error) {
-      console.error('Error fetching queries for page:', error)
+      log.error({ err: error, pageUrl }, 'Error fetching queries for page')
       throw new Error('Failed to fetch queries for page from Google Search Console')
     }
   }
@@ -253,7 +256,7 @@ export class GSCClient {
         position: row.position || 0
       }))
     } catch (error) {
-      console.error('Error fetching pages for query:', error)
+      log.error({ err: error, query }, 'Error fetching pages for query')
       throw new Error('Failed to fetch pages for query from Google Search Console')
     }
   }
@@ -287,7 +290,7 @@ export class GSCClient {
         position: row.position || 0
       }))
     } catch (error) {
-      console.error('Error fetching GSC performance by device:', error)
+      log.error({ err: error }, 'Error fetching GSC performance by device')
       throw new Error('Failed to fetch performance by device from Google Search Console')
     }
   }
@@ -321,7 +324,7 @@ export class GSCClient {
         position: row.position || 0
       }))
     } catch (error) {
-      console.error('Error fetching GSC performance by country:', error)
+      log.error({ err: error }, 'Error fetching GSC performance by country')
       throw new Error('Failed to fetch performance by country from Google Search Console')
     }
   }

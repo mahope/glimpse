@@ -2,6 +2,7 @@ import { Job } from 'bullmq'
 import { CrawlJob } from '../types'
 import { prisma } from '@/lib/db'
 import { crawlSite } from '@/lib/crawler/crawler-service'
+import { jobLogger } from '@/lib/logger'
 
 export default async function crawlerProcessor(job: Job<CrawlJob>) {
   const { siteId, organizationId, url, maxPages } = job.data
@@ -14,7 +15,8 @@ export default async function crawlerProcessor(job: Job<CrawlJob>) {
     await prisma.site.update({ where: { id: siteId }, data: { lastCrawledAt: new Date() } })
     return { ok: true, pages: res?.pagesVisited ?? 0 }
   } catch (err) {
-    console.warn('[crawler] failed', siteId, (err as any)?.message)
+    const log = jobLogger('site-crawl', job.id, { siteId })
+    log.warn({ siteId, err }, 'Crawler failed')
     throw err
   }
 }

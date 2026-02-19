@@ -6,6 +6,9 @@ import { z } from 'zod'
 import { registerRepeatableJobsForSite } from '@/lib/jobs/register'
 import { fetchAndStoreGSCDaily } from '@/lib/gsc/fetch-daily'
 import { decrypt } from '@/lib/crypto'
+import { apiLogger } from '@/lib/logger'
+
+const log = apiLogger('/api/sites/[siteId]/gsc/connect')
 
 const Body = z.object({ propertyUrl: z.string().min(1) })
 
@@ -44,7 +47,7 @@ export async function POST(req: NextRequest, { params }: { params: { siteId: str
       mock: process.env.MOCK_GSC === 'true',
     })
   } catch (e) {
-    console.warn('Backfill failed', e)
+    log.warn({ err: e, siteId: site.id }, 'GSC backfill failed')
   }
 
   // Register repeatable jobs for this site

@@ -1,5 +1,8 @@
 import * as cheerio from 'cheerio'
 import fetch from 'node-fetch'
+import { logger } from '@/lib/logger'
+
+const log = logger.child({ module: 'crawler' })
 
 export interface CrawlResult {
   url: string
@@ -185,7 +188,7 @@ export class WebCrawler {
       visited.add(url)
 
       try {
-        console.log(`Crawling: ${url} (depth: ${depth})`)
+        log.info({ url, depth }, 'Crawling page')
         
         const result = await this.crawlPage(url)
         results.push(result)
@@ -208,7 +211,7 @@ export class WebCrawler {
         }
 
       } catch (error) {
-        console.error(`Error crawling ${url}:`, error)
+        log.error({ url, err: error }, 'Error crawling page')
         // Continue with other pages
       }
     }

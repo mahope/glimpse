@@ -1,6 +1,9 @@
 import { prisma } from '@/lib/db'
 import { WebCrawler, CrawlResult, SEOIssue, categorizeIssues } from './crawler'
 import { PageAnalyzer } from './analyzer'
+import { logger } from '@/lib/logger'
+
+const log = logger.child({ module: 'crawler-service' })
 
 export class CrawlerService {
   /**
@@ -17,7 +20,7 @@ export class CrawlerService {
         throw new Error(`Site not found: ${siteId}`)
       }
 
-      console.log(`Starting crawl for ${site.domain}...`)
+      log.info({ siteId, domain: site.domain }, 'Starting crawl')
 
       // Initialize crawler
       const crawler = new WebCrawler({
@@ -34,7 +37,7 @@ export class CrawlerService {
         respectRobotsTxt: true
       })
 
-      console.log(`Crawled ${crawlResults.length} pages for ${site.domain}`)
+      log.info({ siteId, domain: site.domain, pages: crawlResults.length }, 'Crawl completed')
 
       // Store results in database
       const crawlDate = new Date()
@@ -68,7 +71,7 @@ export class CrawlerService {
         storedResultsCount++
       }
 
-      console.log(`Stored ${storedResultsCount} crawl results for ${site.domain}`)
+      log.info({ siteId, domain: site.domain, stored: storedResultsCount }, 'Stored crawl results')
 
       // Calculate and store overall site health metrics
       await this.calculateSiteHealthMetrics(siteId, crawlDate, crawlResults)
@@ -80,7 +83,7 @@ export class CrawlerService {
       }
 
     } catch (error) {
-      console.error(`Error crawling site ${siteId}:`, error)
+      log.error({ siteId, err: error }, 'Error crawling site')
       throw error
     }
   }
@@ -147,7 +150,7 @@ export class CrawlerService {
       }
     })
 
-    console.log(`Site health calculated for ${siteId}: Score ${overallScore}/100`)
+    log.info({ siteId, overallScore }, 'Site health calculated')
     return { overallScore, stats, issueCounts }
   }
 
@@ -311,7 +314,7 @@ export async function crawlAllSites() {
       where: { isActive: true }
     })
 
-    console.log(`Starting crawl for ${sites.length} sites...`)
+    log.info({ siteCount: sites.length }, 'Starting crawl for all sites')
 
     const results = []
 
@@ -320,7 +323,7 @@ export async function crawlAllSites() {
         const result = await CrawlerService.crawlAndStoreSite(site.id)
         results.push({ siteId: site.id, domain: site.domain, ...result })
       } catch (error) {
-        console.error(`Failed to crawl ${site.domain}:`, error)
+        log.error({ siteId: site.id, domain: site.domain, err: error }, 'Failed to crawl site')
         results.push({
           siteId: site.id,
           domain: site.domain,
@@ -330,11 +333,11 @@ export async function crawlAllSites() {
       }
     }
 
-    console.log('Crawling completed:', results)
+    log.info({ results }, 'Crawling completed')
     return results
 
   } catch (error) {
-    console.error('Error in crawlAllSites:', error)
+    log.error({ err: error }, 'Error in crawlAllSites')
     throw error
   }
 }

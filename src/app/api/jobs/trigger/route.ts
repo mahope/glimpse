@@ -5,6 +5,9 @@ import { triggerJob } from '@/lib/jobs/queue'
 import { prisma } from '@/lib/db'
 import { z } from 'zod'
 import { rateLimitOrNull } from '@/lib/rate-limit'
+import { apiLogger } from '@/lib/logger'
+
+const log = apiLogger('/api/jobs/trigger')
 
 const TriggerJobSchema = z.object({
   type: z.enum(['gsc-sync', 'performance-test', 'site-crawl', 'score-calculation']),
@@ -82,7 +85,7 @@ export async function POST(request: NextRequest) {
       siteName: site.name,
     })
   } catch (error) {
-    console.error('Failed to trigger job:', error)
+    log.error({ err: error }, 'Failed to trigger job')
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

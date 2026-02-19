@@ -2,6 +2,7 @@ import { Worker, Job } from 'bullmq'
 import { redisConnection, PerformanceTestJobData } from '../queue'
 import { prisma } from '@/lib/db'
 import { runPsi, saveSnapshot, upsertDaily } from '@/lib/perf/psi-service'
+import { jobLogger } from '@/lib/logger'
 
 export const perfWorker = new Worker<PerformanceTestJobData>(
   'performance-test',
@@ -37,9 +38,11 @@ export const perfWorker = new Worker<PerformanceTestJobData>(
 )
 
 perfWorker.on('failed', (job, err) => {
-  console.error(`[perf] job ${job?.id} failed`, err)
+  const log = jobLogger('performance-test', job?.id)
+  log.error({ err }, 'Performance test job failed')
 })
 
 perfWorker.on('completed', (job, result) => {
-  console.log(`[perf] job ${job.id} completed`, result)
+  const log = jobLogger('performance-test', job.id)
+  log.info({ result }, 'Performance test job completed')
 })

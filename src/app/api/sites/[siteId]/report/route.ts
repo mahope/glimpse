@@ -4,6 +4,9 @@ import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
 import { renderReportPDF } from '@/lib/reports/pdf-generator'
 import { endOfDay, startOfDay, subDays, format } from 'date-fns'
+import { apiLogger } from '@/lib/logger'
+
+const log = apiLogger('/api/sites/[siteId]/report')
 
 export async function GET(req: NextRequest, { params }: { params: { siteId: string } }) {
   const session = await auth.api.getSession({ headers: await headers() })
@@ -110,7 +113,7 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
     }
   })
   } catch (err) {
-    console.error('report route error', err)
+    log.error({ err }, 'Report route error')
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }

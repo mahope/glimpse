@@ -1,5 +1,7 @@
 import crypto from 'crypto'
+import { logger } from '@/lib/logger'
 
+const log = logger.child({ module: 'crypto' })
 const ALGO = 'aes-256-gcm'
 
 function getKey(): Buffer {
@@ -10,7 +12,7 @@ function getKey(): Buffer {
     if (isProd) {
       throw new Error(msg)
     } else {
-      console.warn('[dev] ' + msg)
+      log.warn({ keyLength: key.length }, msg)
     }
   }
   // If shorter than 32 in dev, pad to avoid crypto throw; in prod we already threw

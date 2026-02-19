@@ -1,5 +1,8 @@
 import { prisma } from '@/lib/db'
 import { GSCClient, GSCMetric, GSCQuery, GSCPage, createDateRange } from './gsc-client'
+import { logger } from '@/lib/logger'
+
+const log = logger.child({ module: 'gsc-service' })
 
 export class GSCService {
   /**
@@ -155,7 +158,7 @@ export class GSCService {
         data: { lastSyncedAt: new Date() }
       })
 
-      console.log(`GSC data synced for ${site.domain}: ${metrics.length} daily metrics, ${topQueries.length} queries, ${topPages.length} pages`)
+      log.info({ siteId, domain: site.domain, metrics: metrics.length, queries: topQueries.length, pages: topPages.length }, 'GSC data synced')
       
       return {
         success: true,
@@ -165,7 +168,7 @@ export class GSCService {
       }
 
     } catch (error) {
-      console.error(`Error syncing GSC data for site ${siteId}:`, error)
+      log.error({ siteId, err: error }, 'Error syncing GSC data')
       throw error
     }
   }
@@ -334,7 +337,7 @@ export class GSCService {
     try {
       return decrypt(encryptedToken)
     } catch (e) {
-      console.warn('Failed to decrypt GSC token, falling back to raw value in dev?', e)
+      log.warn({ err: e }, 'Failed to decrypt GSC token, falling back to raw value in dev')
       return encryptedToken
     }
   }
@@ -361,7 +364,7 @@ export async function syncAllSites() {
       }
     })
 
-    console.log(`Starting GSC sync for ${sites.length} sites...`)
+    log.info({ siteCount: sites.length }, 'Starting GSC sync for all sites')
 
     const results = []
     
@@ -370,7 +373,7 @@ export async function syncAllSites() {
         const result = await GSCService.syncSiteData(site.id)
         results.push({ siteId: site.id, domain: site.domain, ...result })
       } catch (error) {
-        console.error(`Failed to sync GSC data for ${site.domain}:`, error)
+        log.error({ siteId: site.id, domain: site.domain, err: error }, 'Failed to sync GSC data')
         results.push({ 
           siteId: site.id, 
           domain: site.domain, 
@@ -380,11 +383,11 @@ export async function syncAllSites() {
       }
     }
 
-    console.log('GSC sync completed:', results)
+    log.info({ results }, 'GSC sync completed')
     return results
 
   } catch (error) {
-    console.error('Error in syncAllSites:', error)
+    log.error({ err: error }, 'Error in syncAllSites')
     throw error
   }
 }

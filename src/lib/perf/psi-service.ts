@@ -1,5 +1,8 @@
 import { prisma } from '@/lib/db'
 import Redis from 'ioredis'
+import { logger } from '@/lib/logger'
+
+const log = logger.child({ module: 'psi-service' })
 
 export type Strategy = 'MOBILE' | 'DESKTOP'
 
@@ -62,7 +65,7 @@ async function checkDailyLimit() {
         throw new Error(`PSI daily cap reached (${PSI_DAILY_CAP})`)
       }
       if (current >= PSI_DAILY_CAP * 0.8) {
-        console.warn(`[psi] Approaching daily cap: ${current}/${PSI_DAILY_CAP}`)
+        log.warn({ current, cap: PSI_DAILY_CAP }, 'Approaching PSI daily cap')
       }
       return
     } catch (e) {

@@ -3,6 +3,9 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { triggerJob } from "@/lib/jobs/queue"
 import { rateLimitOrNull } from "@/lib/rate-limit"
+import { apiLogger } from "@/lib/logger"
+
+const log = apiLogger('/api/sites/[siteId]/crawl')
 
 export async function POST(
   request: NextRequest,
@@ -59,7 +62,7 @@ export async function POST(
     }, { status: 202 })
 
   } catch (error) {
-    console.error("Error starting crawl:", error)
+    log.error({ err: error }, 'Error starting crawl')
     return NextResponse.json(
       { 
         error: "Failed to start crawl",
@@ -126,7 +129,7 @@ export async function GET(
     })
 
   } catch (error) {
-    console.error("Error getting crawl status:", error)
+    log.error({ err: error }, 'Error getting crawl status')
     return NextResponse.json(
       { error: "Failed to get crawl status" },
       { status: 500 }

@@ -3,6 +3,9 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { runPsi, saveSnapshot, type Strategy } from '@/lib/perf/psi-service'
 import { rateLimitOrNull } from '@/lib/rate-limit'
+import { apiLogger } from '@/lib/logger'
+
+const log = apiLogger('/api/sites/[siteId]/psi')
 
 export async function POST(request: NextRequest, { params }: { params: { siteId: string } }) {
   try {
@@ -49,7 +52,7 @@ export async function POST(request: NextRequest, { params }: { params: { siteId:
     return NextResponse.json({ siteId: site.id, url: targetUrl, records: created })
   } catch (err: any) {
     if (err?.name === 'ZodError') return NextResponse.json({ error: 'Invalid payload', details: err.errors }, { status: 400 })
-    console.error('sites/[siteId]/psi POST error', err)
+    log.error({ err }, 'PSI POST error')
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }

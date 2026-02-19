@@ -1,13 +1,16 @@
 import { cache } from 'react'
+import { logger } from '@/lib/logger'
+
+const log = logger.child({ module: 'server-init' })
 
 export const serverInit = cache(async () => {
   // Validate encryption key length
   if (!process.env.ENCRYPTION_KEY || process.env.ENCRYPTION_KEY.length !== 32) {
-    console.error('ENCRYPTION_KEY must be 32 bytes (ASCII). Set ENCRYPTION_KEY in environment for production security.')
+    log.error('ENCRYPTION_KEY must be 32 bytes (ASCII). Set ENCRYPTION_KEY in environment for production security.')
   }
 
   if (!process.env.CRON_SECRET) {
-    console.warn('CRON_SECRET not set; skipping register-on-boot')
+    log.warn('CRON_SECRET not set; skipping register-on-boot')
     return
   }
   try {
@@ -17,11 +20,11 @@ export const serverInit = cache(async () => {
       cache: 'no-store',
     })
     if (!res.ok) {
-      console.warn('register-on-boot failed', await res.text())
+      log.warn({ response: await res.text() }, 'register-on-boot failed')
     } else {
-      console.log('register-on-boot ok')
+      log.info('register-on-boot ok')
     }
   } catch (e) {
-    console.warn('register-on-boot error', e)
+    log.warn({ err: e }, 'register-on-boot error')
   }
 })

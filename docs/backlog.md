@@ -251,7 +251,7 @@ To scoring-klasser eksisterer:
 
 ## Kategori 4: Infrastruktur & DevOps
 
-### 16. Implementer struktureret logging
+### ~~16. Implementer struktureret logging~~ DONE
 
 **Alle filer**
 

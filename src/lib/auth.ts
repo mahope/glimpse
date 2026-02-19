@@ -5,6 +5,9 @@ import { magicLink } from "better-auth/plugins/magic-link"
 import { organization } from "better-auth/plugins/organization"
 import { Resend } from "resend"
 import { prisma } from "./db"
+import { logger } from "@/lib/logger"
+
+const log = logger.child({ module: 'auth' })
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
 
@@ -77,7 +80,7 @@ export const auth = betterAuth({
             `,
           });
         } catch (error) {
-          console.error('Failed to send magic link email:', error);
+          log.error({ err: error, email }, 'Failed to send magic link email');
           throw error;
         }
       },

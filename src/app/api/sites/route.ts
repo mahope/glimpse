@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { z } from "zod"
+import { apiLogger } from "@/lib/logger"
+
+const log = apiLogger('/api/sites')
 
 const createSiteSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -45,7 +48,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ sites })
   } catch (error) {
-    console.error("Error fetching sites:", error)
+    log.error({ err: error }, 'Error fetching sites')
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -112,7 +115,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.error("Error creating site:", error)
+    log.error({ err: error }, 'Error creating site')
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

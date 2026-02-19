@@ -3,6 +3,7 @@ import { redisConnection, GSCSyncJobData } from '../queue'
 import { fetchAndStoreGSCDaily } from '@/lib/gsc/fetch-daily'
 import { decrypt } from '@/lib/crypto'
 import { prisma } from '@/lib/db'
+import { jobLogger } from '@/lib/logger'
 
 export const gscSyncWorker = new Worker<GSCSyncJobData>(
   'gsc-sync',
@@ -52,7 +53,8 @@ export const gscSyncWorker = new Worker<GSCSyncJobData>(
         timeRange: `${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`,
       }
     } catch (error) {
-      console.error(`GSC sync failed for site ${siteId}:`, error)
+      const log = jobLogger('gsc-sync', job.id, { siteId })
+      log.error({ siteId, err: error }, 'GSC sync failed')
       throw error
     }
   },
@@ -67,9 +69,11 @@ export const gscSyncWorker = new Worker<GSCSyncJobData>(
 )
 
 gscSyncWorker.on('failed', (job, error) => {
-  console.error(`GSC sync job ${job?.id} failed:`, error)
+  const log = jobLogger('gsc-sync', job?.id)
+  log.error({ err: error }, 'GSC sync job failed')
 })
 
 gscSyncWorker.on('completed', (job, result) => {
-  console.log(`GSC sync job ${job.id} completed:`, result)
+  const log = jobLogger('gsc-sync', job.id)
+  log.info({ result }, 'GSC sync job completed')
 })

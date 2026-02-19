@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
 import { gscSyncQueue, performanceQueue, crawlQueue, scoreQueue } from '@/lib/jobs/queue'
+import { apiLogger } from '@/lib/logger'
+
+const log = apiLogger('/api/jobs/status')
 
 export async function GET(request: NextRequest) {
   try {
@@ -31,7 +34,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     })
   } catch (error) {
-    console.error('Failed to get job status:', error)
+    log.error({ err: error }, 'Failed to get job status')
     return NextResponse.json(
       { error: 'Failed to get job status' },
       { status: 500 }

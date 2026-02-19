@@ -5,6 +5,9 @@ import { subDays, isAfter } from 'date-fns'
 import { evaluateRule } from '@/lib/alerts/evaluator'
 import { SeriesPoint } from '@/lib/alerts/types'
 import { sendAlertEmail } from '@/lib/email/alerts'
+import { cronLogger } from '@/lib/logger'
+
+const log = cronLogger('alerts')
 
 export async function POST(req: NextRequest) {
   try {
@@ -105,7 +108,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, results })
   } catch (e: any) {
-    console.error(e)
+    log.error({ err: e }, 'Alerts cron failed')
     return NextResponse.json({ ok: false, error: e.message }, { status: 500 })
   }
 }

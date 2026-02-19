@@ -1,4 +1,7 @@
 import { prisma } from '@/lib/db'
+import { logger } from '@/lib/logger'
+
+const log = logger.child({ module: 'scoring/calculator' })
 
 export interface SEOScoreComponents {
   clickTrend: number      // 25% weight
@@ -93,7 +96,7 @@ export class SEOCalculator {
       }
 
     } catch (error) {
-      console.error(`Error calculating SEO score for site ${siteId}:`, error)
+      log.error({ siteId, err: error }, 'Error calculating SEO score')
       throw error
     }
   }
@@ -195,7 +198,7 @@ export class SEOCalculator {
       return { score: Math.min(100, Math.max(0, score)), trend: trendData, improvements, strengths }
 
     } catch (error) {
-      console.error('Error calculating click trend:', error)
+      log.error({ siteId, err: error }, 'Error calculating click trend')
       return {
         score: 0,
         trend: { current: 0, previous: 0, change: 0, changePercent: 0, trend: 'stable' },
@@ -304,7 +307,7 @@ export class SEOCalculator {
       return { score, trend: trendData, improvements, strengths }
 
     } catch (error) {
-      console.error('Error calculating position trend:', error)
+      log.error({ siteId, err: error }, 'Error calculating position trend')
       return {
         score: 0,
         trend: { current: 50, previous: 50, change: 0, changePercent: 0, trend: 'stable' },
@@ -402,7 +405,7 @@ export class SEOCalculator {
       return { score: Math.min(100, Math.max(0, score)), trend: trendData, improvements, strengths }
 
     } catch (error) {
-      console.error('Error calculating impression trend:', error)
+      log.error({ siteId, err: error }, 'Error calculating impression trend')
       return {
         score: 0,
         trend: { current: 0, previous: 0, change: 0, changePercent: 0, trend: 'stable' },
@@ -477,7 +480,7 @@ export class SEOCalculator {
       return { score, improvements, strengths }
 
     } catch (error) {
-      console.error('Error calculating CTR benchmark:', error)
+      log.error({ siteId, err: error }, 'Error calculating CTR benchmark')
       return {
         score: 0,
         improvements: ['Unable to calculate CTR benchmark'],
@@ -524,7 +527,7 @@ export class SEOCalculator {
       return { score: performanceScore, improvements, strengths }
 
     } catch (error) {
-      console.error('Error calculating performance score:', error)
+      log.error({ siteId, err: error }, 'Error calculating performance score')
       return {
         score: 0,
         improvements: ['Unable to calculate performance score'],

@@ -2,6 +2,9 @@ import { gscSyncWorker } from './gsc-sync-worker'
 import { scoreWorker } from './score-worker'
 import { crawlWorker } from './crawl-worker'
 import { perfWorker } from './perf-worker'
+import { logger } from '@/lib/logger'
+
+const log = logger.child({ ctx: 'workers' })
 
 // Export all workers
 export const workers = {
@@ -13,7 +16,7 @@ export const workers = {
 
 // Graceful shutdown handler
 const gracefulShutdown = async () => {
-  console.log('Shutting down workers...')
+  log.info('Shutting down workers...')
 
   await Promise.all([
     gscSyncWorker.close(),
@@ -22,7 +25,7 @@ const gracefulShutdown = async () => {
     crawlWorker.close(),
   ])
 
-  console.log('All workers shut down successfully')
+  log.info('All workers shut down successfully')
   process.exit(0)
 }
 
@@ -31,7 +34,7 @@ process.on('SIGINT', gracefulShutdown)
 process.on('SIGTERM', gracefulShutdown)
 
 // Log worker startup
-console.log('Starting background job workers...')
-console.log('Workers started:', Object.keys(workers))
+log.info('Starting background job workers...')
+log.info({ queues: Object.keys(workers) }, 'Workers started')
 
 export default workers

@@ -2,6 +2,7 @@ import { Job } from 'bullmq'
 import { GSCSyncJob } from '../types'
 import { prisma } from '@/lib/db'
 import { fetchAndStoreGSCDaily } from '@/lib/gsc/fetch-daily'
+import { jobLogger } from '@/lib/logger'
 
 export default async function gscSyncProcessor(job: Job<GSCSyncJob>) {
   const data = job.data
@@ -9,7 +10,8 @@ export default async function gscSyncProcessor(job: Job<GSCSyncJob>) {
   const site = await prisma.site.findFirst({ where: { id: data.siteId, organizationId: data.organizationId, isActive: true } })
   if (!site) return { skipped: true, reason: 'site_not_found_or_denied' }
   if (!site.gscPropertyUrl || !site.gscRefreshToken) {
-    console.warn('[gsc-sync] GSC not configured for site', site.id)
+    const log = jobLogger('gsc-sync', job.id, { siteId: site.id })
+    log.warn({ siteId: site.id }, 'GSC not configured for site')
     return { skipped: true, reason: 'gsc_not_configured' }
   }
 
@@ -25,7 +27,8 @@ export default async function gscSyncProcessor(job: Job<GSCSyncJob>) {
     })
     return { ok: true, processed: res.recordsProcessed }
   } catch (err: any) {
-    console.warn('[gsc-sync] failed', site.id, err?.message)
+    const log = jobLogger('gsc-sync', job.id, { siteId: site.id })
+    log.warn({ siteId: site.id, err }, 'GSC sync failed')
     throw err
   }
 }

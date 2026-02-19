@@ -3,6 +3,9 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { EnqueueJobBodySchema, GSCSyncSchema, PsiTestSchema, CrawlSchema, ScoreCalcSchema } from '@/lib/jobs/types'
 import { triggerJob } from '@/lib/jobs/queue'
+import { apiLogger } from '@/lib/logger'
+
+const log = apiLogger('/api/sites/[siteId]/jobs')
 
 export async function POST(request: NextRequest, { params }: { params: { siteId: string } }) {
   try {
@@ -44,7 +47,7 @@ export async function POST(request: NextRequest, { params }: { params: { siteId:
     }
   } catch (err: any) {
     if (err?.name === 'ZodError') return NextResponse.json({ error: 'Invalid payload', details: err.errors }, { status: 400 })
-    console.error('enqueue site job error', err)
+    log.error({ err }, 'Enqueue site job error')
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }

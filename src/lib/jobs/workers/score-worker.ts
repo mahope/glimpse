@@ -2,6 +2,7 @@ import { Worker, Job } from 'bullmq'
 import { redisConnection, ScoreCalculationJobData } from '../queue'
 import { SEOCalculator } from '@/lib/scoring/calculator'
 import { prisma } from '@/lib/db'
+import { jobLogger } from '@/lib/logger'
 
 export const scoreWorker = new Worker<ScoreCalculationJobData>(
   'score-calculation',
@@ -58,7 +59,8 @@ export const scoreWorker = new Worker<ScoreCalculationJobData>(
         score: scoreResult.overall,
       }
     } catch (error) {
-      console.error(`Score calculation failed for site ${siteId}:`, error)
+      const log = jobLogger('score-calculation', job.id, { siteId })
+      log.error({ siteId, err: error }, 'Score calculation failed')
       throw error
     }
   },
@@ -73,9 +75,11 @@ export const scoreWorker = new Worker<ScoreCalculationJobData>(
 )
 
 scoreWorker.on('failed', (job, error) => {
-  console.error(`Score calculation job ${job?.id} failed:`, error)
+  const log = jobLogger('score-calculation', job?.id)
+  log.error({ err: error }, 'Score calculation job failed')
 })
 
 scoreWorker.on('completed', (job, result) => {
-  console.log(`Score calculation job ${job.id} completed:`, result)
+  const log = jobLogger('score-calculation', job.id)
+  log.info({ result }, 'Score calculation job completed')
 })

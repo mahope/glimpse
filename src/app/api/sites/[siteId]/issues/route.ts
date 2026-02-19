@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { CrawlIssue } from "@/lib/crawler/types"
+import { apiLogger } from "@/lib/logger"
+
+const log = apiLogger('/api/sites/[siteId]/issues')
 
 export async function GET(
   request: NextRequest,
@@ -181,7 +184,7 @@ export async function GET(
     })
 
   } catch (error) {
-    console.error("Error fetching issues:", error)
+    log.error({ err: error }, 'Error fetching issues')
     return NextResponse.json(
       { 
         error: "Failed to fetch issues",

@@ -3,6 +3,9 @@ import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
 import { prisma } from '@/lib/db'
 import { z } from 'zod'
+import { apiLogger } from '@/lib/logger'
+
+const log = apiLogger('/api/organizations/set-active')
 
 const SetActiveOrgSchema = z.object({
   organizationId: z.string(),
@@ -65,7 +68,7 @@ export async function POST(request: NextRequest) {
       organizationName: membership.organization.name,
     })
   } catch (error) {
-    console.error('Failed to set active organization:', error)
+    log.error({ err: error }, 'Failed to set active organization')
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { apiLogger } from '@/lib/logger'
+
+const log = apiLogger('/api/sites/[siteId]/perf/latest')
 
 export async function GET(request: NextRequest, { params }: { params: { siteId: string } }) {
   try {
@@ -51,7 +54,7 @@ export async function GET(request: NextRequest, { params }: { params: { siteId: 
       pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
     })
   } catch (err) {
-    console.error('perf/latest error', err)
+    log.error({ err }, 'Perf latest error')
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }

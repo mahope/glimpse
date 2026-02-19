@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { fetchPsi, type Strategy } from '@/lib/perf/psi'
+import { apiLogger } from '@/lib/logger'
 
 // Simple in-memory cache (process local)
 const cache = new Map<string, { at: number; ttl: number; data: any }>()
@@ -61,7 +62,8 @@ export async function GET(request: NextRequest, { params }: { params: { siteId: 
 
     return NextResponse.json({ siteId: site.id, url: site.url, results })
   } catch (err) {
-    console.error('perf api error', err)
+    const log = apiLogger('/api/sites/[siteId]/perf')
+    log.error({ err }, 'Perf API error')
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }

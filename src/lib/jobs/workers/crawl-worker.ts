@@ -2,6 +2,7 @@ import { Worker, Job } from 'bullmq'
 import { redisConnection, SiteCrawlJobData } from '../queue'
 import { prisma } from '@/lib/db'
 import { WebCrawler, categorizeIssues } from '@/lib/crawler/crawler'
+import { jobLogger } from '@/lib/logger'
 
 export const crawlWorker = new Worker<SiteCrawlJobData>(
   'site-crawl',
@@ -110,7 +111,8 @@ export const crawlWorker = new Worker<SiteCrawlJobData>(
         issuesFound: allIssues.length,
       }
     } catch (error) {
-      console.error(`Site crawl failed for site ${siteId}:`, error)
+      const log = jobLogger('site-crawl', job.id, { siteId })
+      log.error({ siteId, err: error }, 'Site crawl failed')
       throw error
     }
   },
@@ -126,9 +128,11 @@ export const crawlWorker = new Worker<SiteCrawlJobData>(
 
 // Error handling
 crawlWorker.on('failed', (job, error) => {
-  console.error(`Site crawl job ${job?.id} failed:`, error)
+  const log = jobLogger('site-crawl', job?.id)
+  log.error({ err: error }, 'Site crawl job failed')
 })
 
 crawlWorker.on('completed', (job, result) => {
-  console.log(`Site crawl job ${job.id} completed:`, result)
+  const log = jobLogger('site-crawl', job.id)
+  log.info({ result }, 'Site crawl job completed')
 })

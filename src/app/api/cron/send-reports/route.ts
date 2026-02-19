@@ -4,6 +4,9 @@ import { renderReportPDF } from '@/lib/reports/pdf-generator'
 import { sendEmail } from '@/lib/email/client'
 import { format, subMonths, startOfMonth, endOfMonth, subDays, startOfDay, endOfDay } from 'date-fns'
 import { verifyCronSecret } from '@/lib/cron/auth'
+import { cronLogger } from '@/lib/logger'
+
+const log = cronLogger('send-reports')
 
 export async function POST(req: NextRequest) {
   try {
@@ -86,7 +89,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, sent })
   } catch (e: any) {
-    console.error(e)
+    log.error({ err: e }, 'Send reports cron failed')
     return NextResponse.json({ ok: false, error: e.message }, { status: 500 })
   }
 }
