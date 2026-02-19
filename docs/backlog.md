@@ -756,7 +756,7 @@ Ikke alle brugere checker email. Slack-integration er standard for monitoring-v�
 
 ---
 
-### 47. Tilføj tests for uafdækkede kritiske paths
+### ~~47. Tilføj tests for uafdækkede kritiske paths~~ DONE
 
 **Filer:** Nye test-filer i `tests/`
 
