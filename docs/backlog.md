@@ -795,7 +795,7 @@ Ingen CI/CD pipeline eksisterer. Tests, lint og build køres kun lokalt.
 
 ## Kategori 9: Monitoring & Observability
 
-### 49. Tilføj BullBoard admin dashboard
+### ~~49. Tilføj BullBoard admin dashboard~~ DONE
 
 **Filer:** Ny route, ny dependency
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
-import { gscSyncQueue, performanceQueue, crawlQueue, scoreQueue } from '@/lib/jobs/queue'
+import { gscSyncQueue, performanceQueue, crawlQueue, scoreQueue, uptimeCheckQueue } from '@/lib/jobs/queue'
 import { getDLQStats } from '@/lib/jobs/dead-letter'
 import { apiLogger } from '@/lib/logger'
 
@@ -23,17 +23,18 @@ export async function GET(request: NextRequest) {
     }
 
     // Get queue statistics
-    const [gscStats, performanceStats, crawlStats, scoreStats] = await Promise.all([
+    const [gscStats, performanceStats, crawlStats, scoreStats, uptimeStats] = await Promise.all([
       getQueueStats(gscSyncQueue, 'GSC Sync'),
       getQueueStats(performanceQueue, 'Performance Tests'),
       getQueueStats(crawlQueue, 'Site Crawls'),
       getQueueStats(scoreQueue, 'Score Calculations'),
+      getQueueStats(uptimeCheckQueue, 'Uptime Checks'),
     ])
 
     const dlq = await getDLQStats()
 
     return NextResponse.json({
-      queues: [gscStats, performanceStats, crawlStats, scoreStats],
+      queues: [gscStats, performanceStats, crawlStats, scoreStats, uptimeStats],
       deadLetter: dlq,
       timestamp: new Date().toISOString(),
     })
