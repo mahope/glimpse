@@ -146,7 +146,8 @@ model Site {
   pageSummaries    PageSummary[]
   alertRules       AlertRule[]
   alertEvents      AlertEvent[]
-  
+  competitors      Competitor[]
+
   @@unique([organizationId, domain])
   @@map("site")
 }
@@ -448,6 +449,39 @@ model CrawlReport {
 
   @@index([siteId, startedAt])
   @@map("crawl_report")
+}
+
+model Competitor {
+  id        String   @id @default(cuid())
+  siteId    String   @map("site_id")
+  name      String
+  url       String
+  createdAt DateTime @default(now())
+
+  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  snapshots CompetitorSnapshot[]
+
+  @@unique([siteId, url])
+  @@index([siteId])
+  @@map("competitor")
+}
+
+model CompetitorSnapshot {
+  id           String   @id @default(cuid())
+  competitorId String   @map("competitor_id")
+  date         DateTime
+  perfScore    Int?     @map("perf_score")
+  lcpMs        Int?     @map("lcp_ms")
+  inpMs        Int?     @map("inp_ms")
+  cls          Float?
+  ttfbMs       Int?     @map("ttfb_ms")
+  createdAt    DateTime @default(now())
+
+  competitor   Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+
+  @@unique([competitorId, date])
+  @@index([competitorId, date])
+  @@map("competitor_snapshot")
 }
 
 // Enums

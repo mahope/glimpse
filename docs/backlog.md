@@ -636,7 +636,7 @@ Brugere skal hurtigt kunne se hvilke sites der har problemer. En "health score" 
 
 ---
 
-### 40. Implementer konkurrent-sammenligning
+### ~~40. Implementer konkurrent-sammenligning~~ DONE
 
 **Filer:** Ny model, nye API-routes, ny UI-side
 
