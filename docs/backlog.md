@@ -318,7 +318,7 @@ PSI API-kvoten er 200 kald/dag. Tælleren er in-process (`dailyCount`, `dayStamp
 
 ---
 
-### 20. Implementer timing-safe CRON_SECRET sammenligning
+### ~~20. Implementer timing-safe CRON_SECRET sammenligning~~ DONE
 
 **Fil:** `src/lib/cron/auth.ts`
 
