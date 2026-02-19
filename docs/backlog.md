@@ -153,7 +153,7 @@ Tre fejl i denne fil:
 
 ---
 
-### 10. Fix Google Sign-In knap på login-side
+### ~~10. Fix Google Sign-In knap på login-side~~ DONE
 
 **Fil:** `src/app/(auth)/sign-in/page.tsx`
 

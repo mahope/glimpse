@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { signIn } from "@/lib/auth-client"
+import { toast } from "@/components/ui/toast"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -10,6 +11,7 @@ import { Label } from "@/components/ui/label"
 export default function SignInPage() {
   const [email, setEmail] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const [isEmailSent, setIsEmailSent] = useState(false)
 
   const handleMagicLink = async (e: React.FormEvent) => {
@@ -22,9 +24,20 @@ export default function SignInPage() {
       setIsEmailSent(true)
     } catch (error) {
       console.error('Failed to send magic link:', error)
-      alert('Failed to send magic link. Please try again.')
+      toast('error', 'Failed to send magic link. Please try again.')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true)
+    try {
+      await signIn.social({ provider: 'google', callbackURL: '/dashboard' })
+    } catch (error) {
+      console.error('Failed to sign in with Google:', error)
+      toast('error', 'Failed to sign in with Google. Please try again.')
+      setIsGoogleLoading(false)
     }
   }
 
@@ -40,14 +53,14 @@ export default function SignInPage() {
             </div>
             <CardTitle className="text-2xl">Check your email</CardTitle>
             <CardDescription>
-              We've sent a magic link to <strong>{email}</strong>. 
+              We've sent a magic link to <strong>{email}</strong>.
               Click the link in your email to sign in.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button 
-              variant="outline" 
-              className="w-full" 
+            <Button
+              variant="outline"
+              className="w-full"
               onClick={() => setIsEmailSent(false)}
             >
               Try different email
@@ -81,15 +94,15 @@ export default function SignInPage() {
                 disabled={isLoading}
               />
             </div>
-            <Button 
-              type="submit" 
-              className="w-full" 
+            <Button
+              type="submit"
+              className="w-full"
               disabled={isLoading || !email}
             >
               {isLoading ? 'Sending...' : 'Send magic link'}
             </Button>
           </form>
-          
+
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t" />
@@ -98,8 +111,13 @@ export default function SignInPage() {
               <span className="bg-background px-2 text-muted-foreground">Or</span>
             </div>
           </div>
-          
-          <Button variant="outline" className="w-full">
+
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={handleGoogleSignIn}
+            disabled={isGoogleLoading}
+          >
             <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
               <path
                 fill="currentColor"
@@ -118,7 +136,7 @@ export default function SignInPage() {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            Continue with Google
+            {isGoogleLoading ? 'Redirecting...' : 'Continue with Google'}
           </Button>
         </CardContent>
       </Card>
