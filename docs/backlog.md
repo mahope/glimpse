@@ -831,4 +831,400 @@ Ingen metrics indsamles. Umuligt at vide om systemet er sundt uden at grave i lo
 
 ---
 
-*50 opgaver i alt. Prioritér kategori 1 (sikkerhed) og kategori 2 (stabilitet) først.*
+*50 opgaver i alt — alle fuldført 2026-02-19.*
+
+---
+---
+
+# Glimpse — Backlog v2
+
+> 25 prioriterede opgaver: stabilitet, UX-polish, rank tracking, backlinks, konkurrent-intelligence, rapporter og smarte anbefalinger.
+> Oprettet: 2026-02-19
+
+---
+
+## Kategori 1: Sikkerhed & Stabilitet
+
+### 1. Fix multi-tenancy-brud i alerts-sider
+
+**Fil:** `src/app/(dashboard)/sites/[siteId]/alerts/page.tsx`
+
+`alerts/page.tsx` bruger `prisma.site.findUnique({ where: { id: params.siteId } })` uden at checke `organizationId`. Enhver autentificeret bruger der kender et `siteId` kan se andre kunders alert-events.
+
+**Krav:**
+- Erstat `findUnique` med `findFirst` der inkluderer `organizationId` fra session
+- Returner 404 hvis sitet ikke tilhører brugerens aktive organisation
+- Audit alle andre sider under `sites/[siteId]/` for samme mønster
+- Tilføj test der verificerer at cross-org access afvises
+
+---
+
+### 2. Migrer sidste legacy-læsere til kanoniske modeller
+
+**Filer:** `src/lib/scoring/seo-scoring.ts`, `src/lib/reports/`, diverse UI-komponenter
+
+Nogle steder læser stadig fra de legacy-tabeller (`SearchConsoleData`, `PerformanceTest`) i stedet for de kanoniske (`SearchStatDaily`, `PerfSnapshot`/`SitePerfDaily`). Legacy-tabeller modtager ikke længere nye data fra sync-pipelinen.
+
+**Krav:**
+- Find og erstat alle imports/queries mod `SearchConsoleData` → `SearchStatDaily`
+- Find og erstat alle imports/queries mod `PerformanceTest` → `PerfSnapshot`/`SitePerfDaily`
+- Verificer at `SEOCalculator` bruger kanoniske data
+- Verificer at PDF-rapportgeneratoren bruger kanoniske data
+- Overvej at markere legacy-modeller som `@deprecated` i schema
+
+---
+
+### 3. Erstat browser `alert()` med toast-notifikationer
+
+**Filer:** `src/app/(dashboard)/settings/team/team-client.tsx`, `src/app/(dashboard)/sites/[siteId]/reports/reports-client.tsx` m.fl.
+
+Mindst 6 steder i UI-klienter bruger browser `alert()` til fejlhåndtering i stedet for `@/components/ui/toast` som bruges korrekt andre steder. Giver en inkonsistent og uprofessionel brugeroplevelse.
+
+**Krav:**
+- Søg efter alle `alert(` calls i `src/app/` og `src/components/`
+- Erstat med `toast('error', besked)` eller `toast('success', besked)`
+- Sikr at toast-provider er mounted i layout
+
+---
+
+## Kategori 2: Keyword & Rank Tracking
+
+### 4. Keyword position-historik UI
+
+**Filer:** Ny komponent + eksisterende API `GET /api/sites/[siteId]/gsc/keywords/[keyword]/history`
+
+API-endpointet for daglig keyword-historik eksisterer allerede men har ingen UI. Brugere kan ikke se hvordan et keywords position har udviklet sig over tid — en kernefunktion i ethvert SEO-værktøj.
+
+**Krav:**
+- Klikbar keyword i keyword-tabellen åbner drilldown-view (slide-over eller separat side)
+- Linjechart med daglig position, klik og impressions over tid (Recharts)
+- Vis site-gennemsnitlig position som reference-linje
+- Vælgbar tidsperiode (7d / 30d / 90d / 365d)
+- Vis opsummering: bedste position, gennemsnitlig position, total klik i perioden
+
+---
+
+### 5. Keyword-søgning og avanceret filtrering
+
+**Fil:** `src/app/(dashboard)/sites/[siteId]/keywords/keywords-client.tsx`
+
+Keywords-listen har device/country/period-filter men mangler fritekst-søgning og avancerede filtreringsmuligheder. Med 100+ keywords er det svært at finde specifikke termer.
+
+**Krav:**
+- Fritekst-søgefelt der filtrerer keywords i realtid (client-side for ≤500, server-side for >500)
+- Positionsfilter: "Top 3", "Top 10", "Top 20", "50+" som quick-buttons
+- CTR-filter: "Lav CTR" (under forventet CTR for positionen)
+- Trend-filter: "Kun stigende", "Kun faldende" baseret på positionsændring
+- Bevar eksisterende filters (device, country, period)
+- Gem filter-state i URL query params så bookmarks virker
+
+---
+
+### 6. Keyword-grupper og tags
+
+**Filer:** Ny Prisma-model, ny API-route, udvidelse af keywords UI
+
+Brugere har brug for at organisere keywords i grupper (branded, commercial, informational, lokale, osv.) for at forstå deres keyword-strategi.
+
+**Krav:**
+- Ny `KeywordTag` model (id, name, color, siteId)
+- Ny `KeywordTagAssignment` model (tagId, query, siteId) — many-to-many
+- API: CRUD for tags, assign/unassign tags til keywords
+- UI: Tag-selector i keyword-tabellen, filter-by-tag, bulk-assign via multi-select
+- Foruddefinerede forslag: "Branded", "Commercial", "Informational", "Lokale"
+
+---
+
+### 7. Keyword rank change-indikatorer i tabelvisning
+
+**Fil:** `src/app/(dashboard)/sites/[siteId]/keywords/keywords-client.tsx`
+
+Keyword-tabellen viser kun nuværende position men ikke ændring siden forrige periode. Brugere kan ikke hurtigt se hvilke keywords der stiger eller falder.
+
+**Krav:**
+- Tilføj kolonne "Ændring" med ↑/↓/= ikoner og farvemarkering (grøn/rød/grå)
+- Beregn delta mellem nuværende og forrige periodes gennemsnitlige position
+- Sortérbar efter ændring (største fald/stigning først)
+- Vis tooltip med præcis ændring (f.eks. "+3 positioner")
+
+---
+
+## Kategori 3: Backlink-modul
+
+### 8. Backlink data-abstraktionslag og GSC-integration
+
+**Filer:** Ny `src/lib/backlinks/`, nye Prisma-modeller, ny BullMQ-queue
+
+Byg et backlink-modul med et provider-interface der starter med GSC Links API (gratis) og kan udvides til Ahrefs/DataForSEO senere.
+
+**Krav:**
+- Provider-interface: `BacklinkProvider` med `fetchBacklinks(siteId)`, `fetchReferringDomains(siteId)`
+- GSC-provider: Brug Google Search Console Links API (allerede autentificeret via OAuth)
+- Prisma-modeller: `BacklinkSnapshot` (dato, total links, total referring domains), `ReferringDomain` (domain, linkCount, firstSeen, lastSeen)
+- BullMQ-queue: `backlink-sync` — daglig sync kl. 03:00
+- Config: `BACKLINK_PROVIDER=gsc|ahrefs|dataforseo` i env
+- Provider-registrering der gør det nemt at tilføje nye providers
+
+---
+
+### 9. Backlink dashboard UI
+
+**Filer:** Ny side `src/app/(dashboard)/sites/[siteId]/backlinks/`, ny API-route
+
+Dashboard-side der viser backlink-data fra det valgte provider-lag.
+
+**Krav:**
+- Ny tab "Backlinks" i site-navigationen
+- Oversigts-kort: totale links, totale referring domains, trend (↑↓)
+- Tabel: Top referring domains med link-count, first seen, type
+- Trend-chart: Referring domains over tid (30d/90d)
+- Top linkede sider på dit site (hvilke af dine sider får flest links)
+- "Nye links" og "Tabte links" sektioner (kræver historik — vises når data er tilgængeligt)
+
+---
+
+## Kategori 4: Konkurrent-intelligence
+
+### 10. Konkurrent keyword-overlap analyse
+
+**Filer:** Ny `src/lib/competitors/keyword-analysis.ts`, ny API-route, ny UI-sektion
+
+Sammenlign dine GSC-keywords med konkurrenters synlige keywords. Kræver at konkurrenter også er GSC-connected (samme org) eller via scraping/API.
+
+**Krav:**
+- Analyser keywords der overlapper mellem dit site og en konkurrents site (hvis begge er i Glimpse)
+- Vis: Fælles keywords, keywords kun du har, keywords kun konkurrenten har
+- Vis positionsforskelle for fælles keywords
+- Fallback for eksterne konkurrenter: vis kun dine keywords der matcher konkurrentens domæne i SERP (kræver en position-checker)
+- Start simpelt med intern sammenligning (begge sites i Glimpse), udvid senere
+
+---
+
+### 11. Konkurrent rank-sammenligning
+
+**Filer:** Udvidelse af konkurrent-UI, ny API-route
+
+Side-by-side positionsvisning for fælles keywords.
+
+**Krav:**
+- Vælg et keyword → vis dit sites position vs. konkurrentens over tid
+- Side-by-side linjechart med begge positionskurver
+- Tabel med top-10 fælles keywords sorteret efter "biggest gap"
+- Kun tilgængelig når begge sites er i Glimpse (intern sammenligning)
+
+---
+
+### 12. Automatisk daglig konkurrent PSI-tracking
+
+**Filer:** Udvidelse af `src/lib/jobs/`, eksisterende konkurrent-model
+
+Konkurrent PSI-tests kører pt. kun on-demand. For at se trends over tid skal de køre automatisk.
+
+**Krav:**
+- Tilføj daglig automatisk PSI-test for alle aktive konkurrenter (kl. 04:30, efter site PSI)
+- Gem `CompetitorSnapshot` dagligt i stedet for kun ved manuel test
+- Vis performance-trend chart på konkurrent-siden (allerede delvist implementeret)
+- Respekter PSI daily cap (200 kald/dag) — tæl konkurrent-tests med
+- Max 5 konkurrenter × antal sites begrænser den daglige belastning
+
+---
+
+## Kategori 5: UX & Dashboard Polish
+
+### 13. Responsiv tabelvisning til mobil
+
+**Filer:** `keywords-client.tsx`, `pages-client.tsx`, `alerts/page.tsx`, `competitors/`
+
+Tabeller overflower horisontalt på mobil uden scroll-indikator eller alternativ visning.
+
+**Krav:**
+- Tilføj responsive card-view for skærmbredder < 768px
+- Vis de vigtigste felter (keyword/URL, position, klik) som stacked cards
+- Bevar tabel-view for desktop
+- Tilføj horisontal scroll-wrapper med fade-indikator som fallback
+- Test på iPhone 14 viewport (Playwright mobile project)
+
+---
+
+### 14. Dato-range picker komponent
+
+**Filer:** Ny komponent, opdater overview/keywords/pages/performance
+
+Alle sider bruger faste "7d / 30d / 90d"-knapper. Brugere kan ikke vælge en custom datoperiode.
+
+**Krav:**
+- Byg eller installer en date-range picker (shadcn/ui har `Calendar` + `Popover`)
+- Bevar quick-buttons (7d, 30d, 90d) som genveje
+- Tilføj "Custom" der åbner date picker med fra/til
+- Brug URL query params (`?from=2026-01-01&to=2026-01-31`) så det kan bookmarkes
+- Implementer på: overview, keywords, pages, performance
+
+---
+
+### 15. Pages-side filtrering og URL-gruppering
+
+**Fil:** `src/app/(dashboard)/sites/[siteId]/pages/pages-client.tsx`
+
+Pages-siden mangler søgning, device/country-filter (som keywords har), og mulighed for at gruppere efter URL-sti.
+
+**Krav:**
+- Tilføj fritekst URL-søgning
+- Tilføj device og country filter (samme som keywords)
+- Tilføj URL-sti gruppering: vis `/blog/` (15 sider), `/products/` (8 sider) osv.
+- Klikbar gruppe åbner filtreret visning af sider i den sti
+- Vis aggregerede metrics per gruppe (total klik, gns. position)
+
+---
+
+### 16. "Sidst opdateret"-indikator på alle datasider
+
+**Filer:** Ny komponent, diverse sider
+
+Brugere kan ikke se hvornår data sidst blev synkroniseret. Det skaber usikkerhed om datas aktualitet.
+
+**Krav:**
+- Ny `DataFreshness` komponent der viser "Sidst opdateret: 19. feb kl. 02:15"
+- Hent timestamps fra: seneste `SearchStatDaily.date`, seneste `SitePerfDaily.date`, seneste `CrawlResult.crawlDate`
+- Vis på overview-siden og i site-sidebar
+- Vis advarsel hvis data er >48 timer gammelt ("Data kan være forældet")
+
+---
+
+### 17. In-browser rapport-preview
+
+**Filer:** Ny komponent, udvidelse af reports-side
+
+Rapporter kan pt. kun downloades som PDF. Brugere vil gerne se indholdet direkte i browseren.
+
+**Krav:**
+- Vis rapport-data som HTML direkte i UI (genbruge report-data structure)
+- Sektioner: KPI-kort, keyword-tabel, performance-graf, crawl-opsummering
+- "Download som PDF" knap der genererer PDF fra samme data
+- Responsivt layout der virker på mobil
+
+---
+
+## Kategori 6: Rapporter & White-label
+
+### 18. Customizable rapport-indhold
+
+**Filer:** Udvidelse af rapport-model og PDF-generator
+
+Alle rapporter har pt. samme faste indhold. Brugere bør kunne vælge hvilke sektioner der inkluderes.
+
+**Krav:**
+- Tilføj `reportSections` felt på `Report` model (JSON array af sektionsnøgler)
+- Tilgængelige sektioner: `kpis`, `keywords`, `pages`, `performance`, `crawl`, `competitors`, `backlinks`
+- UI: Checkbox-liste ved rapport-generering og i schedule-settings
+- PDF-generator respekterer de valgte sektioner
+- Default: alle sektioner inkluderet
+
+---
+
+### 19. White-label rapport-branding
+
+**Filer:** Udvidelse af Organisation-model, PDF-generator
+
+Rapporter bør kunne brandes med kundens eget look-and-feel.
+
+**Krav:**
+- Tilføj felter på `Organization`: `brandColor` (hex), `reportHeaderText`, `reportFooterText`
+- PDF-generator bruger `brandColor` til overskrifter og accenter
+- Vis org-logo (allerede understøttet) + custom header/footer tekst
+- Mulighed for at skjule "Genereret af Glimpse"-tekst
+- Settings-side under `/settings/branding` til at konfigurere
+
+---
+
+### 20. Automatisk rapport-email med HTML-preview
+
+**Filer:** Udvidelse af `src/app/api/cron/send-reports/route.ts`, ny email-template
+
+Planlagte rapporter genereres men sendes kun som PDF-vedhæftning. Tilføj et HTML-preview i email-body.
+
+**Krav:**
+- Byg HTML email-template med top-3 KPIs, vigtigste ændringer, og link til fuld rapport
+- Vedhæft PDF som før, men email-body giver et hurtigt overblik
+- Brug Resend med React email-templates
+- Tilføj email-modtagerliste per rapport (ikke kun site-owner)
+
+---
+
+## Kategori 7: Smarte Anbefalinger & Insights
+
+### 21. Prioriteret anbefalings-dashboard
+
+**Filer:** Ny side, udvidelse af `src/lib/recommendations/engine.ts`
+
+Recommendation-engineen eksisterer men har ingen dedikeret side. Anbefalinger bør være en central del af dashboardet — à la Morningscore "missions".
+
+**Krav:**
+- Ny side `/sites/[siteId]/recommendations` i site-navigationen
+- Top-10 anbefalinger sorteret efter estimeret impact (høj/medium/lav)
+- Hver anbefaling viser: kategori, beskrivelse, berørte sider/keywords, estimeret forbedring
+- "Marker som løst" funktion der skjuler anbefalingen til næste crawl/sync
+- Refresh-knap der genkører recommendation-engine
+
+---
+
+### 22. Keyword opportunity finder ("Low-hanging fruit")
+
+**Filer:** Ny analyse i `src/lib/recommendations/`, ny UI-sektion
+
+Find keywords med høje impressions men lav CTR i positioner 4-20 — det "lavthængende frugt" der nemmest kan forbedres.
+
+**Krav:**
+- Analyser `SearchStatDaily`: keywords med impressions > 50, position mellem 4-20, CTR under forventet for positionen
+- Beregn estimeret klik-gevinst hvis positionen forbedres 3 pladser
+- Vis som prioriteret liste: keyword, nuværende position, impressions, nuværende CTR, estimeret CTR, potentielle ekstra klik
+- Tilgængelig fra recommendations-siden og som widget på overview
+
+---
+
+### 23. Ugentlig SEO health-digest email
+
+**Filer:** Ny cron-route, ny email-template
+
+Automatisk ugentlig opsummering der sendes til site-ejere med de vigtigste ændringer.
+
+**Krav:**
+- Ny cron: `send-weekly-digest` (mandag kl. 08:00)
+- Indhold: SEO-score ændring, top 3 keyword-bevægelser (op/ned), nye alerts, vigtigste anbefaling
+- HTML email via Resend med link til dashboard
+- Kan slås til/fra per bruger i notification-settings
+- Respekterer notification-channel preferences (email + evt. Slack)
+
+---
+
+## Kategori 8: Teknisk Kvalitet
+
+### 24. Type safety cleanup
+
+**Filer:** Diverse klient-komponenter, API-routes
+
+~150 instanser af `@ts-expect-error`, `@ts-ignore` og `any` i codebasen. Primært i klient-komponenter der modtager utypede props og i API-response handlers.
+
+**Krav:**
+- Prioritér klient-komponenter: `KeywordsClient`, `PagesClient`, `PerformanceClient`
+- Opret shared types for API-responses (`types/api.ts`)
+- Erstat `any` i `getQueueStats` og andre server-utilities med proper BullMQ-types
+- Mål: reducer `any`-brug med mindst 75%
+
+---
+
+### 25. Performance-optimering af store queries og client-side debouncing
+
+**Filer:** Export-routes, klient-komponenter med filtre
+
+Keywords/pages export henter op til 10.000 rækker i én query. Filter-ændringer på klient-side trigger øjeblikkelige API-kald uden debouncing.
+
+**Krav:**
+- Export-routes: Implementer cursor-baseret pagination eller streaming for store datasets
+- Client-side: Tilføj 300ms debounce på søge- og filter-inputs
+- Tilføj `loading`-indikator under debounce-perioden
+- Overvej server-side caching (1 min TTL) for tunge keyword/page-queries
+- Test med 1000+ keywords for at verificere performance
+
+---
+
+*25 opgaver i alt. Prioritér kategori 1 (sikkerhed) og kategori 2 (rank tracking) først.*
