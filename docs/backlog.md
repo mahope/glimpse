@@ -670,7 +670,7 @@ Baseret på indsamlet data (crawl issues, performance metrics, keyword trends) k
 
 ---
 
-### 42. Implementer report-historik og scheduling
+### ~~42. Implementer report-historik og scheduling~~ DONE
 
 **Filer:** `src/app/(dashboard)/sites/[siteId]/reports/page.tsx`, ny model
 

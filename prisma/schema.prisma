@@ -147,6 +147,8 @@ model Site {
   alertRules       AlertRule[]
   alertEvents      AlertEvent[]
   competitors      Competitor[]
+  reports          Report[]
+  reportSchedule   ReportSchedule @default(NONE) @map("report_schedule")
 
   @@unique([organizationId, domain])
   @@map("site")
@@ -524,4 +526,27 @@ enum AlertMetric {
 enum AlertStatus {
   OPEN
   RESOLVED
+}
+
+enum ReportSchedule {
+  NONE
+  WEEKLY
+  MONTHLY
+}
+
+model Report {
+  id          String       @id @default(cuid())
+  siteId      String       @map("site_id")
+  type        String       @default("monthly") // monthly, weekly, on-demand
+  status      String       @default("completed") // completed, failed
+  generatedAt DateTime     @default(now()) @map("generated_at")
+  fileName    String       @map("file_name")
+  pdfData     Bytes        @map("pdf_data")
+  sentTo      String[]     @map("sent_to")
+  createdAt   DateTime     @default(now())
+
+  site        Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId, generatedAt])
+  @@map("report")
 }
