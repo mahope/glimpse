@@ -30,10 +30,13 @@ export const UptimeCheckSchema = BaseJobSchema.extend({
 })
 export type UptimeCheckJob = z.infer<typeof UptimeCheckSchema>
 
-export type JobKind = 'gsc-sync' | 'performance-test' | 'site-crawl' | 'score-calculation' | 'uptime-check'
+export const BacklinkSyncSchema = BaseJobSchema
+export type BacklinkSyncJob = z.infer<typeof BacklinkSyncSchema>
+
+export type JobKind = 'gsc-sync' | 'performance-test' | 'site-crawl' | 'score-calculation' | 'uptime-check' | 'backlink-sync'
 
 export const EnqueueJobBodySchema = z.object({
-  kind: z.enum(['gsc-sync', 'performance-test', 'site-crawl', 'score-calculation', 'uptime-check']),
+  kind: z.enum(['gsc-sync', 'performance-test', 'site-crawl', 'score-calculation', 'uptime-check', 'backlink-sync']),
   params: z.record(z.any()).optional(),
 })
 export type EnqueueJobBody = z.infer<typeof EnqueueJobBodySchema>

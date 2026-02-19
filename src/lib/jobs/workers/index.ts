@@ -3,6 +3,7 @@ import { scoreWorker } from './score-worker'
 import { crawlWorker } from './crawl-worker'
 import { perfWorker } from './perf-worker'
 import { uptimeWorker } from './uptime-worker'
+import { backlinkWorker } from './backlink-worker'
 import { logger } from '@/lib/logger'
 
 const log = logger.child({ ctx: 'workers' })
@@ -14,6 +15,7 @@ export const workers = {
   scoreWorker,
   crawlWorker,
   uptimeWorker,
+  backlinkWorker,
 }
 
 // Graceful shutdown handler
@@ -26,6 +28,7 @@ const gracefulShutdown = async () => {
     scoreWorker.close(),
     crawlWorker.close(),
     uptimeWorker.close(),
+    backlinkWorker.close(),
   ])
 
   log.info('All workers shut down successfully')

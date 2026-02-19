@@ -155,6 +155,8 @@ model Site {
   uptimeChecks     UptimeCheck[]
   keywordTags      KeywordTag[]
   keywordTagAssignments KeywordTagAssignment[]
+  backlinkSnapshots BacklinkSnapshot[]
+  referringDomains  ReferringDomain[]
 
   @@unique([organizationId, domain])
   @@map("site")
@@ -634,6 +636,41 @@ model KeywordTagAssignment {
   @@unique([tagId, siteId, query])
   @@index([siteId, query])
   @@map("keyword_tag_assignment")
+}
+
+// Backlink module
+model BacklinkSnapshot {
+  id                  String   @id @default(cuid())
+  siteId              String   @map("site_id")
+  date                DateTime
+  totalLinks          Int      @default(0) @map("total_links")
+  totalReferringDomains Int    @default(0) @map("total_referring_domains")
+  provider            String   @default("gsc")
+  createdAt           DateTime @default(now())
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, date, provider])
+  @@index([siteId, date])
+  @@map("backlink_snapshot")
+}
+
+model ReferringDomain {
+  id        String   @id @default(cuid())
+  siteId    String   @map("site_id")
+  domain    String
+  linkCount Int      @default(1) @map("link_count")
+  firstSeen DateTime @map("first_seen")
+  lastSeen  DateTime @map("last_seen")
+  provider  String   @default("gsc")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, domain, provider])
+  @@index([siteId])
+  @@map("referring_domain")
 }
 
 enum NotificationChannelType {

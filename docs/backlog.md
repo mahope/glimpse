@@ -951,7 +951,7 @@ Keyword-tabellen viser kun nuværende position men ikke ændring siden forrige p
 
 ## Kategori 3: Backlink-modul
 
-### 8. Backlink data-abstraktionslag og GSC-integration
+### ~~8. Backlink data-abstraktionslag og GSC-integration~~ DONE (2026-02-19)
 
 **Filer:** Ny `src/lib/backlinks/`, nye Prisma-modeller, ny BullMQ-queue
 
