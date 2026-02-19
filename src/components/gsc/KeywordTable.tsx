@@ -1,6 +1,6 @@
 "use client"
 import React from 'react'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, ScrollableTable } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { TrendBadge } from './TrendBadge'
 import { KeywordHistory } from './KeywordHistory'
@@ -88,6 +88,61 @@ export function KeywordTable({ items, siteId, onFilter, sortField, sortDir, onSo
       {items.length === 0 ? (
         <div className="py-8 text-center text-muted-foreground">Ingen keywords fundet for de valgte filtre.</div>
       ) : (
+        <>
+        {/* Mobile card view */}
+        <div className="md:hidden space-y-2">
+          {items.map((row) => (
+            <div
+              key={row.query}
+              role={siteId ? "button" : undefined}
+              tabIndex={siteId ? 0 : undefined}
+              onKeyDown={siteId ? (e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedKeyword(row.query) } } : undefined}
+              className={`rounded-lg border p-3 space-y-2 ${siteId ? 'cursor-pointer active:bg-accent/50' : ''}`}
+              onClick={siteId ? () => setSelectedKeyword(row.query) : undefined}
+            >
+              <div className="font-medium text-sm">
+                {row.query}
+                {row.tags && row.tags.length > 0 && (
+                  <span className="ml-1.5 inline-flex gap-1">
+                    {row.tags.map(tag => (
+                      <span key={tag.id} className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium text-white" style={{ backgroundColor: tag.color }}>
+                        {tag.name}
+                      </span>
+                    ))}
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-4 gap-2 text-xs">
+                <div>
+                  <div className="text-muted-foreground">Klik</div>
+                  <div className="font-medium">{row.clicks30.toLocaleString()}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Visn.</div>
+                  <div className="font-medium">{row.impressions30.toLocaleString()}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Pos.</div>
+                  <div className="font-medium">{row.position30.toFixed(1)}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Ændring</div>
+                  <div className="font-medium">
+                    {(() => {
+                      const delta = row.positionDelta ?? 0
+                      if (delta > 0) return <span className="text-green-600">+{delta.toFixed(1)}</span>
+                      if (delta < 0) return <span className="text-red-500">{delta.toFixed(1)}</span>
+                      return <span className="text-muted-foreground">—</span>
+                    })()}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop table view */}
+        <ScrollableTable className="hidden md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -199,6 +254,8 @@ export function KeywordTable({ items, siteId, onFilter, sortField, sortDir, onSo
             ))}
           </TableBody>
         </Table>
+        </ScrollableTable>
+        </>
       )}
 
       {/* Keyword history dialog */}

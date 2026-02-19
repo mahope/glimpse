@@ -385,7 +385,93 @@ export function CompetitorsClient({ siteId }: { siteId: string }) {
               <CardTitle className="text-base">Konkurrenter</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
+              {/* Mobile card view */}
+              <div className="md:hidden space-y-3">
+                {/* Site's own card */}
+                <div className="rounded-lg border p-3 bg-accent/30 space-y-2">
+                  <div className="font-medium text-sm">{data.site.domain} (dit site)</div>
+                  <div className="grid grid-cols-4 gap-2 text-xs">
+                    <div>
+                      <div className="text-muted-foreground">Score</div>
+                      <div className="font-medium" style={{ color: cwvColor('score', data.site.latestPerf?.perfScore ?? null) }}>
+                        {data.site.latestPerf?.perfScore ?? '—'}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">LCP</div>
+                      <div className="font-medium" style={{ color: cwvColor('lcp', data.site.latestPerf?.lcpMs ?? null) }}>
+                        {data.site.latestPerf?.lcpMs != null ? `${(data.site.latestPerf.lcpMs / 1000).toFixed(1)}s` : '—'}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">INP</div>
+                      <div className="font-medium" style={{ color: cwvColor('inp', data.site.latestPerf?.inpMs ?? null) }}>
+                        {data.site.latestPerf?.inpMs != null ? `${data.site.latestPerf.inpMs}ms` : '—'}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">CLS</div>
+                      <div className="font-medium" style={{ color: cwvColor('cls', data.site.latestPerf?.cls ?? null) }}>
+                        {data.site.latestPerf?.cls != null ? data.site.latestPerf.cls.toFixed(3) : '—'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {/* Competitor cards */}
+                {data.competitors.map(c => (
+                  <div key={c.id} className="rounded-lg border p-3 space-y-2">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="font-medium text-sm">{c.name}</div>
+                        <div className="text-xs text-muted-foreground truncate max-w-48">{c.url}</div>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button variant={overlapCompetitorId === c.id ? 'secondary' : 'ghost'} size="sm" onClick={() => handleOverlap(c.id)} title="Keyword overlap">
+                          <Search className="h-4 w-4" />
+                        </Button>
+                        <Button variant={trendCompetitorId === c.id ? 'secondary' : 'ghost'} size="sm" onClick={() => handleTrend(c.id)} title="Performance trend">
+                          <TrendingUp className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleTest(c.id)} disabled={testing === c.id} title="Kør PSI-test">
+                          {testing === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDelete(c.id)} disabled={deleting === c.id} className="text-destructive hover:text-destructive" title="Fjern">
+                          {deleting === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2 text-xs">
+                      <div>
+                        <div className="text-muted-foreground">Score</div>
+                        <div className="font-medium" style={{ color: cwvColor('score', c.latestSnapshot?.perfScore ?? null) }}>
+                          {c.latestSnapshot?.perfScore ?? '—'}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">LCP</div>
+                        <div className="font-medium" style={{ color: cwvColor('lcp', c.latestSnapshot?.lcpMs ?? null) }}>
+                          {c.latestSnapshot?.lcpMs != null ? `${(c.latestSnapshot.lcpMs / 1000).toFixed(1)}s` : '—'}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">INP</div>
+                        <div className="font-medium" style={{ color: cwvColor('inp', c.latestSnapshot?.inpMs ?? null) }}>
+                          {c.latestSnapshot?.inpMs != null ? `${c.latestSnapshot.inpMs}ms` : '—'}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">CLS</div>
+                        <div className="font-medium" style={{ color: cwvColor('cls', c.latestSnapshot?.cls ?? null) }}>
+                          {c.latestSnapshot?.cls != null ? c.latestSnapshot.cls.toFixed(3) : '—'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop table view */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b text-left text-muted-foreground">
@@ -595,7 +681,7 @@ export function CompetitorsClient({ siteId }: { siteId: string }) {
                     </div>
 
                     {/* Tabs */}
-                    <div className="flex gap-1">
+                    <div className="flex flex-wrap gap-1">
                       {([
                         ['shared', `Fælles (${overlapData.summary!.sharedCount})`],
                         ['onlySource', `Kun dit site (${overlapData.summary!.onlySourceCount})`],

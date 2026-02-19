@@ -38,30 +38,59 @@ export default async function AlertsPage({ params }: { params: { siteId: string 
       <SiteNav siteId={params.siteId} active="alerts" />
       <h1 className="text-2xl font-semibold">Alerts</h1>
       {events.length > 0 ? (
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="text-left border-b">
-                <th className="py-2 pr-4">Date</th>
-                <th className="py-2 pr-4">Metric</th>
-                <th className="py-2 pr-4">Device</th>
-                <th className="py-2 pr-4">Value</th>
-                <th className="py-2 pr-4">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {events.map(ev => (
-                <tr key={ev.id} className="border-b">
-                  <td className="py-2 pr-4">{new Date(ev.date).toLocaleDateString()}</td>
-                  <td className="py-2 pr-4">{ev.metric}</td>
-                  <td className="py-2 pr-4">{ev.device}</td>
-                  <td className="py-2 pr-4">{ev.value}</td>
-                  <td className="py-2 pr-4"><span className={statusBadge(ev.status)}>{ev.status}</span></td>
+        <>
+          {/* Mobile card view */}
+          <div className="md:hidden space-y-2">
+            {events.map(ev => (
+              <div key={ev.id} className="rounded-lg border p-3 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">{ev.metric}</span>
+                  <span className={statusBadge(ev.status)}>{ev.status}</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div>
+                    <div className="text-muted-foreground">Dato</div>
+                    <div className="font-medium">{new Date(ev.date).toLocaleDateString()}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">Enhed</div>
+                    <div className="font-medium">{ev.device}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">Værdi</div>
+                    <div className="font-medium">{ev.value}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop table view */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="text-left border-b">
+                  <th className="py-2 pr-4">Date</th>
+                  <th className="py-2 pr-4">Metric</th>
+                  <th className="py-2 pr-4">Device</th>
+                  <th className="py-2 pr-4">Value</th>
+                  <th className="py-2 pr-4">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {events.map(ev => (
+                  <tr key={ev.id} className="border-b">
+                    <td className="py-2 pr-4">{new Date(ev.date).toLocaleDateString()}</td>
+                    <td className="py-2 pr-4">{ev.metric}</td>
+                    <td className="py-2 pr-4">{ev.device}</td>
+                    <td className="py-2 pr-4">{ev.value}</td>
+                    <td className="py-2 pr-4"><span className={statusBadge(ev.status)}>{ev.status}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       ) : (
         <p className="text-muted-foreground">No alert events yet.</p>
       )}

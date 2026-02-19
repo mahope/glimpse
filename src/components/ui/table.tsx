@@ -1,3 +1,5 @@
+'use client'
+
 import * as React from "react"
 
 function cn(...classes: (string | undefined | false)[]) {
@@ -12,6 +14,35 @@ const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableE
   )
 )
 Table.displayName = "Table"
+
+function ScrollableTable({ children, className }: { children: React.ReactNode; className?: string }) {
+  const scrollRef = React.useRef<HTMLDivElement>(null)
+  const [canScrollRight, setCanScrollRight] = React.useState(false)
+
+  React.useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const check = () => {
+      setCanScrollRight(el.scrollWidth - el.scrollLeft - el.clientWidth > 1)
+    }
+    check()
+    el.addEventListener('scroll', check, { passive: true })
+    const ro = new ResizeObserver(check)
+    ro.observe(el)
+    return () => { el.removeEventListener('scroll', check); ro.disconnect() }
+  }, [])
+
+  return (
+    <div className={cn("relative", className)}>
+      <div ref={scrollRef} className="w-full overflow-x-auto">
+        {children}
+      </div>
+      {canScrollRight && (
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent" />
+      )}
+    </div>
+  )
+}
 
 const TableHeader = React.forwardRef<HTMLTableSectionElement, React.HTMLAttributes<HTMLTableSectionElement>>(
   ({ className, ...props }, ref) => <thead ref={ref} className={cn("[&_tr]:border-b", className)} {...props} />
@@ -44,4 +75,4 @@ const TableCell = React.forwardRef<HTMLTableCellElement, React.TdHTMLAttributes<
 )
 TableCell.displayName = "TableCell"
 
-export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell }
+export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, ScrollableTable }

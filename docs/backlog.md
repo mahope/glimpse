@@ -1031,7 +1031,7 @@ Konkurrent PSI-tests kører pt. kun on-demand. For at se trends over tid skal de
 
 ## Kategori 5: UX & Dashboard Polish
 
-### 13. Responsiv tabelvisning til mobil
+### ~~13. Responsiv tabelvisning til mobil~~ DONE (2026-02-19)
 
 **Filer:** `keywords-client.tsx`, `pages-client.tsx`, `alerts/page.tsx`, `competitors/`
 

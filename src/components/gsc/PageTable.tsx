@@ -1,6 +1,6 @@
 "use client"
 import React from 'react'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, ScrollableTable } from '@/components/ui/table'
 import { TrendBadge } from './TrendBadge'
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
 
@@ -36,6 +36,47 @@ export function PageTable({ items, sortField, sortDir, onSort }:
   }
 
   return (
+    <>
+    {/* Mobile card view */}
+    <div className="md:hidden space-y-2">
+      {items.map((row) => {
+        const path = (() => {
+          try { return new URL(row.pageUrl).pathname } catch { return row.pageUrl }
+        })()
+        return (
+          <a
+            key={row.pageUrl}
+            href={row.pageUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="block rounded-lg border p-3 space-y-2 active:bg-accent/50"
+          >
+            <div className="font-medium text-sm text-blue-600 dark:text-blue-400 truncate">{path}</div>
+            <div className="grid grid-cols-4 gap-2 text-xs">
+              <div>
+                <div className="text-muted-foreground">Klik</div>
+                <div className="font-medium">{row.clicks30.toLocaleString()}</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground">Visn.</div>
+                <div className="font-medium">{row.impressions30.toLocaleString()}</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground">CTR</div>
+                <div className="font-medium">{row.ctr30.toFixed(1)}%</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground">Pos.</div>
+                <div className="font-medium">{row.position30.toFixed(1)}</div>
+              </div>
+            </div>
+          </a>
+        )
+      })}
+    </div>
+
+    {/* Desktop table view */}
+    <ScrollableTable className="hidden md:block">
     <Table>
       <TableHeader>
         <TableRow>
@@ -83,5 +124,7 @@ export function PageTable({ items, sortField, sortDir, onSort }:
         ))}
       </TableBody>
     </Table>
+    </ScrollableTable>
+    </>
   )
 }
