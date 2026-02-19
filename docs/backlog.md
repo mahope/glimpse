@@ -487,7 +487,7 @@ Hele dashboard-landingssiden viser hardkodede mock-data. Alle 6 komponenter (Kpi
 
 ---
 
-### 31. Forbedre Overview-sidens periode-skifter
+### ~~31. Forbedre Overview-sidens periode-skifter~~ DONE
 
 **Fil:** `src/app/(dashboard)/sites/[siteId]/overview/page.tsx`
 
