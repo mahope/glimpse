@@ -718,7 +718,7 @@ Kunder vil gerne dele adgang med deres team (f.eks. webudvikler, content-skriver
 
 ---
 
-### 45. Implementer Slack/webhook notifications
+### ~~45. Implementer Slack/webhook notifications~~ DONE
 
 **Filer:** Ny model, ny `lib/notifications/` modul
 

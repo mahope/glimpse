@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { jobLogger } from '@/lib/logger'
 import { moveToDeadLetter } from '../dead-letter'
 import { sendEmail } from '@/lib/email/client'
+import { dispatchNotification } from '@/lib/notifications/dispatcher'
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -116,6 +117,22 @@ export const uptimeWorker = new Worker<UptimeCheckJobData>(
           } catch (emailErr) {
             log.error({ err: emailErr }, 'Failed to send downtime alert email')
           }
+
+          // Dispatch to Slack/webhook channels
+          try {
+            await dispatchNotification(site.organizationId, {
+              event: 'uptime',
+              title: `Downtime: ${site.name} er nede`,
+              message: `${site.url} har været nede i over 5 minutter. Fejl: ${result.error || `HTTP ${result.statusCode}`}`,
+              severity: 'critical',
+              url: `${process.env.NEXT_PUBLIC_APP_URL || ''}/sites/${siteId}/uptime`,
+              fields: [
+                { label: 'Site', value: site.name },
+                { label: 'URL', value: site.url },
+                { label: 'Fejl', value: result.error || `HTTP ${result.statusCode}` },
+              ],
+            })
+          } catch { /* notification dispatch failure should not block uptime checks */ }
         }
       }
     }

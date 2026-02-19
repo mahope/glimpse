@@ -5,6 +5,7 @@ import { subDays, isAfter } from 'date-fns'
 import { evaluateRule } from '@/lib/alerts/evaluator'
 import { SeriesPoint } from '@/lib/alerts/types'
 import { sendAlertEmail } from '@/lib/email/alerts'
+import { dispatchNotification } from '@/lib/notifications/dispatcher'
 import { cronLogger } from '@/lib/logger'
 
 const log = cronLogger('alerts')
@@ -83,6 +84,24 @@ export async function POST(req: NextRequest) {
           const site = sites.find(s => s.id === rule.siteId)!
           const owners = (site.organization?.members ?? []).filter(m => m.role === 'OWNER').map(m => (m as any).user?.email).filter(Boolean) as string[]
           await sendAlertEmail(site, rule, event, owners)
+
+          // Dispatch to Slack/webhook channels
+          try {
+            await dispatchNotification(site.organizationId, {
+              event: 'alert',
+              title: `Alert: ${site.name} — ${rule.metric} (${rule.device})`,
+              message: `${rule.metric} on ${rule.device.toLowerCase()} exceeded threshold. Observed: ${evalRes.value ?? 0}, Threshold: ${rule.threshold}`,
+              severity: 'critical',
+              url: `${process.env.NEXT_PUBLIC_APP_URL || ''}/sites/${site.id}/settings/alerts`,
+              fields: [
+                { label: 'Site', value: site.name },
+                { label: 'Metric', value: rule.metric },
+                { label: 'Observed', value: String(evalRes.value ?? 0) },
+                { label: 'Threshold', value: String(rule.threshold) },
+              ],
+            })
+          } catch { /* notification dispatch failure should not block alerts */ }
+
           results.push({ ruleId: rule.id, created: event.id })
         } else {
           results.push({ ruleId: rule.id, skipped: 'open-recent' })

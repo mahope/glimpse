@@ -92,9 +92,10 @@ model Organization {
   updatedAt   DateTime @updatedAt
   
   // Relations
-  members     Member[]
-  invitations Invitation[]
-  sites       Site[]
+  members              Member[]
+  invitations          Invitation[]
+  sites                Site[]
+  notificationChannels NotificationChannel[]
 
   @@map("organization")
 }
@@ -585,4 +586,26 @@ model UptimeCheck {
 
   @@index([siteId, checkedAt])
   @@map("uptime_check")
+}
+
+model NotificationChannel {
+  id             String            @id @default(cuid())
+  organizationId String            @map("organization_id")
+  name           String
+  type           NotificationChannelType
+  config         Json              // Slack: { webhookUrl, channel }, Webhook: { url, headers, secret }
+  events         String[]          // ["alert", "report", "uptime"]
+  enabled        Boolean           @default(true)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("notification_channel")
+}
+
+enum NotificationChannelType {
+  SLACK
+  WEBHOOK
 }

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { renderReportPDF } from '@/lib/reports/pdf-generator'
 import { buildReportData } from '@/lib/reports/build-report-data'
 import { sendEmail } from '@/lib/email/client'
+import { dispatchNotification } from '@/lib/notifications/dispatcher'
 import { format } from 'date-fns'
 import { verifyCronSecret } from '@/lib/cron/auth'
 import { cronLogger } from '@/lib/logger'
@@ -71,6 +72,23 @@ export async function POST(req: NextRequest) {
             where: { id: report.id },
             data: { sentTo: recipients },
           })
+
+          // Notify Slack/webhook channels
+          try {
+            await dispatchNotification(site.organizationId, {
+              event: 'report',
+              title: `Rapport klar: ${site.name}`,
+              message: `${typeLabel === 'weekly' ? 'Ugentlig' : 'Månedlig'} rapport for ${site.name} er genereret og sendt.`,
+              severity: 'info',
+              url: `${process.env.NEXT_PUBLIC_APP_URL || ''}/sites/${site.id}/reports`,
+              fields: [
+                { label: 'Site', value: site.name },
+                { label: 'Type', value: typeLabel === 'weekly' ? 'Ugentlig' : 'Månedlig' },
+                { label: 'Periode', value: data.period.label },
+              ],
+            })
+          } catch { /* notification dispatch failure should not block reports */ }
+
           sent++
         } catch (emailErr) {
           await prisma.report.update({
