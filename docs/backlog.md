@@ -234,7 +234,7 @@ To PSI-workers kører parallelt:
 
 ---
 
-### 15. Konsolider scoring til én implementering
+### ~~15. Konsolider scoring til én implementering~~ DONE
 
 **Filer:** `lib/scoring/calculator.ts`, `lib/scoring/seo-scoring.ts`
 
