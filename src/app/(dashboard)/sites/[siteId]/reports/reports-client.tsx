@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { FileText, Download, Trash2, Loader2, Calendar } from 'lucide-react'
+import { FileText, Download, Trash2, Loader2, Calendar, Eye } from 'lucide-react'
+import { ReportPreviewHTML } from '@/components/reports/report-preview-html'
 import { toast } from '@/components/ui/toast'
 
 interface ReportItem {
@@ -40,6 +41,7 @@ export function ReportsClient({
   const [generating, setGenerating] = useState(false)
   const [schedule, setSchedule] = useState<Schedule>(initialSchedule as Schedule)
   const [savingSchedule, setSavingSchedule] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
 
   const fetchReports = useCallback(() => {
     setLoading(true)
@@ -99,6 +101,10 @@ export function ReportsClient({
     }
   }
 
+  if (showPreview) {
+    return <ReportPreviewHTML siteId={siteId} onClose={() => setShowPreview(false)} />
+  }
+
   return (
     <>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -107,6 +113,10 @@ export function ReportsClient({
           <p className="text-sm text-muted-foreground">Generer, download og planlæg rapporter.</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setShowPreview(true)}>
+            <Eye className="h-4 w-4 mr-1" />
+            Forhåndsvisning
+          </Button>
           <a href={`/api/sites/${siteId}/report`} target="_blank" rel="noreferrer">
             <Button variant="outline" size="sm">
               <Download className="h-4 w-4 mr-1" />

@@ -1090,7 +1090,7 @@ Brugere kan ikke se hvornår data sidst blev synkroniseret. Det skaber usikkerhe
 
 ---
 
-### 17. In-browser rapport-preview
+### ~~17. In-browser rapport-preview~~ DONE
 
 **Filer:** Ny komponent, udvidelse af reports-side
 

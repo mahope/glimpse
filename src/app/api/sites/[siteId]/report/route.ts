@@ -103,6 +103,12 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
     trends,
   }
 
+  // Return JSON if requested (for in-browser preview)
+  const { searchParams: sp } = new URL(req.url)
+  if (sp.get('format') === 'json') {
+    return NextResponse.json(data)
+  }
+
   const buffer = await renderReportPDF(data as any)
   return new Response(buffer, {
     headers: {
