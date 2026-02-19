@@ -109,6 +109,119 @@ export function WelcomeEmail({ name }: { name?: string }) {
   )
 }
 
+export function WeeklyDigestEmail({
+  organizationName,
+  periodLabel,
+  sites,
+  totalAlerts,
+  dashboardUrl,
+}: {
+  organizationName: string
+  periodLabel: string
+  sites: Array<{
+    siteName: string
+    domain: string
+    seoScore: number | null
+    seoScoreChange: number | null
+    topMovers: Array<{ keyword: string; positionChange: number; direction: 'up' | 'down' }>
+    newAlertCount: number
+    topRecommendation: string | null
+  }>
+  totalAlerts: number
+  dashboardUrl: string
+}) {
+  return (
+    <div style={{ fontFamily: 'Inter, Arial, sans-serif', color: '#111827', maxWidth: 600, margin: '0 auto' }}>
+      <div style={{ backgroundColor: '#2563EB', padding: '24px 32px', borderRadius: '8px 8px 0 0' }}>
+        <h1 style={{ color: '#ffffff', fontSize: 20, margin: 0 }}>Ugentlig SEO-oversigt</h1>
+        <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 14, margin: '4px 0 0' }}>
+          {organizationName} — {periodLabel}
+        </p>
+      </div>
+
+      <div style={{ padding: '24px 32px', border: '1px solid #E5E7EB', borderTop: 'none' }}>
+        {totalAlerts > 0 && (
+          <div style={{ backgroundColor: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 6, padding: '12px 16px', marginBottom: 20 }}>
+            <p style={{ margin: 0, fontSize: 14, color: '#991B1B' }}>
+              <strong>{totalAlerts} nye alerts</strong> denne uge på tværs af dine sites
+            </p>
+          </div>
+        )}
+
+        {sites.map((site, idx) => (
+          <div key={idx} style={{ marginBottom: 24, paddingBottom: 20, borderBottom: idx < sites.length - 1 ? '1px solid #E5E7EB' : 'none' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+              <h2 style={{ fontSize: 16, margin: 0 }}>{site.siteName}</h2>
+              <span style={{ fontSize: 12, color: '#6B7280' }}>{site.domain}</span>
+            </div>
+
+            {site.seoScore != null && (
+              <p style={{ fontSize: 14, margin: '0 0 8px' }}>
+                SEO Score: <strong>{site.seoScore}</strong>
+                {site.seoScoreChange != null && site.seoScoreChange !== 0 && (
+                  <span style={{ color: site.seoScoreChange > 0 ? '#059669' : '#DC2626', marginLeft: 8 }}>
+                    {site.seoScoreChange > 0 ? '+' : ''}{site.seoScoreChange} point
+                  </span>
+                )}
+              </p>
+            )}
+
+            {site.topMovers.length > 0 && (
+              <div style={{ marginBottom: 8 }}>
+                <p style={{ fontSize: 12, color: '#6B7280', margin: '0 0 4px' }}>Største keyword-bevægelser:</p>
+                {site.topMovers.map((mover, mi) => (
+                  <p key={mi} style={{ fontSize: 13, margin: '2px 0', paddingLeft: 8 }}>
+                    <span style={{ color: mover.direction === 'up' ? '#059669' : '#DC2626' }}>
+                      {mover.direction === 'up' ? '▲' : '▼'} {Math.abs(mover.positionChange)} pos.
+                    </span>
+                    {' '}<span style={{ color: '#374151' }}>{mover.keyword}</span>
+                  </p>
+                ))}
+              </div>
+            )}
+
+            {site.newAlertCount > 0 && (
+              <p style={{ fontSize: 13, margin: '4px 0', color: '#DC2626' }}>
+                {site.newAlertCount} nye alerts
+              </p>
+            )}
+
+            {site.topRecommendation && (
+              <p style={{ fontSize: 13, margin: '4px 0', color: '#6B7280' }}>
+                Vigtigste anbefaling: <em>{site.topRecommendation}</em>
+              </p>
+            )}
+          </div>
+        ))}
+
+        <div style={{ textAlign: 'center', marginTop: 16 }}>
+          <a
+            href={dashboardUrl}
+            style={{
+              display: 'inline-block',
+              backgroundColor: '#2563EB',
+              color: '#ffffff',
+              padding: '12px 32px',
+              borderRadius: 6,
+              textDecoration: 'none',
+              fontSize: 14,
+              fontWeight: 600,
+            }}
+          >
+            Gå til dashboard
+          </a>
+        </div>
+      </div>
+
+      <div style={{ padding: '12px 32px', backgroundColor: '#F9FAFB', borderRadius: '0 0 8px 8px', border: '1px solid #E5E7EB', borderTop: 'none' }}>
+        <p style={{ fontSize: 11, color: '#9CA3AF', margin: 0, textAlign: 'center' }}>
+          Denne ugentlige oversigt er sendt automatisk fra Glimpse. Du kan slå den fra under Indstillinger.
+        </p>
+      </div>
+    </div>
+  )
+}
+
 export function AlertEmail({ siteName, message }: { siteName: string; message: string }) {
   return (
     <div style={{ fontFamily: 'Inter, Arial, sans-serif', color: '#111827' }}>

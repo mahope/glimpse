@@ -1181,7 +1181,7 @@ Find keywords med høje impressions men lav CTR i positioner 4-20 — det "lavth
 
 ---
 
-### 23. Ugentlig SEO health-digest email
+### ~~23. Ugentlig SEO health-digest email~~ DONE
 
 **Filer:** Ny cron-route, ny email-template
 
