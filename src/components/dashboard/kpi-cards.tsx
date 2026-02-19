@@ -1,26 +1,25 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { TrendingUp, TrendingDown, MousePointer, Eye, BarChart3, Target } from "lucide-react"
 
-// Mock data - replace with real API calls
-const kpiData = {
-  clicks: { value: 12540, change: 12.5, trend: 'up' as const },
-  impressions: { value: 145200, change: -3.2, trend: 'down' as const },
-  ctr: { value: 8.6, change: 15.8, trend: 'up' as const },
-  position: { value: 12.3, change: -8.4, trend: 'down' as const }, // Lower position is better
+interface KpiData {
+  clicks: { value: number; deltaPct: number }
+  impressions: { value: number; deltaPct: number }
+  ctr: { value: number; deltaPct: number }
+  position: { value: number; deltaPct: number }
 }
 
 interface KpiCardProps {
   title: string
   value: string | number
   change: number
-  trend: 'up' | 'down'
   icon: React.ComponentType<{ className?: string }>
   suffix?: string
   description?: string
+  invertTrend?: boolean
 }
 
-function KpiCard({ title, value, change, trend, icon: Icon, suffix = '', description }: KpiCardProps) {
-  const isPositive = (title === 'Average Position' ? trend === 'down' : trend === 'up')
+function KpiCard({ title, value, change, icon: Icon, suffix = '', description, invertTrend }: KpiCardProps) {
+  const isPositive = invertTrend ? change <= 0 : change >= 0
 
   return (
     <Card>
@@ -39,9 +38,9 @@ function KpiCard({ title, value, change, trend, icon: Icon, suffix = '', descrip
             <TrendingDown className="h-4 w-4 mr-1" />
           )}
           <span className="font-medium">
-            {Math.abs(change)}%
+            {Math.abs(Math.round(change * 10) / 10)}%
           </span>
-          <span className="text-muted-foreground ml-1">vs last month</span>
+          <span className="text-muted-foreground ml-1">vs last period</span>
         </div>
         {description && (
           <CardDescription className="mt-2">{description}</CardDescription>
@@ -51,41 +50,34 @@ function KpiCard({ title, value, change, trend, icon: Icon, suffix = '', descrip
   )
 }
 
-export function KpiCards() {
+export function KpiCards({ data }: { data: KpiData }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <KpiCard
         title="Total Clicks"
-        value={kpiData.clicks.value}
-        change={kpiData.clicks.change}
-        trend={kpiData.clicks.trend}
+        value={data.clicks.value}
+        change={data.clicks.deltaPct}
         icon={MousePointer}
-        description="Users who clicked through from search results"
       />
       <KpiCard
         title="Total Impressions"
-        value={kpiData.impressions.value}
-        change={kpiData.impressions.change}
-        trend={kpiData.impressions.trend}
+        value={data.impressions.value}
+        change={data.impressions.deltaPct}
         icon={Eye}
-        description="Times your pages appeared in search results"
       />
       <KpiCard
         title="Average CTR"
-        value={kpiData.ctr.value}
-        change={kpiData.ctr.change}
-        trend={kpiData.ctr.trend}
+        value={Math.round(data.ctr.value * 10) / 10}
+        change={data.ctr.deltaPct}
         icon={BarChart3}
         suffix="%"
-        description="Click-through rate from search results"
       />
       <KpiCard
         title="Average Position"
-        value={kpiData.position.value}
-        change={kpiData.position.change}
-        trend={kpiData.position.trend}
+        value={Math.round(data.position.value * 10) / 10}
+        change={data.position.deltaPct}
         icon={Target}
-        description="Average ranking position in search results"
+        invertTrend
       />
     </div>
   )

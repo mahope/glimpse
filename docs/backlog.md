@@ -455,7 +455,7 @@ Mindst 7 komponenter bruger `alert()` eller `confirm()` browser-dialogs:
 
 ---
 
-### 29. Byg rigtig dashboard-landingsside med aggregeret data
+### ~~29. Byg rigtig dashboard-landingsside med aggregeret data~~ DONE
 
 **Fil:** `src/app/(dashboard)/dashboard/page.tsx`
 
