@@ -7,6 +7,7 @@ const tabs = [
   { href: '/settings/profile', label: 'Profil' },
   { href: '/settings/notifications', label: 'Notifikationer' },
   { href: '/settings/team', label: 'Team' },
+  { href: '/settings/branding', label: 'Branding' },
 ]
 
 export function SettingsNav() {

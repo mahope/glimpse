@@ -177,13 +177,20 @@ function Trends({ points }: { points?: TrendPoint[] }) {
 }
 
 export function ReportPDF({ data }: { data: ReportData }) {
-  const { site, period, generatedAt, seoScore } = data
+  const { site, period, generatedAt, seoScore, branding } = data
+  const accent = branding?.brandColor || '#111827'
+  const brandedTitle = { ...styles.sectionTitle, color: accent }
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
+        {branding?.headerText && (
+          <Text style={{ fontSize: 10, color: accent, marginBottom: 8 }}>{branding.headerText}</Text>
+        )}
+
         <View style={styles.header}>
           <View style={styles.siteBlock}>
-            <Text style={styles.siteName}>{site.name}</Text>
+            <Text style={[styles.siteName, { color: accent }]}>{site.name}</Text>
             <Text style={styles.siteDomain}>{site.domain} • {period.label}</Text>
             <Text style={styles.small}>Generated {new Date(generatedAt).toLocaleString()}</Text>
           </View>
@@ -193,37 +200,46 @@ export function ReportPDF({ data }: { data: ReportData }) {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>KPIs</Text>
+          <Text style={brandedTitle}>KPIs</Text>
           <KPIs items={data.kpis} />
         </View>
 
         {data.performance && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Performance (Core Web Vitals)</Text>
+            <Text style={brandedTitle}>Performance (Core Web Vitals)</Text>
             <Perf data={data.performance} />
           </View>
         )}
 
         {!!data.topKeywords?.length && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Top Keywords</Text>
+            <Text style={brandedTitle}>Top Keywords</Text>
             <KeywordsTable rows={data.topKeywords} />
           </View>
         )}
 
         {!!data.issues?.length && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Issues</Text>
+            <Text style={brandedTitle}>Issues</Text>
             <IssuesList items={data.issues} />
           </View>
         )}
 
         {!!data.trends?.length && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Trends (30 days)</Text>
+            <Text style={brandedTitle}>Trends (30 days)</Text>
             <Trends points={data.trends} />
           </View>
         )}
+
+        <View style={{ marginTop: 'auto', paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+          {branding?.footerText && (
+            <Text style={{ fontSize: 9, color: '#6B7280', marginBottom: 4 }}>{branding.footerText}</Text>
+          )}
+          {!branding?.hideGlimpseBrand && (
+            <Text style={{ fontSize: 8, color: '#9CA3AF' }}>Genereret af Glimpse</Text>
+          )}
+        </View>
       </Page>
     </Document>
   )

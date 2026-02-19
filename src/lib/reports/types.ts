@@ -54,6 +54,13 @@ export type ReportSection =
   | { type: 'issues'; data: Issue[] }
   | { type: 'trends'; data: TrendPoint[] }
 
+export type ReportBranding = {
+  brandColor?: string | null
+  headerText?: string | null
+  footerText?: string | null
+  hideGlimpseBrand?: boolean
+}
+
 export type ReportData = {
   site: {
     id: string
@@ -63,6 +70,7 @@ export type ReportData = {
     logoUrl?: string | null
     organization?: { name: string; logo?: string | null } | null
   }
+  branding?: ReportBranding
   period: { from: string; to: string; label: string }
   generatedAt: string
   seoScore?: number // 0-100

@@ -84,13 +84,17 @@ model VerificationToken {
 
 // Better Auth Organization plugin tables
 model Organization {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  logo        String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  id               String   @id @default(cuid())
+  name             String
+  slug             String   @unique
+  logo             String?
+  brandColor       String?  @map("brand_color")
+  reportHeaderText String?  @map("report_header_text")
+  reportFooterText String?  @map("report_footer_text")
+  hideGlimpseBrand Boolean  @default(false) @map("hide_glimpse_brand")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
   // Relations
   members              Member[]
   invitations          Invitation[]

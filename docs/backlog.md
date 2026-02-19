@@ -1121,7 +1121,7 @@ Alle rapporter har pt. samme faste indhold. Brugere bør kunne vælge hvilke sek
 
 ---
 
-### 19. White-label rapport-branding
+### ~~19. White-label rapport-branding~~ DONE
 
 **Filer:** Udvidelse af Organisation-model, PDF-generator
 

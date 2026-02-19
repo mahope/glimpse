@@ -8,7 +8,14 @@ interface SiteWithOrg {
   name: string
   domain: string
   url: string
-  organization: { name: string; logo: string | null }
+  organization: {
+    name: string
+    logo: string | null
+    brandColor?: string | null
+    reportHeaderText?: string | null
+    reportFooterText?: string | null
+    hideGlimpseBrand?: boolean
+  }
 }
 
 export async function buildReportData(site: SiteWithOrg, sections?: ReportSectionKey[]): Promise<ReportData> {
@@ -88,8 +95,15 @@ export async function buildReportData(site: SiteWithOrg, sections?: ReportSectio
 
   const has = (key: ReportSectionKey) => activeSections.includes(key)
 
+  const org = site.organization
   return {
-    site: { id: site.id, name: site.name, domain: site.domain, url: site.url, organization: { name: site.organization.name, logo: site.organization.logo } },
+    site: { id: site.id, name: site.name, domain: site.domain, url: site.url, organization: { name: org.name, logo: org.logo } },
+    branding: {
+      brandColor: org.brandColor,
+      headerText: org.reportHeaderText,
+      footerText: org.reportFooterText,
+      hideGlimpseBrand: org.hideGlimpseBrand ?? false,
+    },
     period: { from: from.toISOString(), to: to.toISOString(), label: periodLabel },
     generatedAt: new Date().toISOString(),
     seoScore: seoScore?.score ?? undefined,
