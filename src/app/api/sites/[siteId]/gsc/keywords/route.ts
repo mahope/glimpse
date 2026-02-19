@@ -12,6 +12,8 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
 
   const { searchParams } = new URL(req.url)
   const { days, page, pageSize, device, country, sortField, sortDir, search, positionFilter } = parseParams(searchParams)
+  const tagIdRaw = searchParams.get('tagId') || ''
+  const tagId = tagIdRaw.length <= 30 ? tagIdRaw : ''
 
   const site = await prisma.site.findFirst({ where: { id: params.siteId, organizationId } })
   if (!site) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -25,7 +27,7 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
 
   // Build WHERE clause fragments (use actual DB column names from @map)
   const whereParts: string[] = [`"site_id" = $1`, `"date" >= $2`, `"date" <= $3`]
-  const baseParams: (string | Date)[] = [site.id, start, end]
+  const baseParams: (string | Date | string[])[] = [site.id, start, end]
 
   if (deviceFilter) {
     baseParams.push(deviceFilter)
@@ -38,6 +40,22 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
   if (search) {
     baseParams.push(`%${search}%`)
     whereParts.push(`"query" ILIKE $${baseParams.length}`)
+  }
+
+  // Tag filter: restrict to keywords assigned to a specific tag
+  if (tagId) {
+    const taggedKeywords = await prisma.keywordTagAssignment.findMany({
+      where: { tagId, siteId: site.id },
+      select: { query: true },
+    })
+    const taggedQueries = taggedKeywords.map(t => t.query)
+    if (taggedQueries.length === 0) {
+      // No keywords for this tag — return empty
+      return NextResponse.json({ items: [], page, pageSize, totalItems: 0, totalPages: 1, sortField, sortDir })
+    }
+    // Use ANY($N::text[]) for efficient IN clause
+    baseParams.push(taggedQueries)
+    whereParts.push(`"query" = ANY($${baseParams.length}::text[])`)
   }
 
   const baseWhere = whereParts.join(' AND ')
@@ -90,8 +108,22 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
     ...baseParams, pageSize, offset,
   )
 
-  // Fetch prev data only for the keywords on this page
+  // Fetch tag assignments for keywords on this page
   const keywords = rows.map(r => r.query)
+  let tagMap = new Map<string, Array<{ id: string; name: string; color: string }>>()
+  if (keywords.length > 0) {
+    const assignments = await prisma.keywordTagAssignment.findMany({
+      where: { siteId: site.id, query: { in: keywords } },
+      include: { tag: { select: { id: true, name: true, color: true } } },
+    })
+    for (const a of assignments) {
+      const existing = tagMap.get(a.query) || []
+      existing.push(a.tag)
+      tagMap.set(a.query, existing)
+    }
+  }
+
+  // Fetch prev data only for the keywords on this page
   let prevMap = new Map<string, { clicks: number; impressions: number; position: number }>()
   if (keywords.length > 0) {
     const prevRows = await prisma.searchStatDaily.groupBy({
@@ -143,6 +175,7 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
       trendImpressions: safePctDelta(impressions, pImpr),
       trendCtr: safePctDelta(currCtr, prevCtr),
       trendPosition: positionImprovementPct(position, pPos),
+      tags: tagMap.get(r.query) || [],
     }
   })
 

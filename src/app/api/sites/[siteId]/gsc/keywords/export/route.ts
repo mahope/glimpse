@@ -13,6 +13,8 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
 
   const { searchParams } = new URL(req.url)
   const { days, device, country, sortField, sortDir, search, positionFilter } = parseParams(searchParams)
+  const tagIdRaw = searchParams.get('tagId') || ''
+  const tagId = tagIdRaw.length <= 30 ? tagIdRaw : ''
 
   const site = await prisma.site.findFirst({ where: { id: params.siteId, organizationId } })
   if (!site) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -25,7 +27,7 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
   const countryFilter = country === 'ALL' ? '' : country
 
   const whereParts: string[] = [`"site_id" = $1`, `"date" >= $2`, `"date" <= $3`]
-  const baseParams: (string | Date)[] = [site.id, start, end]
+  const baseParams: (string | Date | string[])[] = [site.id, start, end]
 
   if (deviceFilter) {
     baseParams.push(deviceFilter)
@@ -38,6 +40,19 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
   if (search) {
     baseParams.push(`%${search}%`)
     whereParts.push(`"query" ILIKE $${baseParams.length}`)
+  }
+
+  if (tagId) {
+    const taggedKeywords = await prisma.keywordTagAssignment.findMany({
+      where: { tagId, siteId: site.id },
+      select: { query: true },
+    })
+    const taggedQueries = taggedKeywords.map(t => t.query)
+    if (taggedQueries.length === 0) {
+      return csvResponse(toCsv([], []), `${site.domain}-keywords-${new Date().toISOString().split('T')[0]}.csv`)
+    }
+    baseParams.push(taggedQueries)
+    whereParts.push(`"query" = ANY($${baseParams.length}::text[])`)
   }
 
   const baseWhere = whereParts.join(' AND ')

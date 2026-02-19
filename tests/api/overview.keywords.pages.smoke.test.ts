@@ -12,6 +12,9 @@ vi.mock('@/lib/db', () => ({ prisma: {
     if (sql.includes('"page_url"')) return [{ page_url: 'https://ex.com/', clicks: BigInt(5), impressions: BigInt(50), position: 6.0 }]
     return []
   }),
+  keywordTagAssignment: {
+    findMany: vi.fn().mockResolvedValue([]),
+  },
   searchStatDaily: {
     aggregate: vi.fn().mockResolvedValue({ _sum: { clicks: 10, impressions: 100 }, _avg: { position: 5 } }),
     groupBy: vi.fn().mockImplementation(async ({ by, where, _sum, _avg, _count, orderBy, take }: any) => {

@@ -153,6 +153,8 @@ model Site {
   reports          Report[]
   reportSchedule   ReportSchedule @default(NONE) @map("report_schedule")
   uptimeChecks     UptimeCheck[]
+  keywordTags      KeywordTag[]
+  keywordTagAssignments KeywordTagAssignment[]
 
   @@unique([organizationId, domain])
   @@map("site")
@@ -603,6 +605,35 @@ model NotificationChannel {
 
   @@index([organizationId])
   @@map("notification_channel")
+}
+
+model KeywordTag {
+  id        String   @id @default(cuid())
+  siteId    String   @map("site_id")
+  name      String
+  color     String   @default("#6b7280")
+  createdAt DateTime @default(now())
+
+  site        Site                  @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  assignments KeywordTagAssignment[]
+
+  @@unique([siteId, name])
+  @@index([siteId])
+  @@map("keyword_tag")
+}
+
+model KeywordTagAssignment {
+  id     String @id @default(cuid())
+  tagId  String @map("tag_id")
+  siteId String @map("site_id")
+  query  String
+
+  tag  KeywordTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  site Site       @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([tagId, siteId, query])
+  @@index([siteId, query])
+  @@map("keyword_tag_assignment")
 }
 
 enum NotificationChannelType {

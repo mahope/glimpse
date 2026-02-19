@@ -920,7 +920,7 @@ Keywords-listen har device/country/period-filter men mangler fritekst-søgning o
 
 ---
 
-### 6. Keyword-grupper og tags
+### 6. ~~Keyword-grupper og tags~~ DONE 2026-02-19
 
 **Filer:** Ny Prisma-model, ny API-route, udvidelse af keywords UI
 

@@ -5,9 +5,11 @@ import { KeywordTable, type KeywordRow } from '@/components/gsc/KeywordTable'
 import { PaginationControls } from '@/components/ui/pagination-controls'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { Download, Search } from 'lucide-react'
+import { Download, Search, Plus, X, Tag } from 'lucide-react'
+import { toast } from '@/components/ui/toast'
 
 type ApiResp = { items: KeywordRow[]; page: number; pageSize: number; totalItems: number; totalPages: number; sortField: string; sortDir: 'asc'|'desc' }
+type TagItem = { id: string; name: string; color: string; _count: { assignments: number } }
 
 type PositionFilter = '' | 'top3' | 'top10' | 'top20' | '50plus'
 
@@ -17,6 +19,13 @@ const POSITION_FILTERS: { label: string; value: PositionFilter }[] = [
   { label: 'Top 10', value: 'top10' },
   { label: 'Top 20', value: 'top20' },
   { label: '50+', value: '50plus' },
+]
+
+const TAG_SUGGESTIONS = [
+  { name: 'Branded', color: '#3b82f6' },
+  { name: 'Commercial', color: '#10b981' },
+  { name: 'Informational', color: '#8b5cf6' },
+  { name: 'Lokale', color: '#f59e0b' },
 ]
 
 export default function KeywordsClient({ siteId, initial }: { siteId: string; initial: ApiResp }) {
@@ -31,12 +40,32 @@ export default function KeywordsClient({ siteId, initial }: { siteId: string; in
   const [device, setDevice] = React.useState<string>(searchParams.get('device') || 'all')
   const [country, setCountry] = React.useState<string>(searchParams.get('country') || 'ALL')
   const [sortField, setSortField] = React.useState<string>(searchParams.get('sort') || initial.sortField || 'clicks')
-  const [sortDir, setSortDir] = React.useState<'asc'|'desc'>((searchParams.get('dir') as any) || initial.sortDir || 'desc')
+  const [sortDir, setSortDir] = React.useState<'asc'|'desc'>((searchParams.get('dir') as 'asc' | 'desc') || initial.sortDir || 'desc')
   const [totalPages, setTotalPages] = React.useState<number>(initial.totalPages || 1)
   const [search, setSearch] = React.useState(searchParams.get('search') || '')
   const [searchInput, setSearchInput] = React.useState(searchParams.get('search') || '')
   const [positionFilter, setPositionFilter] = React.useState<PositionFilter>((searchParams.get('positionFilter') as PositionFilter) || '')
+  const [activeTagId, setActiveTagId] = React.useState(searchParams.get('tagId') || '')
   const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Tag management state
+  const [tags, setTags] = React.useState<TagItem[]>([])
+  const [showTagForm, setShowTagForm] = React.useState(false)
+  const [newTagName, setNewTagName] = React.useState('')
+  const [newTagColor, setNewTagColor] = React.useState('#6b7280')
+
+  // Fetch tags
+  const fetchTags = React.useCallback(async () => {
+    try {
+      const res = await fetch(`/api/sites/${siteId}/keyword-tags`)
+      if (res.ok) {
+        const data = await res.json()
+        setTags(data.tags || [])
+      }
+    } catch { /* ignore */ }
+  }, [siteId])
+
+  React.useEffect(() => { fetchTags() }, [fetchTags])
 
   const fetchData = React.useCallback(async () => {
     setLoading(true)
@@ -45,6 +74,7 @@ export default function KeywordsClient({ siteId, initial }: { siteId: string; in
       const qs = new URLSearchParams({ days: String(days), page: String(page), pageSize: String(pageSize), device, country, sort: sortField, dir: sortDir })
       if (search) qs.set('search', search)
       if (positionFilter) qs.set('positionFilter', positionFilter)
+      if (activeTagId) qs.set('tagId', activeTagId)
       const res = await fetch(`/api/sites/${siteId}/gsc/keywords?${qs.toString()}`, { cache: 'no-store' })
       if (!res.ok) throw new Error(await res.text())
       const json: ApiResp = await res.json()
@@ -55,7 +85,7 @@ export default function KeywordsClient({ siteId, initial }: { siteId: string; in
     } finally {
       setLoading(false)
     }
-  }, [siteId, days, page, pageSize, device, country, sortField, sortDir, search, positionFilter])
+  }, [siteId, days, page, pageSize, device, country, sortField, sortDir, search, positionFilter, activeTagId])
 
   React.useEffect(() => { fetchData() }, [fetchData])
 
@@ -64,7 +94,7 @@ export default function KeywordsClient({ siteId, initial }: { siteId: string; in
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
   }, [])
 
-  // Debounced search: update actual search state 300ms after input stops
+  // Debounced search
   const handleSearchInput = React.useCallback((value: string) => {
     setSearchInput(value)
     if (debounceRef.current) clearTimeout(debounceRef.current)
@@ -74,11 +104,50 @@ export default function KeywordsClient({ siteId, initial }: { siteId: string; in
     }, 300)
   }, [])
 
-  // Reset page when filters change
   const handlePositionFilter = React.useCallback((value: PositionFilter) => {
     setPositionFilter(value)
     setPage(1)
   }, [])
+
+  const handleTagFilter = React.useCallback((tagId: string) => {
+    setActiveTagId(prev => prev === tagId ? '' : tagId)
+    setPage(1)
+  }, [])
+
+  const createTag = async (name: string, color: string) => {
+    try {
+      const res = await fetch(`/api/sites/${siteId}/keyword-tags`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, color }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        toast('error', data.error || 'Kunne ikke oprette tag')
+        return
+      }
+      fetchTags()
+      setShowTagForm(false)
+      setNewTagName('')
+    } catch {
+      toast('error', 'Kunne ikke oprette tag')
+    }
+  }
+
+  const deleteTag = async (tagId: string) => {
+    try {
+      const res = await fetch(`/api/sites/${siteId}/keyword-tags?tagId=${tagId}`, { method: 'DELETE' })
+      if (!res.ok) {
+        toast('error', 'Kunne ikke slette tag')
+        return
+      }
+      if (activeTagId === tagId) setActiveTagId('')
+      fetchTags()
+      fetchData()
+    } catch {
+      toast('error', 'Kunne ikke slette tag')
+    }
+  }
 
   // keep URL in sync
   React.useEffect(() => {
@@ -92,8 +161,9 @@ export default function KeywordsClient({ siteId, initial }: { siteId: string; in
     sp.set('dir', sortDir)
     if (search) sp.set('search', search)
     if (positionFilter) sp.set('positionFilter', positionFilter)
+    if (activeTagId) sp.set('tagId', activeTagId)
     router.replace(`?${sp.toString()}`)
-  }, [days, page, pageSize, device, country, sortField, sortDir, search, positionFilter])
+  }, [days, page, pageSize, device, country, sortField, sortDir, search, positionFilter, activeTagId])
 
   return (
     <div className="space-y-3">
@@ -120,28 +190,86 @@ export default function KeywordsClient({ siteId, initial }: { siteId: string; in
           <option value={100}>100</option>
         </select>
         <Button variant="outline" size="sm" asChild>
-          <a href={`/api/sites/${siteId}/gsc/keywords/export?days=${days}&device=${device}&country=${country}&sort=${sortField}&dir=${sortDir}${search ? `&search=${encodeURIComponent(search)}` : ''}${positionFilter ? `&positionFilter=${positionFilter}` : ''}`} download>
+          <a href={`/api/sites/${siteId}/gsc/keywords/export?days=${days}&device=${device}&country=${country}&sort=${sortField}&dir=${sortDir}${search ? `&search=${encodeURIComponent(search)}` : ''}${positionFilter ? `&positionFilter=${positionFilter}` : ''}${activeTagId ? `&tagId=${activeTagId}` : ''}`} download>
             <Download className="w-4 h-4 mr-1" /> Eksporter CSV
           </a>
         </Button>
       </div>
 
-      {/* Position quick-filter */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">Position:</span>
-        <div className="flex rounded-md border overflow-hidden">
-          {POSITION_FILTERS.map(opt => (
+      {/* Position quick-filter + tag filter */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Position:</span>
+          <div className="flex rounded-md border overflow-hidden">
+            {POSITION_FILTERS.map(opt => (
+              <button
+                type="button"
+                key={opt.value}
+                onClick={() => handlePositionFilter(opt.value)}
+                className={`px-3 py-1 text-sm ${positionFilter === opt.value ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-accent'}`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <Tag className="h-4 w-4 text-muted-foreground" />
+          {tags.map(tag => (
             <button
               type="button"
-              key={opt.value}
-              onClick={() => handlePositionFilter(opt.value)}
-              className={`px-3 py-1 text-sm ${positionFilter === opt.value ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-accent'}`}
+              key={tag.id}
+              onClick={() => handleTagFilter(tag.id)}
+              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium transition-opacity ${activeTagId === tag.id ? 'opacity-100 ring-2 ring-offset-1 ring-primary' : 'opacity-70 hover:opacity-100'}`}
+              style={{ backgroundColor: tag.color, color: '#fff' }}
             >
-              {opt.label}
+              {tag.name} ({tag._count.assignments})
+              {activeTagId === tag.id && (
+                <X className="h-3 w-3" onClick={e => { e.stopPropagation(); handleTagFilter('') }} />
+              )}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={() => setShowTagForm(!showTagForm)}
+            className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs text-muted-foreground hover:bg-accent"
+          >
+            <Plus className="h-3 w-3" /> Tag
+          </button>
         </div>
       </div>
+
+      {/* New tag form */}
+      {showTagForm && (
+        <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/30">
+          <input
+            type="text"
+            placeholder="Tag-navn..."
+            value={newTagName}
+            onChange={e => setNewTagName(e.target.value)}
+            className="border rounded px-2 py-1 text-sm bg-background flex-1"
+            onKeyDown={e => e.key === 'Enter' && newTagName.trim() && createTag(newTagName.trim(), newTagColor)}
+          />
+          <input type="color" value={newTagColor} onChange={e => setNewTagColor(e.target.value)} className="h-7 w-7 rounded border cursor-pointer" />
+          <Button size="sm" onClick={() => newTagName.trim() && createTag(newTagName.trim(), newTagColor)} disabled={!newTagName.trim()}>
+            Opret
+          </Button>
+          {TAG_SUGGESTIONS.filter(s => !tags.some(t => t.name === s.name)).length > 0 && (
+            <div className="flex gap-1 ml-2">
+              <span className="text-xs text-muted-foreground self-center">Forslag:</span>
+              {TAG_SUGGESTIONS.filter(s => !tags.some(t => t.name === s.name)).map(s => (
+                <button type="button" key={s.name} onClick={() => createTag(s.name, s.color)} className="rounded-full px-2 py-0.5 text-[10px] font-medium text-white hover:opacity-80" style={{ backgroundColor: s.color }}>
+                  {s.name}
+                </button>
+              ))}
+            </div>
+          )}
+          <Button variant="ghost" size="sm" onClick={() => setShowTagForm(false)}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
 
       {loading && (
         <div className="space-y-2">
@@ -158,6 +286,24 @@ export default function KeywordsClient({ siteId, initial }: { siteId: string; in
           sortDir={sortDir}
           onSort={(f, dir) => { setSortField(f); setSortDir(dir) }}
           onFilter={({ device, country }) => { setDevice(device); setCountry(country.toUpperCase()); setPage(1) }}
+          tags={tags}
+          onTagAssign={async (tagId, queries) => {
+            try {
+              const res = await fetch(`/api/sites/${siteId}/keyword-tags/assign`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tagId, queries }),
+              })
+              if (!res.ok) {
+                toast('error', 'Kunne ikke tildele tag')
+                return
+              }
+              fetchTags()
+              fetchData()
+            } catch {
+              toast('error', 'Kunne ikke tildele tag')
+            }
+          }}
         />
       )}
 
