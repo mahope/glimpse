@@ -380,7 +380,7 @@ Keywords og pages API'er henter ALLE rækker fra databasen, sorterer in-memory (
 
 ---
 
-### 24. Cache dashboard overview-data
+### ~~24. Cache dashboard overview-data~~ DONE
 
 **Fil:** `src/app/api/sites/[siteId]/overview/route.ts`
 

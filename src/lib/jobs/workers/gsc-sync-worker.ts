@@ -5,6 +5,7 @@ import { decrypt } from '@/lib/crypto'
 import { prisma } from '@/lib/db'
 import { jobLogger } from '@/lib/logger'
 import { moveToDeadLetter } from '../dead-letter'
+import { invalidateCache } from '@/lib/cache'
 
 export const gscSyncWorker = new Worker<GSCSyncJobData>(
   'gsc-sync',
@@ -75,7 +76,12 @@ gscSyncWorker.on('failed', async (job, error) => {
   await moveToDeadLetter(job, error)
 })
 
-gscSyncWorker.on('completed', (job, result) => {
-  const log = jobLogger('gsc-sync', job.id)
-  log.info({ result }, 'GSC sync job completed')
+gscSyncWorker.on('completed', async (job, result) => {
+  try {
+    const log = jobLogger('gsc-sync', job.id)
+    log.info({ result }, 'GSC sync job completed')
+    await invalidateCache(`overview:${job.data.siteId}:*`)
+  } catch {
+    // Event handler errors must not become unhandled rejections
+  }
 })

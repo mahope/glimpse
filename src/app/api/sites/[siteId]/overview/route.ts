@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
+import { getCache, setCache } from '@/lib/cache'
+
+const CACHE_TTL = 3600 // 1 hour
 
 function pctDelta(curr: number, prev: number) {
   if (!isFinite(curr)) curr = 0
@@ -24,23 +27,33 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
   const device = String(searchParams.get('device') ?? 'all').toLowerCase()
   const country = String(searchParams.get('country') ?? 'ALL').toUpperCase()
 
-  const end = new Date(); const start = new Date(); start.setDate(end.getDate() - days)
-  const prevEnd = new Date(start); const prevStart = new Date(start); prevStart.setDate(prevEnd.getDate() - days)
+  // Try cache first
+  const cacheKey = `overview:${site.id}:${days}:${device}:${country}`
+  const cached = await getCache<Record<string, unknown>>(cacheKey)
+  if (cached) {
+    return NextResponse.json(cached, {
+      headers: { 'Cache-Control': 'private, max-age=3600', 'X-Cache': 'HIT' },
+    })
+  }
 
-  const whereBase: any = { siteId: site.id }
+  const end = new Date(); const start = new Date(); start.setDate(end.getDate() - days)
+  const prevEnd = new Date(start); prevEnd.setDate(prevEnd.getDate() - 1)
+  const prevStart = new Date(prevEnd); prevStart.setDate(prevStart.getDate() - days + 1)
+
+  const whereBase: Record<string, unknown> = { siteId: site.id }
   if (device !== 'all') whereBase.device = device
   if (country !== 'ALL') whereBase.country = country
 
   // Aggregate current period
   const currAgg = await prisma.searchStatDaily.aggregate({
-    where: { ...whereBase, date: { gte: start, lte: end } },
+    where: { ...whereBase, date: { gte: start, lte: end } } as any,
     _sum: { clicks: true, impressions: true },
     _avg: { position: true }
   })
 
   // Aggregate previous period
   const prevAgg = await prisma.searchStatDaily.aggregate({
-    where: { ...whereBase, date: { gte: prevStart, lte: prevEnd } },
+    where: { ...whereBase, date: { gte: prevStart, lte: prevEnd } } as any,
     _sum: { clicks: true, impressions: true },
     _avg: { position: true }
   })
@@ -58,7 +71,7 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
   // Timeline for trend charts (daily)
   const timelineRows = await prisma.searchStatDaily.groupBy({
     by: ['date'],
-    where: { ...whereBase, date: { gte: start, lte: end } },
+    where: { ...whereBase, date: { gte: start, lte: end } } as any,
     _sum: { clicks: true, impressions: true },
     _avg: { position: true },
     orderBy: { date: 'asc' }
@@ -83,5 +96,10 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
     timeline
   }
 
-  return NextResponse.json(result)
+  // Store in cache (best-effort, non-blocking)
+  void setCache(cacheKey, result, CACHE_TTL)
+
+  return NextResponse.json(result, {
+    headers: { 'Cache-Control': 'private, max-age=3600', 'X-Cache': 'MISS' },
+  })
 }

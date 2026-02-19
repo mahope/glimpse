@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { verifyCronSecret } from '@/lib/cron/auth'
 import { fetchAndStoreGSCDaily } from '@/lib/gsc/fetch-daily'
 import { decrypt } from '@/lib/crypto'
+import { invalidateCache } from '@/lib/cache'
 
 export async function POST(req: NextRequest) {
   const unauthorized = verifyCronSecret(req)
@@ -28,6 +29,9 @@ export async function POST(req: NextRequest) {
     endDate: end.toISOString().split('T')[0],
     mock: process.env.MOCK_GSC === 'true'
   })
+
+  // Invalidate overview cache so fresh data is served
+  await invalidateCache(`overview:${siteId}:*`)
 
   return NextResponse.json({ ok: true, result })
 }
