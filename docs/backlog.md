@@ -590,7 +590,7 @@ Brugere kan se nuværende keyword-positioner men ikke udvikling over tid. Positi
 
 ---
 
-### 37. Opret bruger-profil og notifikations-indstillinger
+### ~~37. Opret bruger-profil og notifikations-indstillinger~~ DONE
 
 **Filer:** Ny route `src/app/(dashboard)/settings/`, nye API-routes
 

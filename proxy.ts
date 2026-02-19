@@ -14,7 +14,7 @@ type SessionResponse = {
   }
 }
 
-const protectedRoutes = ["/dashboard", "/sites", "/admin", "/onboarding"]
+const protectedRoutes = ["/dashboard", "/sites", "/admin", "/onboarding", "/settings"]
 const adminRoutes = ["/admin"]
 const authRoutes = ["/auth"]
 

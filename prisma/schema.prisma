@@ -21,6 +21,7 @@ model User {
   updatedAt         DateTime           @updatedAt
   role              UserRole           @default(CUSTOMER)
   onboardingCompletedAt DateTime?      @map("onboarding_completed_at")
+  notificationPrefs     Json?          @map("notification_prefs")
 
   // Better Auth relations
   sessions          Session[]

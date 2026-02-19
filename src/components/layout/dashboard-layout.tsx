@@ -10,6 +10,7 @@ import {
   BarChart3,
   Globe,
   Settings,
+  Settings2,
   User,
   LogOut,
   Menu,
@@ -19,6 +20,7 @@ import {
 const getNavigation = (isAdmin: boolean) => [
   { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
   { name: 'Sites', href: '/sites', icon: Globe },
+  { name: 'Indstillinger', href: '/settings', icon: Settings2 },
   ...(isAdmin ? [{ name: 'Jobs Monitor', href: '/dashboard/jobs', icon: Settings }] : []),
 ]
 
