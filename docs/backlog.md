@@ -123,7 +123,7 @@ SiteSelector i topbaren bruger hardkodede `mockSites` og henter aldrig brugerens
 
 ---
 
-### 8. Fix score-worker double-write
+### ~~8. Fix score-worker double-write~~ DONE
 
 **Fil:** `src/lib/jobs/workers/score-worker.ts` (linje 44)
 

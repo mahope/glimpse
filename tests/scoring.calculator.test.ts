@@ -5,7 +5,8 @@ import { SEOCalculator } from '@/lib/scoring/calculator'
 vi.mock('@/lib/db', () => ({ prisma: {
   searchConsoleData: { aggregate: vi.fn().mockResolvedValue({ _sum: { clicks: 0, impressions: 0 }, _avg: { position: 50 } }) },
   performanceTest: { findFirst: vi.fn().mockResolvedValue({ score: 80 }) },
-  seoScore: { create: vi.fn() }
+  perfSnapshot: { findFirst: vi.fn().mockResolvedValue(null) },
+  seoScore: { create: vi.fn(), upsert: vi.fn() }
 }}))
 
 describe('SEOCalculator', () => {

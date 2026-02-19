@@ -562,11 +562,31 @@ export class SEOCalculator {
   /**
    * Store calculated SEO score in database
    */
-  private static async storeSEOScore(siteId: string, components: SEOScoreComponents, overall: number) {
-    await prisma.seoScore.create({
-      data: {
+  static async storeSEOScore(siteId: string, components: SEOScoreComponents, overall: number, date?: Date) {
+    const targetDate = date ?? new Date()
+    await prisma.seoScore.upsert({
+      where: {
+        siteId_date: { siteId, date: targetDate }
+      },
+      update: {
+        score: overall,
+        clickTrend: components.clickTrend,
+        positionTrend: components.positionTrend,
+        impressionTrend: components.impressionTrend,
+        ctrBenchmark: components.ctrBenchmark,
+        performanceScore: components.performanceScore,
+        breakdown: {
+          clickTrend: components.clickTrend,
+          positionTrend: components.positionTrend,
+          impressionTrend: components.impressionTrend,
+          ctrBenchmark: components.ctrBenchmark,
+          performanceScore: components.performanceScore,
+          overall
+        }
+      },
+      create: {
         siteId,
-        date: new Date(),
+        date: targetDate,
         score: overall,
         clickTrend: components.clickTrend,
         positionTrend: components.positionTrend,
