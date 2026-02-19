@@ -11,7 +11,7 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
   if (!organizationId) return NextResponse.json({ error: 'No active organization' }, { status: 400 })
 
   const { searchParams } = new URL(req.url)
-  const { days, page, pageSize, device, country, sortField, sortDir } = parseParams(searchParams)
+  const { days, page, pageSize, device, country, sortField, sortDir, search, positionFilter } = parseParams(searchParams)
 
   const site = await prisma.site.findFirst({ where: { id: params.siteId, organizationId } })
   if (!site) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -24,21 +24,38 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
   const countryFilter = country === 'ALL' ? '' : country
 
   // Build WHERE clause fragments (use actual DB column names from @map)
-  const baseWhere = [
-    `"site_id" = $1`,
-    `"date" >= $2`,
-    `"date" <= $3`,
-    ...(deviceFilter ? [`"device" = $4`] : []),
-    ...(countryFilter ? [`"country" = ${deviceFilter ? '$5' : '$4'}`] : []),
-  ].join(' AND ')
-
+  const whereParts: string[] = [`"site_id" = $1`, `"date" >= $2`, `"date" <= $3`]
   const baseParams: (string | Date)[] = [site.id, start, end]
-  if (deviceFilter) baseParams.push(deviceFilter)
-  if (countryFilter) baseParams.push(countryFilter)
 
-  // Total count via COUNT(DISTINCT query)
+  if (deviceFilter) {
+    baseParams.push(deviceFilter)
+    whereParts.push(`"device" = $${baseParams.length}`)
+  }
+  if (countryFilter) {
+    baseParams.push(countryFilter)
+    whereParts.push(`"country" = $${baseParams.length}`)
+  }
+  if (search) {
+    baseParams.push(`%${search}%`)
+    whereParts.push(`"query" ILIKE $${baseParams.length}`)
+  }
+
+  const baseWhere = whereParts.join(' AND ')
+
+  // HAVING clause for position filter
+  const havingMap: Record<string, string> = {
+    top3: 'HAVING AVG("position") <= 3',
+    top10: 'HAVING AVG("position") <= 10',
+    top20: 'HAVING AVG("position") <= 20',
+    '50plus': 'HAVING AVG("position") > 50',
+  }
+  const havingClause = havingMap[positionFilter] || ''
+
+  // Total count uses subquery to support HAVING
   const countResult = await prisma.$queryRawUnsafe<[{ count: bigint }]>(
-    `SELECT COUNT(DISTINCT "query") as count FROM "search_stat_daily" WHERE ${baseWhere}`,
+    `SELECT COUNT(*) as count FROM (
+       SELECT "query" FROM "search_stat_daily" WHERE ${baseWhere} GROUP BY "query" ${havingClause}
+     ) sub`,
     ...baseParams,
   )
   const totalItems = Number(countResult[0]?.count ?? 0)
@@ -67,6 +84,7 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
      FROM "search_stat_daily"
      WHERE ${baseWhere}
      GROUP BY "query"
+     ${havingClause}
      ORDER BY ${orderExpr} ${orderDir}, "query" ASC
      LIMIT $${nextParam} OFFSET $${nextParam + 1}`,
     ...baseParams, pageSize, offset,

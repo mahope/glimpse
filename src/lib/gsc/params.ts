@@ -1,6 +1,8 @@
 export type SortField = 'clicks' | 'impressions' | 'ctr' | 'position'
 export type SortDir = 'asc' | 'desc'
 
+export type PositionFilter = '' | 'top3' | 'top10' | 'top20' | '50plus'
+
 export type ParsedParams = {
   days: number
   page: number
@@ -9,6 +11,8 @@ export type ParsedParams = {
   country: string // 'ALL' or ISO code
   sortField: SortField
   sortDir: SortDir
+  search: string
+  positionFilter: PositionFilter
 }
 
 const SORT_FIELDS: SortField[] = ['clicks','impressions','ctr','position']
@@ -33,7 +37,14 @@ export function parseParams(input: URLSearchParams | Record<string,string | numb
   const sortDirRaw = String(get('dir') ?? get('direction') ?? 'desc').toLowerCase()
   const sortDir = (SORT_DIRS as string[]).includes(sortDirRaw) ? (sortDirRaw as SortDir) : 'desc'
 
-  return { days, page, pageSize, device: device as any, country, sortField, sortDir }
+  const searchRaw = String(get('search') ?? '').trim()
+  const search = searchRaw.length > 200 ? searchRaw.slice(0, 200) : searchRaw
+
+  const posFilterRaw = String(get('positionFilter') ?? '').toLowerCase()
+  const VALID_POS_FILTERS: PositionFilter[] = ['', 'top3', 'top10', 'top20', '50plus']
+  const positionFilter = (VALID_POS_FILTERS as string[]).includes(posFilterRaw) ? (posFilterRaw as PositionFilter) : ''
+
+  return { days, page, pageSize, device: device as any, country, sortField, sortDir, search, positionFilter }
 }
 
 export function safePctDelta(curr: number, prev: number): number {

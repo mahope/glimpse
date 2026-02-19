@@ -11,6 +11,8 @@ describe('parseParams', () => {
     expect(p.country).toBe('ALL')
     expect(p.sortField).toBe('clicks')
     expect(p.sortDir).toBe('desc')
+    expect(p.search).toBe('')
+    expect(p.positionFilter).toBe('')
   })
   it('parses valid inputs', () => {
     const p = parseParams({ days: '7', page: '2', pageSize: '100', device: 'desktop', country: 'dk', sort: 'ctr', dir: 'asc' })
@@ -31,6 +33,19 @@ describe('parseParams', () => {
     expect(p.country).toBe('XX')
     expect(p.sortField).toBe('clicks')
     expect(p.sortDir).toBe('desc')
+  })
+  it('parses search and positionFilter', () => {
+    const p = parseParams({ search: '  hello world  ', positionFilter: 'top10' })
+    expect(p.search).toBe('hello world')
+    expect(p.positionFilter).toBe('top10')
+  })
+  it('truncates search at 200 chars', () => {
+    const p = parseParams({ search: 'a'.repeat(250) })
+    expect(p.search.length).toBe(200)
+  })
+  it('rejects invalid positionFilter', () => {
+    const p = parseParams({ positionFilter: 'top99' })
+    expect(p.positionFilter).toBe('')
   })
 })
 

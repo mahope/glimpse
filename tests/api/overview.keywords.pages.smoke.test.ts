@@ -7,7 +7,7 @@ vi.mock('next/headers', () => ({ headers: vi.fn().mockResolvedValue(new Headers(
 vi.mock('@/lib/db', () => ({ prisma: {
   site: { findFirst: vi.fn().mockImplementation(async ({ where }: any) => where?.id === 'site1' && where?.organizationId === 'org1' ? ({ id: 'site1' }) : null) },
   $queryRawUnsafe: vi.fn().mockImplementation(async (sql: string) => {
-    if (sql.includes('COUNT(DISTINCT')) return [{ count: BigInt(2) }]
+    if (sql.includes('COUNT(DISTINCT') || sql.includes('COUNT(*)')) return [{ count: BigInt(2) }]
     if (sql.includes('"query"')) return [{ query: 'alpha', clicks: BigInt(8), impressions: BigInt(80), position: 4.0 }]
     if (sql.includes('"page_url"')) return [{ page_url: 'https://ex.com/', clicks: BigInt(5), impressions: BigInt(50), position: 6.0 }]
     return []

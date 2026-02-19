@@ -904,7 +904,7 @@ API-endpointet for daglig keyword-historik eksisterer allerede men har ingen UI.
 
 ---
 
-### 5. Keyword-søgning og avanceret filtrering
+### 5. ~~Keyword-søgning og avanceret filtrering~~ DONE 2026-02-19
 
 **Fil:** `src/app/(dashboard)/sites/[siteId]/keywords/keywords-client.tsx`
 
