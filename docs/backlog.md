@@ -167,7 +167,7 @@ Google OAuth-knappen renderer med et Google G-ikon men har ingen `onClick`-handl
 
 ---
 
-### 11. Opret manglende /api/health endpoint
+### ~~11. Opret manglende /api/health endpoint~~ DONE
 
 **Filer:** `src/app/api/health/route.ts` (ny), `healthcheck.js`
 
