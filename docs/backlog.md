@@ -365,7 +365,7 @@ Manglende indexes på:
 
 ---
 
-### 23. Implementer server-side pagination på GSC-endpoints
+### ~~23. Implementer server-side pagination på GSC-endpoints~~ DONE
 
 **Filer:** `src/app/api/sites/[siteId]/gsc/keywords/route.ts`, `src/app/api/sites/[siteId]/gsc/pages/route.ts`
 
