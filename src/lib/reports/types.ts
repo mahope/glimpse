@@ -37,6 +37,16 @@ export type TrendPoint = {
   ctr: number // 0-1
 }
 
+export const REPORT_SECTION_KEYS = ['kpis', 'keywords', 'performance', 'crawl'] as const
+export type ReportSectionKey = (typeof REPORT_SECTION_KEYS)[number]
+
+export const REPORT_SECTION_LABELS: Record<ReportSectionKey, string> = {
+  kpis: 'KPI-oversigt',
+  keywords: 'Top keywords',
+  performance: 'Core Web Vitals',
+  crawl: 'Crawl-problemer',
+}
+
 export type ReportSection =
   | { type: 'kpis'; data: KPI[] }
   | { type: 'performance'; data: CoreWebVitals }
@@ -56,6 +66,7 @@ export type ReportData = {
   period: { from: string; to: string; label: string }
   generatedAt: string
   seoScore?: number // 0-100
+  sections?: ReportSectionKey[]
   kpis: KPI[]
   performance?: CoreWebVitals
   topKeywords?: KeywordRow[]

@@ -8,6 +8,7 @@ import { format } from 'date-fns'
 import { verifyCronSecret } from '@/lib/cron/auth'
 import { cronLogger } from '@/lib/logger'
 import type { ReportSchedule } from '@prisma/client'
+import type { ReportSectionKey } from '@/lib/reports/types'
 
 const log = cronLogger('send-reports')
 
@@ -36,7 +37,8 @@ export async function POST(req: NextRequest) {
     let sent = 0
     for (const site of sites) {
       try {
-        const data = await buildReportData(site)
+        const sections = Array.isArray(site.reportSections) ? site.reportSections as ReportSectionKey[] : undefined
+        const data = await buildReportData(site, sections)
         const pdf = await renderReportPDF(data)
         const typeLabel = site.reportSchedule === 'WEEKLY' ? 'weekly' : 'monthly'
         const fileName = `${site.domain}-${format(now, 'yyyy-MM-dd')}.pdf`

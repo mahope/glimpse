@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { FileText, Download, Trash2, Loader2, Calendar, Eye } from 'lucide-react'
 import { ReportPreviewHTML } from '@/components/reports/report-preview-html'
 import { toast } from '@/components/ui/toast'
+import { REPORT_SECTION_KEYS, REPORT_SECTION_LABELS, type ReportSectionKey } from '@/lib/reports/types'
 
 interface ReportItem {
   id: string
@@ -42,6 +43,8 @@ export function ReportsClient({
   const [schedule, setSchedule] = useState<Schedule>(initialSchedule as Schedule)
   const [savingSchedule, setSavingSchedule] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  const [sections, setSections] = useState<ReportSectionKey[]>([...REPORT_SECTION_KEYS])
+  const [savingSections, setSavingSections] = useState(false)
 
   const fetchReports = useCallback(() => {
     setLoading(true)
@@ -53,6 +56,7 @@ export function ReportsClient({
       .then(d => {
         setReports(d.reports)
         if (d.schedule) setSchedule(d.schedule)
+        if (Array.isArray(d.sections)) setSections(d.sections)
       })
       .catch(() => setReports([]))
       .finally(() => setLoading(false))
@@ -98,6 +102,29 @@ export function ReportsClient({
       toast('error', 'Kunne ikke opdatere schedule')
     } finally {
       setSavingSchedule(false)
+    }
+  }
+
+  const toggleSection = async (key: ReportSectionKey) => {
+    const prev = sections
+    const next = sections.includes(key)
+      ? sections.filter(s => s !== key)
+      : [...sections, key]
+    if (next.length === 0) return
+    setSections(next) // optimistic
+    setSavingSections(true)
+    try {
+      const res = await fetch(`/api/sites/${siteId}/reports`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sections: next }),
+      })
+      if (!res.ok) throw new Error()
+    } catch {
+      setSections(prev) // rollback
+      toast('error', 'Kunne ikke opdatere sektioner')
+    } finally {
+      setSavingSections(false)
     }
   }
 
@@ -159,6 +186,35 @@ export function ReportsClient({
               </span>
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Sections */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Rapportindhold
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-4">
+            {REPORT_SECTION_KEYS.map(key => (
+              <label key={key} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={sections.includes(key)}
+                  onChange={() => toggleSection(key)}
+                  disabled={savingSections || (sections.length === 1 && sections.includes(key))}
+                  className="rounded border-input h-4 w-4 accent-primary"
+                />
+                <span className="text-sm">{REPORT_SECTION_LABELS[key]}</span>
+              </label>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Vælg hvilke sektioner der inkluderes i genererede rapporter.
+          </p>
         </CardContent>
       </Card>
 

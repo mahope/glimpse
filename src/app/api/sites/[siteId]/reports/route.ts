@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db'
 import { renderReportPDF } from '@/lib/reports/pdf-generator'
 import { buildReportData } from '@/lib/reports/build-report-data'
 import { z } from 'zod'
+import { REPORT_SECTION_KEYS, type ReportSectionKey } from '@/lib/reports/types'
 
 // GET: List report history for a site
 export async function GET(req: NextRequest, { params }: { params: { siteId: string } }) {
@@ -23,7 +24,7 @@ export async function GET(req: NextRequest, { params }: { params: { siteId: stri
     take: 50,
   })
 
-  return NextResponse.json({ reports, schedule: site.reportSchedule })
+  return NextResponse.json({ reports, schedule: site.reportSchedule, sections: site.reportSections })
 }
 
 // POST: Generate a report on-demand
@@ -40,7 +41,8 @@ export async function POST(req: NextRequest, { params }: { params: { siteId: str
   if (!site) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   try {
-    const data = await buildReportData(site)
+    const sections = Array.isArray(site.reportSections) ? site.reportSections as ReportSectionKey[] : undefined
+    const data = await buildReportData(site, sections)
     const pdf = await renderReportPDF(data)
     const fileName = `${site.domain}-${new Date().toISOString().slice(0, 10)}.pdf`
 
@@ -68,9 +70,10 @@ export async function POST(req: NextRequest, { params }: { params: { siteId: str
   }
 }
 
-// PATCH: Update report schedule
-const ScheduleSchema = z.object({
-  schedule: z.enum(['NONE', 'WEEKLY', 'MONTHLY']),
+// PATCH: Update report schedule and/or sections
+const PatchSchema = z.object({
+  schedule: z.enum(['NONE', 'WEEKLY', 'MONTHLY']).optional(),
+  sections: z.array(z.enum(REPORT_SECTION_KEYS)).optional(),
 })
 
 export async function PATCH(req: NextRequest, { params }: { params: { siteId: string } }) {
@@ -87,13 +90,19 @@ export async function PATCH(req: NextRequest, { params }: { params: { siteId: st
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const parsed = ScheduleSchema.safeParse(raw)
-  if (!parsed.success) return NextResponse.json({ error: 'Invalid schedule' }, { status: 400 })
+  const parsed = PatchSchema.safeParse(raw)
+  if (!parsed.success) return NextResponse.json({ error: 'Invalid input' }, { status: 400 })
 
-  await prisma.site.update({
-    where: { id: site.id },
-    data: { reportSchedule: parsed.data.schedule },
+  const updateData: Record<string, unknown> = {}
+  if (parsed.data.schedule) updateData.reportSchedule = parsed.data.schedule
+  if (parsed.data.sections) updateData.reportSections = parsed.data.sections
+
+  if (Object.keys(updateData).length > 0) {
+    await prisma.site.update({ where: { id: site.id }, data: updateData })
+  }
+
+  return NextResponse.json({
+    schedule: parsed.data.schedule ?? site.reportSchedule,
+    sections: parsed.data.sections ?? site.reportSections,
   })
-
-  return NextResponse.json({ schedule: parsed.data.schedule })
 }

@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db'
 import { endOfDay, startOfDay, subDays, format } from 'date-fns'
-import type { ReportData } from './types'
+import type { ReportData, ReportSectionKey } from './types'
+import { REPORT_SECTION_KEYS } from './types'
 
 interface SiteWithOrg {
   id: string
@@ -10,7 +11,8 @@ interface SiteWithOrg {
   organization: { name: string; logo: string | null }
 }
 
-export async function buildReportData(site: SiteWithOrg): Promise<ReportData> {
+export async function buildReportData(site: SiteWithOrg, sections?: ReportSectionKey[]): Promise<ReportData> {
+  const activeSections = sections && sections.length > 0 ? sections : [...REPORT_SECTION_KEYS]
   const to = endOfDay(new Date())
   const from = startOfDay(subDays(to, 30))
   const periodLabel = `${format(from, 'MMM d, yyyy')} - ${format(to, 'MMM d, yyyy')}`
@@ -84,20 +86,23 @@ export async function buildReportData(site: SiteWithOrg): Promise<ReportData> {
     .sort((a, b) => a.date.localeCompare(b.date))
     .map(t => ({ date: t.date, clicks: t.clicks, impressions: t.impressions, position: t.n ? t.position / t.n : 0, ctr: t.n ? t.ctr / t.n : 0 }))
 
+  const has = (key: ReportSectionKey) => activeSections.includes(key)
+
   return {
     site: { id: site.id, name: site.name, domain: site.domain, url: site.url, organization: { name: site.organization.name, logo: site.organization.logo } },
     period: { from: from.toISOString(), to: to.toISOString(), label: periodLabel },
     generatedAt: new Date().toISOString(),
     seoScore: seoScore?.score ?? undefined,
-    kpis,
-    performance: perfSnap ? {
+    sections: activeSections,
+    kpis: has('kpis') ? kpis : [],
+    performance: has('performance') && perfSnap ? {
       lcp: perfSnap.lcpMs != null ? perfSnap.lcpMs / 1000 : undefined,
       inp: perfSnap.inpMs != null ? perfSnap.inpMs : undefined,
       cls: perfSnap.cls ?? undefined,
       ttfb: perfSnap.ttfbMs != null ? perfSnap.ttfbMs : undefined,
     } : undefined,
-    topKeywords,
-    issues: Array.isArray(crawlResult?.issues) ? crawlResult.issues as any[] : undefined,
-    trends,
+    topKeywords: has('keywords') ? topKeywords : undefined,
+    issues: has('crawl') && Array.isArray(crawlResult?.issues) ? crawlResult.issues as any[] : undefined,
+    trends: has('kpis') ? trends : undefined,
   }
 }

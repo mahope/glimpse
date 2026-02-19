@@ -1106,7 +1106,7 @@ Rapporter kan pt. kun downloades som PDF. Brugere vil gerne se indholdet direkte
 
 ## Kategori 6: Rapporter & White-label
 
-### 18. Customizable rapport-indhold
+### ~~18. Customizable rapport-indhold~~ DONE
 
 **Filer:** Udvidelse af rapport-model og PDF-generator
 

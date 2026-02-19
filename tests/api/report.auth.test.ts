@@ -5,6 +5,12 @@ const mockGetSession = vi.fn()
 vi.mock('@/lib/auth', () => ({ auth: { api: { getSession: (...args: any[]) => mockGetSession(...args) } } }))
 vi.mock('next/headers', () => ({ headers: vi.fn().mockResolvedValue(new Headers()) }))
 vi.mock('@/lib/reports/pdf-generator', () => ({ renderReportPDF: vi.fn().mockResolvedValue(Buffer.from('fake-pdf')) }))
+vi.mock('@/lib/reports/build-report-data', () => ({ buildReportData: vi.fn().mockResolvedValue({
+  site: { id: 'site1', name: 'Test Site', domain: 'test.com', url: 'https://test.com', organization: { name: 'Test Org', logo: null } },
+  period: { from: '2026-01-01', to: '2026-01-31', label: 'Jan 1 - Jan 31' },
+  generatedAt: '2026-01-31T00:00:00Z',
+  kpis: [],
+}) }))
 
 vi.mock('@/lib/db', () => ({ prisma: {
   site: {
@@ -12,8 +18,8 @@ vi.mock('@/lib/db', () => ({ prisma: {
       if (where?.id === 'site1' && where?.organizationId === 'org1') {
         return {
           id: 'site1', name: 'Test Site', domain: 'test.com', url: 'https://test.com',
+          reportSections: null,
           organization: { name: 'Test Org', logo: null },
-          seoScores: [], perfSnapshots: [], searchStatsDaily: [], crawlResults: [],
         }
       }
       return null
