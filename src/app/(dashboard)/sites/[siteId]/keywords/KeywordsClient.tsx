@@ -91,6 +91,7 @@ export default function KeywordsClient({ siteId, initial }: { siteId: string; in
       {!loading && !error && (
         <KeywordTable
           items={items}
+          siteId={siteId}
           sortField={sortField}
           sortDir={sortDir}
           onSort={(f, dir)=>{ setSortField(f); setSortDir(dir) }}

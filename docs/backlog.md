@@ -575,7 +575,7 @@ Det nuværende toast-system har problemer:
 
 ## Kategori 7: Nye Features
 
-### 36. Implementer keyword position-tracking over tid
+### 36. ~~Implementer keyword position-tracking over tid~~ DONE
 
 **Filer:** Ny API-route, ny chart-komponent, evt. ny tabel
 

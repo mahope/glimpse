@@ -1,8 +1,10 @@
 "use client"
 import React from 'react'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { TrendBadge } from './TrendBadge'
-import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
+import { KeywordHistory } from './KeywordHistory'
+import { ChevronUp, ChevronDown, ChevronsUpDown, TrendingUp } from 'lucide-react'
 
 export type KeywordRow = {
   query: string
@@ -23,10 +25,11 @@ function SortIcon({ active, dir }: { active: boolean; dir?: 'asc' | 'desc' }) {
     : <ChevronDown className="h-3 w-3 ml-1 inline-block" />
 }
 
-export function KeywordTable({ items, onFilter, sortField, sortDir, onSort }:
-  { items: KeywordRow[]; onFilter?: (f: { device: string; country: string }) => void; sortField?: string; sortDir?: 'asc' | 'desc'; onSort?: (f: string, dir: 'asc' | 'desc') => void }) {
+export function KeywordTable({ items, siteId, onFilter, sortField, sortDir, onSort }:
+  { items: KeywordRow[]; siteId?: string; onFilter?: (f: { device: string; country: string }) => void; sortField?: string; sortDir?: 'asc' | 'desc'; onSort?: (f: string, dir: 'asc' | 'desc') => void }) {
   const [device, setDevice] = React.useState('all')
   const [country, setCountry] = React.useState('all')
+  const [selectedKeyword, setSelectedKeyword] = React.useState<string | null>(null)
 
   React.useEffect(() => { onFilter?.({ device, country }) }, [device, country])
 
@@ -75,11 +78,12 @@ export function KeywordTable({ items, onFilter, sortField, sortDir, onSort }:
                 </button>
               </TableHead>
               <TableHead>Trends</TableHead>
+              {siteId && <TableHead className="w-8" />}
             </TableRow>
           </TableHeader>
           <TableBody>
             {items.map((row) => (
-              <TableRow key={row.query}>
+              <TableRow key={row.query} className={siteId ? 'cursor-pointer hover:bg-accent/50' : ''} onClick={siteId ? () => setSelectedKeyword(row.query) : undefined}>
                 <TableCell className="font-medium">{row.query}</TableCell>
                 <TableCell>{row.clicks30.toLocaleString()}</TableCell>
                 <TableCell>{row.impressions30.toLocaleString()}</TableCell>
@@ -91,10 +95,28 @@ export function KeywordTable({ items, onFilter, sortField, sortDir, onSort }:
                   <TrendBadge value={row.trendCtr} />
                   <TrendBadge value={-row.trendPosition} />
                 </TableCell>
+                {siteId && (
+                  <TableCell>
+                    <TrendingUp className="w-4 h-4 text-muted-foreground" />
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>
         </Table>
+      )}
+
+      {/* Keyword history dialog */}
+      {siteId && (
+        <Dialog open={!!selectedKeyword} onOpenChange={(open) => { if (!open) setSelectedKeyword(null) }}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{selectedKeyword}</DialogTitle>
+              <DialogDescription>Position, klik og visninger over de seneste 90 dage</DialogDescription>
+            </DialogHeader>
+            {selectedKeyword && <KeywordHistory siteId={siteId} keyword={selectedKeyword} />}
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   )
