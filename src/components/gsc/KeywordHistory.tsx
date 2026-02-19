@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -12,7 +12,15 @@ type HistoryPoint = {
   siteAvgPosition: number
 }
 
-export function KeywordHistory({ siteId, keyword, days = 90 }: { siteId: string; keyword: string; days?: number }) {
+const PERIOD_OPTIONS = [
+  { label: '7d', days: 7 },
+  { label: '30d', days: 30 },
+  { label: '90d', days: 90 },
+  { label: '365d', days: 365 },
+] as const
+
+export function KeywordHistory({ siteId, keyword, days: initialDays = 90 }: { siteId: string; keyword: string; days?: number }) {
+  const [selectedDays, setSelectedDays] = useState(initialDays)
   const [data, setData] = useState<HistoryPoint[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -20,7 +28,7 @@ export function KeywordHistory({ siteId, keyword, days = 90 }: { siteId: string;
   useEffect(() => {
     setLoading(true)
     setError(null)
-    fetch(`/api/sites/${siteId}/gsc/keywords/${encodeURIComponent(keyword)}/history?days=${days}`)
+    fetch(`/api/sites/${siteId}/gsc/keywords/${encodeURIComponent(keyword)}/history?days=${selectedDays}`)
       .then(r => {
         if (!r.ok) throw new Error('Failed to load')
         return r.json()
@@ -28,7 +36,17 @@ export function KeywordHistory({ siteId, keyword, days = 90 }: { siteId: string;
       .then(d => setData(d.timeline || []))
       .catch(e => setError(e instanceof Error ? e.message : 'Error'))
       .finally(() => setLoading(false))
-  }, [siteId, keyword, days])
+  }, [siteId, keyword, selectedDays])
+
+  const summary = useMemo(() => {
+    if (data.length === 0) return null
+    const positions = data.map(d => d.position).filter(p => p > 0)
+    return {
+      bestPosition: positions.length > 0 ? Math.min(...positions) : 0,
+      avgPosition: positions.length > 0 ? positions.reduce((a, b) => a + b, 0) / positions.length : 0,
+      totalClicks: data.reduce((sum, d) => sum + d.clicks, 0),
+    }
+  }, [data])
 
   if (loading) {
     return (
@@ -53,6 +71,41 @@ export function KeywordHistory({ siteId, keyword, days = 90 }: { siteId: string;
 
   return (
     <div className="space-y-4">
+      {/* Period selector */}
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-muted-foreground">Periode:</span>
+        <div className="flex rounded-md border overflow-hidden">
+          {PERIOD_OPTIONS.map(opt => (
+            <button
+              type="button"
+              key={opt.days}
+              onClick={() => setSelectedDays(opt.days)}
+              className={`px-3 py-1.5 text-sm ${selectedDays === opt.days ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-accent'}`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Summary stats */}
+      {summary && (
+        <div className="grid grid-cols-3 gap-3">
+          <div className="rounded-lg border p-3">
+            <div className="text-xs text-muted-foreground">Bedste position</div>
+            <div className="text-lg font-semibold">{summary.bestPosition.toFixed(1)}</div>
+          </div>
+          <div className="rounded-lg border p-3">
+            <div className="text-xs text-muted-foreground">Gns. position</div>
+            <div className="text-lg font-semibold">{summary.avgPosition.toFixed(1)}</div>
+          </div>
+          <div className="rounded-lg border p-3">
+            <div className="text-xs text-muted-foreground">Total klik</div>
+            <div className="text-lg font-semibold">{summary.totalClicks.toLocaleString('da-DK')}</div>
+          </div>
+        </div>
+      )}
+
       {/* Position chart */}
       <div>
         <div className="text-sm font-medium mb-2">Position over tid</div>

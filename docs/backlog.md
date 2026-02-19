@@ -889,7 +889,7 @@ Mindst 6 steder i UI-klienter bruger browser `alert()` til fejlhåndtering i ste
 
 ## Kategori 2: Keyword & Rank Tracking
 
-### 4. Keyword position-historik UI
+### 4. ~~Keyword position-historik UI~~ DONE 2026-02-19
 
 **Filer:** Ny komponent + eksisterende API `GET /api/sites/[siteId]/gsc/keywords/[keyword]/history`
 

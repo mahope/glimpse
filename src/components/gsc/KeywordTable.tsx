@@ -112,7 +112,7 @@ export function KeywordTable({ items, siteId, onFilter, sortField, sortDir, onSo
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{selectedKeyword}</DialogTitle>
-              <DialogDescription>Position, klik og visninger over de seneste 90 dage</DialogDescription>
+              <DialogDescription>Position, klik og visninger over tid</DialogDescription>
             </DialogHeader>
             {selectedKeyword && <KeywordHistory siteId={siteId} keyword={selectedKeyword} />}
           </DialogContent>
